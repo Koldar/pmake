@@ -1,4 +1,5 @@
 import abc
+import inspect
 import logging
 import os
 import re
@@ -56,8 +57,30 @@ class SessionScript(abc.ABC):
 
     @staticmethod
     def _list_all_commands() -> Iterable[Tuple[str, str]]:
+
+        def get_str(t: Any) -> str:
+            if hasattr(t, "__name__"):
+                return t.__name__
+            else:
+                return str(t)
+
         for command_name in filter(lambda x: not x.startswith("_"), dir(SessionScript)):
-            yield command_name, getattr(SessionScript, command_name).__doc__
+            method = getattr(SessionScript, command_name)
+            fullargspec = inspect.getfullargspec(method)
+            arg_tmp = []
+            if 'return' in fullargspec.annotations:
+                result_type = get_str(fullargspec.annotations["return"])
+            else:
+                result_type = "None"
+            for x in fullargspec.args[1:]:
+                if x in fullargspec.annotations:
+                    param_type = get_str(fullargspec.annotations[x])
+                else:
+                    param_type = "Any"
+                arg_tmp.append(f"{x}: {param_type}")
+            method_signature = f"{command_name} ({', '.join(arg_tmp)}) -> {result_type}"
+
+            yield method_signature, method.__doc__
 
     def _color_str(self, message: str, foreground: str = None, background: str = None) -> str:
         """

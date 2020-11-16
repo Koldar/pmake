@@ -1,6 +1,7 @@
 import argparse
 import logging
 import sys
+import textwrap
 
 import colorama
 
@@ -12,9 +13,12 @@ from pmake.constants import STANDARD_MODULES, STANDARD_VARIABLES
 
 def parse_options(args):
     core_functions = f'\n'.join(map(lambda x: f' {x[0] + 1}. {x[1][1].__name__};', enumerate(STANDARD_MODULES)))
+    core_functions = textwrap.dedent(core_functions)
     core_constants = f'\n'.join(map(lambda x: f' {x[0] + 1}. {x[1][0]}: {x[1][2]};', enumerate(STANDARD_VARIABLES)))
+    core_constants = textwrap.dedent(core_constants)
 
     convenience_commands = '\n'.join(map(lambda x: f' * {x[1][0]}\n{x[1][1]}\n', enumerate(SessionScript._list_all_commands())))
+    convenience_commands = textwrap.dedent(convenience_commands)
 
     parser = argparse.ArgumentParser(
         prog="pmake",
@@ -28,16 +32,16 @@ def parse_options(args):
         
         Aside from the core functions, you can access these modules:
         
-        {core_functions}
+{core_functions}
 
         You can add more modules using --python_module argument.
         In order to facilitate writing scripts, you can use the additional convenience functions:
 
-        {convenience_commands}
+{convenience_commands}
 
         Alongside such functions, there are some important readonly variables always available:
 
-        {core_constants}
+{core_constants}
 
         You can access the variables passed to "--variable" by calling their name.
         """,
