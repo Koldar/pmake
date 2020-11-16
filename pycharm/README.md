@@ -14,10 +14,22 @@ python setup.py bdist sdist bdist_wheel
 To installing on a system (ensure you are not in `venv`!):
 
 ```
-pip install dist\wheel-file
+pip install dist\*.whl
 ```
 
-# Pyinstaller
+Note that after installation, `pmake.exe` will be automatically installed in `%PYTHONPATH%/Scripts`
+
+# Help
+
+You can use
+
+```
+.\pmake.exe --help
+```
+
+to show a comprehensive help
+
+# Pyinstaller (optional)
 
 You can build an executable via
 
