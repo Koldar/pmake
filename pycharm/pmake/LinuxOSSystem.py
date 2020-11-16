@@ -1,11 +1,15 @@
 import os
 import subprocess
-from typing import Union, List, Tuple
+from typing import Union, List, Tuple, Dict
 
 from pmake.IOSSystem import IOSSystem
+from pmake.InterestingPath import InterestingPath
 
 
 class LinuxIOSSystem(IOSSystem):
+
+    def _fetch_interesting_paths(self, script: "SessionScript") -> Dict[str, List[InterestingPath]]:
+        return {}
 
     def get_current_username(self) -> str:
         code, stdout, stderr = self.execute("whoami")
