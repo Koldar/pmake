@@ -5,7 +5,7 @@ You can write python files containing useful functions.
 
 # Installing with setuptools
 
-You can build and install the pacakge via:
+You can build the pacakge via:
 
 ```
 python setup.py bdist sdist bdist_wheel
@@ -14,7 +14,7 @@ python setup.py bdist sdist bdist_wheel
 To installing on a system (ensure you are not in `venv`!):
 
 ```
-python setup.py install bdist
+pip install dist\wheel-file
 ```
 
 # Pyinstaller

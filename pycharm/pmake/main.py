@@ -61,7 +61,7 @@ def parse_options(args):
     A python module that the script will load. The first argument represents the name that you will use in the PMakefile
     while the second parameter is the python module to import. For instance --python_module "numpy" "np"
     """)
-    parser.add_argument("-v", "--variable", nargs=2, action="append", default=dict(), help="""
+    parser.add_argument("-v", "--variable", nargs=2, action="append", default=[], help="""
     Allows to input external variables in this file. For instance:
     
     --value "VariableName" "variableValue"

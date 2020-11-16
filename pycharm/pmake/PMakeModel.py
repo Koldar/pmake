@@ -11,6 +11,14 @@ from pmake.commons_types import path
 from pmake.constants import STANDARD_MODULES, STANDARD_VARIABLES
 
 
+class AttrDict():
+
+    def __init__(self, d):
+        self.__d = d
+
+    def __getattr__(self, item):
+        return self.__d[item]
+
 class PMakeModel(abc.ABC):
 
     def __init__(self):
@@ -43,7 +51,7 @@ class PMakeModel(abc.ABC):
 
         if "variables" in result:
             raise KeyError(f"duplicate key \"variables\". It is already mapped to the value {result['variables']}")
-        result["variables"] = {k: v for k, v in self.variable}
+        result["variables"] = AttrDict({k: v for k, v in self.variable})
 
         return result
 
