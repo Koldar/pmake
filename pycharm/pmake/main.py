@@ -43,7 +43,10 @@ def parse_options(args):
 
 {core_constants}
 
-        You can access the variables passed to "--variable" by calling their name.
+        You can access the variables passed to "--variable" by calling their name. For instance if oyu have "--variable "foo" "bar"
+        You can access foo variable via "variables.foo". You can access the set of all the commands via "commands.X" 
+        where "X" is the name of the command (e.g., "echo").
+        You can access "model" to gain access to the whole application shared context.  
         """,
         epilog=f"Massimo Bono 2020, Version {version.VERSION}",
         formatter_class=argparse.RawTextHelpFormatter,
