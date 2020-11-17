@@ -348,6 +348,11 @@ class SessionScript(abc.ABC):
         shutil.copyfile(asrc, adst)
 
     def copy_tree(self, src: path, dst: path):
+        """
+        Copy a whole directory tree
+        :param src: the folder to copy
+        :param dst: the destination where the copied folder will be positioned
+        """
         asrc = self.get_path(src)
         adst = self.get_path(dst)
         self._log_command(f"""Recursively copy files from \"{asrc}\" to \"{adst}\"""")

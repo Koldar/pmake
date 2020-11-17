@@ -232,7 +232,7 @@ class MyTestCase(unittest.TestCase):
         model = PMakeModel()
         model.variable = [("foo", "bar")]
         model.input_string = """
-            echo(variables['foo'])
+            echo(variables.foo)
         """
         self.assertStdoutEquals("bar", lambda: model.manage_pmakefile())
 
@@ -244,6 +244,13 @@ class MyTestCase(unittest.TestCase):
             remove_file("test-temp.py")
         """
         self.assertStdoutEquals("Hello", lambda: model.manage_pmakefile())
+
+    def test_commands(self):
+        model = PMakeModel()
+        model.input_string = """
+            commands.echo("Hello world")
+        """
+        self.assertStdoutEquals("Hello world", lambda: model.manage_pmakefile())
 
 
 if __name__ == '__main__':
