@@ -7,6 +7,8 @@ import version
 from distutils.core import Command
 from distutils.command.build import build
 
+from typing import List, Tuple
+
 with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
@@ -31,13 +33,17 @@ class generate_executable(Command):
         # --noconfirm --onefile --name "pmake" --icon "images\icon.ico" "pmake\pmake.py"
         main_script = os.path.abspath(os.path.join("pmake", "main.py"))
         print(f"generating executable of pmake using main {main_script}...")
-        subprocess.call(["pyinstaller",
-                         "--noconfirm", "--onefile",
-                         "--distpath", os.path.join("scripts"),
-                         "--name", "pmake",
-                         "--icon", os.path.join("images", "icon.ico"),
-                         main_script], shell=True
-                        )
+        PYINSTALLER = [
+            "pyinstaller",
+            "--hidden-import", "semver",
+            "--noconfirm", "--onefile",
+            "--distpath", os.path.join("scripts"),
+            "--name", "pmake",
+            "--icon", os.path.join("images", "icon.ico"),
+            main_script
+        ]
+        print(f"calling {' '.join(PYINSTALLER)}")
+        subprocess.call(' '.join(PYINSTALLER), shell=True)
         print(f"Done")
 
 
@@ -50,14 +56,16 @@ class custom_build(build):
         build.run(self)
 
 
-def get_scripts():
+def get_data_files() -> List[Tuple[str, List[str]]]:
     if os.name == "nt":
         return [
-            os.path.join("scripts", "pmake.exe")
+            # put exe into C:\Python38\Scripts
+            ("Scripts", [os.path.join("scripts", "pmake.exe")])
         ]
     elif os.name == "posix":
         return [
-            os.path.join("scripts", "pmake")
+            # /usr/local/bin
+            ("bin", [os.path.join("scripts", "pmake")])
         ]
     else:
         raise ValueError(f"invalid os name {os.name}")
@@ -79,10 +87,7 @@ setuptools.setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
-    data_files=[
-        # put exe into C:\Python38\Scripts
-        ("Scripts", get_scripts())
-    ],
+    data_files=get_data_files(),
     python_requires='>=3.6',
     cmdclass={
         'generate_executable': generate_executable,
