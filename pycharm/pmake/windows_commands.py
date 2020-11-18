@@ -13,6 +13,13 @@ class WindowsSessionScript(SessionScript):
     def __init__(self, model: "PMakeModel"):
         super().__init__(model)
 
+    def test_windows(self, string: str):
+        """
+        Test if windows commands is loaded
+        :param string: the string to echo'ed
+        """
+        self.echo(string)
+
     def add_to_regasm(self, dll: path, regasm_exe: path = None, use_codebase: bool = True, use_tlb: bool = True):
         """
         Add a dll into a regasm (either 32 or 64 bit)

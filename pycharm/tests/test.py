@@ -236,6 +236,32 @@ class MyTestCase(unittest.TestCase):
         """
         self.assertStdoutEquals("bar", lambda: model.manage_pmakefile())
 
+    def test_copy_folder_content(self):
+        model = PMakeModel()
+        model.variable = [("foo", "bar")]
+        model.input_string = """
+            create_empty_directory("temp")
+            old_pwd = cwd()
+            cd("temp")
+            create_empty_file("foo.txt")
+            create_empty_file("bar.txt")
+            create_empty_file("baz.txt")
+            cd(old_pwd)
+            create_empty_directory("temp2")
+            
+            copy_folder_content(
+                folder="temp",
+                destination="temp2",
+            )
+            if is_file_exists(os.path.join("temp2", "bar.txt")):
+                echo("Hello")
+            if not is_directory_exists(os.path.join("temp2", "temp")):
+                echo("World")
+        """
+        self.assertStdoutEquals("Hello\nWorld", lambda: model.manage_pmakefile())
+        shutil.rmtree("temp")
+        shutil.rmtree("temp2")
+
     def test_include(self):
         model = PMakeModel()
         model.input_string = """

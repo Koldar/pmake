@@ -55,6 +55,22 @@ class SessionScript(abc.ABC):
         self.interesting_paths = self._platform._fetch_interesting_paths(self)
         self.latest_interesting_path = self._platform._fetch_latest_paths(self, self.interesting_paths)
 
+    def get_latest_path_with_architecture(self, current_path: str, architecture: int) -> path:
+        """
+        get the latest path on the system with the specified archietcture
+        :param current_path: nominal path name
+        :param architecture: either 32 or 64
+        :return: the first path compliant with this path name
+        """
+        max_x = None
+        for x in filter(lambda x: x.architecture == architecture, self.interesting_paths[current_path]):
+            if max_x is None:
+                max_x = x
+            elif x.version > max_x.version:
+                max_x = x
+
+        return max_x.path
+
     @staticmethod
     def _list_all_commands() -> Iterable[Tuple[str, str]]:
 
@@ -349,17 +365,45 @@ class SessionScript(abc.ABC):
 
     def copy_tree(self, src: path, dst: path):
         """
-        Copy a whole directory tree
-        :param src: the folder to copy
+        Copy a whole directory tree or a single file
+        :param src: the folder or the file to copy.
         :param dst: the destination where the copied folder will be positioned
         """
         asrc = self.get_path(src)
         adst = self.get_path(dst)
         self._log_command(f"""Recursively copy files from \"{asrc}\" to \"{adst}\"""")
-        shutil.copytree(
-            asrc,
-            adst,
-        )
+        if os.path.isdir(asrc):
+            shutil.copytree(
+                asrc,
+                adst,
+            )
+        elif os.path.isfile(asrc):
+            shutil.copyfile(
+                asrc,
+                adst
+            )
+        else:
+            raise ValueError(f"Cannot determine if {asrc} is a file or a directory!")
+
+    def copy_folder_content(self, folder: path, destination: path):
+        """
+        Copy all the content of "folder" into the folder "destination"
+        :param folder: folder to copy files from
+        :param destination: folder where the contents will be copied into
+        """
+        afolder = self.get_path(folder)
+        adestination = self.get_path(destination)
+        self._log_command(f"""Copies all files inside \"{afolder}\" into the folder \"{adestination}\"""")
+
+        try:
+            self._disable_log_command = False
+            for x in self.ls(afolder, generate_absolute_path=False):
+                self.copy_tree(
+                    src=os.path.join(afolder, x),
+                    dst=os.path.abspath(os.path.join(adestination, x))
+                )
+        finally:
+            self._disable_log_command = True
 
     def download_url(self, url: str, destination: path = None, ignore_if_file_exists: bool = True) -> path:
         """
@@ -490,16 +534,21 @@ class SessionScript(abc.ABC):
         else:
             return os.path.abspath(os.path.join(self._cwd, p))
 
-    def ls(self, folder: path = None) -> Iterable[path]:
+    def ls(self, folder: path = None, generate_absolute_path: bool = False) -> Iterable[path]:
         """
         Show the list of all the files in the given directory
-        :param folder: fodler to scan. default to CWD
+        :param folder: folder to scan. default to CWD
+        :param generate_absolute_path: if true, we will generate in the outptu the absolute path of the subfolders. Otherwise we will return only the
         :return:
         """
         if folder is None:
             folder = self._cwd
         self._log_command(f"""listing files of folder \"{self.get_path(folder)}\"""")
-        yield from os.listdir(folder)
+        for x in os.listdir(folder):
+            if generate_absolute_path:
+                yield os.path.abspath(os.path.join(folder, x))
+            else:
+                yield x
 
     def ls_only_files(self, folder: path = None, generate_absolute_path: bool = False) -> Iterable[path]:
         """
