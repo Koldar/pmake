@@ -115,10 +115,10 @@ class SessionScript(abc.ABC):
         result = ""
         should_reset = False
         if foreground is not None:
-            result += str(self._foreground_mapping[foreground])
+            result += str(self._foreground_mapping[foreground.upper()])
             should_reset = True
         if background is not None:
-            result += str(self._background_mapping[background])
+            result += str(self._background_mapping[background.upper()])
             should_reset = True
         result += str(message)
         if should_reset:
@@ -242,11 +242,17 @@ class SessionScript(abc.ABC):
         """
         return self._model.starting_cwd
 
-    def get_input_file_path(self) -> path:
+    def get_pmakefile_path(self) -> path:
         """
-        :return: absolute path of the input file loaded
+        :return: absolute path of the main PMakefile path
         """
         return self._model.input_file
+
+    def get_pmakefile_dirpath(self) -> path:
+        """
+        :return: absolute path of the folder containing the main PMakefile path
+        """
+        return os.path.dirname(self._model.input_file)
 
     def echo(self, message: str, foreground: str = None, background: str = None):
         """
