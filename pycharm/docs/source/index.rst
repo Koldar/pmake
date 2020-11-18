@@ -10,6 +10,13 @@ Welcome to pmake's documentation!
    :maxdepth: 2
    :caption: Contents:
 
+Indices and tables
+==================
+
+* :ref:`genindex`
+* :ref:`modindex`
+* :ref:`search`
+
 Important commands
 ==================
 
@@ -21,10 +28,42 @@ The following are the importan commands that you can immediately use within pmak
 .. autoclass:: commands.SessionScript
    :members:
 
+PMake cache
+======================
 
-Indices and tables
+.. autoclass:: IPMakeCache.IPMakeCache
+   :members:
+
+.. autoclass:: JsonPMakeCache.JsonPMakeCache
+   :members:
+
+Platform interface
 ==================
 
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+.. autoclass:: IOSSystem.IOSSystem
+   :members:
+
+.. autoclass:: LinuxOSSystem.LinuxOSSystem
+   :members:
+
+.. autoclass:: WindowsOSSystem.WindowsOSSystem
+   :members:
+
+Additional commands platform dependent
+======================================
+
+.. autoclass:: linux_commands.LinuxSessionScript
+   :members:
+
+.. autoclass:: windows_commands.WindowsSessionScript
+   :members:
+
+Other classes
+=============
+
+.. autoclass:: InterestingPath.InterestingPath
+   :members:
+
+.. autoclass:: PMakeModel.PMakeModel
+   :members:
+

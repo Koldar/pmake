@@ -6,6 +6,6 @@ from pmake.IOSSystem import IOSSystem
 from pmake.IPMakeCache import IPMakeCache
 from pmake.JsonPMakeCache import JsonPMakeCache
 from pmake.linux_commands import LinuxSessionScript
-from pmake.LinuxOSSystem import LinuxIOSSystem
+from pmake.LinuxOSSystem import LinuxOSSystem
 from pmake.windows_commands import WindowsSessionScript
-from pmake.WindowsOSSystem import WindowsIOSSystem
+from pmake.WindowsOSSystem import WindowsOSSystem

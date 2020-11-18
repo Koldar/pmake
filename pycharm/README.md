@@ -43,5 +43,71 @@ pyinstaller --hidden-import "colorama" --noconfirm --onefile --name "pmake" --ic
 pip install sphinx
 cd docs/
 sphinx-quickstart
-make html
+make html latexpdf
 ```
+
+For latex, the packages needs to be installed (may be superset):
+
+ * `anyfontsize`;
+ * `auxhook`;
+ * `beamer`;
+ * `bigintcalc`;
+ * `bitset`;
+ * `capt-of`;
+ * `changepage`;
+ * `cmap`;
+ * `courier`;
+ * `datatool`;
+ * `dvips`;
+ * `etexcmds`;
+ * `fancyhdr`;
+ * `fancyvrb`;
+ * `fncychap`;
+ * `fontawesome`;
+ * `fontspec`;
+ * `fp`;
+ * `framed`;
+ * `geometry`;
+ * `gettitlestring`;
+ * `glossaries`;
+ * `hycolor`;
+ * `hyperref`;
+ * `intcalc`;
+ * `jknappen`;
+ * `koma-script`;
+ * `kvoptions`;
+ * `latexmk`;
+ * `letltxmacro`;
+ * `listings`;
+ * `lm`;
+ * `luatex85`;
+ * `mdframed`;
+ * `mfirstuc`;
+ * `miktex-lualatex`;
+ * `moresize`;
+ * `needspace`;
+ * `oberdiek`;
+ * `parskip`;
+ * `pdfescape`;
+ * `psnfss`;
+ * `refcount`;
+ * `rerunfilecheck`;
+ * `rsfs`;
+ * `sansmathaccent`;
+ * `substr`;
+ * `supetabular`;
+ * `tabulary`;
+ * `tex-ini-files`;
+ * `textcase`;
+ * `titlesec`;
+ * `tocbibind`;
+ * `translator`;
+ * `uniquecounter`;
+ * `upquote`;
+ * `url`;
+ * `wrapfig`;
+ * `xfor`;
+ * `xkeyval`;
+ * `zapfding`;
+ * `zref`;
+ 

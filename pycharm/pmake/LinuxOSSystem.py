@@ -9,7 +9,7 @@ from pmake.IOSSystem import IOSSystem
 from pmake.InterestingPath import InterestingPath
 
 
-class LinuxIOSSystem(IOSSystem):
+class LinuxOSSystem(IOSSystem):
 
     def _fetch_interesting_paths(self, script: "SessionScript") -> Dict[str, List[InterestingPath]]:
         return {}

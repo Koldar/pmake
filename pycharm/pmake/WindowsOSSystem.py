@@ -11,7 +11,7 @@ from pmake.IOSSystem import IOSSystem
 from pmake.InterestingPath import InterestingPath
 
 
-class WindowsIOSSystem(IOSSystem):
+class WindowsOSSystem(IOSSystem):
 
     def _fetch_interesting_paths(self, script: "commands.SessionScript") -> Dict[str, List[InterestingPath]]:
 

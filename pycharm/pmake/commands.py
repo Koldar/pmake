@@ -14,9 +14,9 @@ from typing import List, Union, Iterable, Tuple, Any, Callable
 
 import semver
 
-from pmake.LinuxOSSystem import LinuxIOSSystem
+from pmake import LinuxOSSystem
 from pmake import PMakeModel
-from pmake.WindowsOSSystem import WindowsIOSSystem
+from pmake import WindowsOSSystem
 from pmake.commons_types import path
 
 
@@ -49,9 +49,9 @@ class SessionScript(abc.ABC):
         }
         self._disable_log_command: bool = False
         if self.on_windows():
-            self._platform = WindowsIOSSystem()
+            self._platform = WindowsOSSystem.WindowsOSSystem()
         elif self.on_linux():
-            self._platform = LinuxIOSSystem()
+            self._platform = LinuxOSSystem.LinuxOSSystem()
         else:
             raise ValueError(f"Cannot identify platform!")
 
@@ -62,6 +62,7 @@ class SessionScript(abc.ABC):
     def get_latest_path_with_architecture(self, current_path: str, architecture: int) -> path:
         """
         get the latest path on the system with the specified archietcture
+
         :param current_path: nominal path name
         :param architecture: either 32 or 64
         :return: the first path compliant with this path name
@@ -105,6 +106,7 @@ class SessionScript(abc.ABC):
     def _color_str(self, message: str, foreground: str = None, background: str = None) -> str:
         """
         Color a string
+
         :param message: string involved
         :param foreground: foreground color of the string. Accepted values: RED, GREEN, YELLOW, BLUE, MAGENT, CYAN, WHITE
         :param background: background color of the string. Accepted values: RED, GREEN, YELLOW, BLUE, MAGENT, CYAN, WHITE
@@ -133,6 +135,7 @@ class SessionScript(abc.ABC):
     def get_architecture(self) -> int:
         """
         check if the system is designed on a 32 or 64 bits
+
         :return: either 32 or 64 bit
         """
         is_64 = sys.maxsize > 2**32
@@ -144,6 +147,7 @@ class SessionScript(abc.ABC):
     def on_windows(self) -> bool:
         """
         Check if we are running on windows
+
         :return: true if we are running on windows
         """
         self._log_command(f"Checking if we are on a windows system")
@@ -152,6 +156,7 @@ class SessionScript(abc.ABC):
     def on_linux(self) -> bool:
         """
         Check if we are running on linux
+
         :return: true if we are running on linux
         """
         self._log_command(f"Checking if we are on a linux system")
@@ -234,6 +239,7 @@ class SessionScript(abc.ABC):
     def echo(self, message: str, foreground: str = None, background: str = None):
         """
         Print a message on the screen
+
         :param message: the message to print out
         :param foreground: foreground color of the string. Accepted values: RED, GREEN, YELLOW, BLUE, MAGENT, CYAN, WHITE
         :param background: background color of the string. Accepted values: RED, GREEN, YELLOW, BLUE, MAGENT, CYAN, WHITE
@@ -245,6 +251,7 @@ class SessionScript(abc.ABC):
     def _log_command(self, message: str):
         """
         reserved. Useful to log the action performed by the user
+
         :param message: message to log
         """
         if not self._disable_log_command:
@@ -253,6 +260,7 @@ class SessionScript(abc.ABC):
     def info(self, message: str):
         """
         Log a message using 'INFO' level
+
         :param message: the message to log
         """
         logging.info(message)
@@ -260,6 +268,7 @@ class SessionScript(abc.ABC):
     def critical(self, message: str):
         """
         Log a message using 'CRITICAL' level
+
         :param message: the message to log
         """
         logging.critical(message)
@@ -267,6 +276,7 @@ class SessionScript(abc.ABC):
     def debug(self, message: str):
         """
         Log a message using 'DEBUG' level
+
         :param message: the message to log
         """
         logging.debug(message)
@@ -274,6 +284,7 @@ class SessionScript(abc.ABC):
     def create_empty_file(self, name: path, encoding: str = "utf-8"):
         """
         Create an empty file. if the file is relative, it is relative to the CWD
+
         :param name: file name to create
         :param encoding: encoding of the file. If unspecified, it is utf-8
         """
@@ -294,6 +305,7 @@ class SessionScript(abc.ABC):
     def create_empty_directory(self, name: path):
         """
         Create an empty directory in the CWD (if the path is relative)
+
         :param name:the name of the driectory to create
         """
         p = self.get_path(name)
@@ -302,6 +314,7 @@ class SessionScript(abc.ABC):
     def is_file_exists(self, name: path) -> bool:
         """
         Check if a file exists
+
         :param name: file whose existence we need to assert
         :return: true if the file exists, false otherwise
         """
@@ -312,6 +325,7 @@ class SessionScript(abc.ABC):
     def is_file_empty(self, name: path) -> bool:
         """
         Checks if a file exists. If exists, check if it empty as well.
+
         :param name: file to check
         :return: true if the file exists **and** has no bytes; false otherwise
         """
@@ -325,6 +339,7 @@ class SessionScript(abc.ABC):
     def is_directory_exists(self, name: path) -> bool:
         """
         Check if a directory exists.
+
         :param name: folder to check
         :return: true if the folder exists, false otherwise
         """
@@ -337,6 +352,7 @@ class SessionScript(abc.ABC):
     def is_directory_empty(self, name: path) -> bool:
         """
         Check if a directory exists and is empty
+
         :param name: folder to check
         :return: true if the folder exists and is empty, false otherwise
         """
@@ -349,6 +365,7 @@ class SessionScript(abc.ABC):
     def is_file_non_empty(self, name: path) -> bool:
         """
         Checks if a file exists. If exists, check if it is not empty as well.
+
         :param name: file to check
         :return: true if the file exists **and** has at least one byte; false otherwise
         """
@@ -362,6 +379,7 @@ class SessionScript(abc.ABC):
     def write_file(self, name: path, content: Any, encoding: str = "utf-8", overwrite: bool = False, add_newline: bool = True):
         """
         Write into a file with the specified content. if overwrite is unset, we will do nothing if the file already exists
+
         :param name: name of the file to create
         :param content: content of the file to create.
         :param encoding: encoding fo the file to create. utf-8 by default
@@ -382,6 +400,7 @@ class SessionScript(abc.ABC):
     def write_lines(self, name: path, content: Iterable[Any], encoding: str = "utf-8", overwrite: bool = False):
         """
         Write severla lines into a file. if overwrite is unset, we will do nothing if the file already exists
+
         :param name: name of the file to create
         :param content: lines of the file to create. We will append a new ine at the end of each line
         :param encoding: encoding fo the file to create. utf-8 by default
@@ -401,6 +420,7 @@ class SessionScript(abc.ABC):
         """
         Read the content of a file and yields as many item as there are lines in the file.
         Strip from the line ending new lines. Does not consider empty lines
+
         :param name: name of the file
         :param encoding: encoding of the file. If unspecified, it is utf-8
         :return: iterable containing the lines of the file
@@ -418,6 +438,7 @@ class SessionScript(abc.ABC):
     def read_file_content(self, name: path, encoding: str = "utf-8", trim_newlines: bool = False) -> str:
         """
         Read the whole content of the file in a single string
+
         :param name: name of the file to load
         :param encoding: the encoding of the file. If unspecified, it is utf-8
         :param trim_newlines: if true, we will trim the newlines, spaces and tabs at the beginning and at the end of the file
@@ -434,6 +455,7 @@ class SessionScript(abc.ABC):
     def append_string_at_end_of_file(self, name: path, content: Any, encoding: str = "utf-8"):
         """
         Append a string at the end of the file. carriage return is automatically added
+
         :param name: filename
         :param content: string to append
         :param encoding: encoding of the file. If missing, "utf-8" is used
@@ -446,6 +468,7 @@ class SessionScript(abc.ABC):
     def copy_file(self, src: path, dst: path):
         """
         Copy a single file from a position to another one
+
         :param src: file to copy
         :param dst: destination where the file will be copied to
         """
@@ -457,6 +480,7 @@ class SessionScript(abc.ABC):
     def copy_tree(self, src: path, dst: path):
         """
         Copy a whole directory tree or a single file
+
         :param src: the folder or the file to copy.
         :param dst: the destination where the copied folder will be positioned
         """
@@ -479,6 +503,7 @@ class SessionScript(abc.ABC):
     def copy_folder_content(self, folder: path, destination: path):
         """
         Copy all the content of "folder" into the folder "destination"
+
         :param folder: folder to copy files from
         :param destination: folder where the contents will be copied into
         """
@@ -499,6 +524,7 @@ class SessionScript(abc.ABC):
     def download_url(self, url: str, destination: path = None, ignore_if_file_exists: bool = True) -> path:
         """
         Download an artifact from internet
+
         :param url: the url where the file is lcoated
         :param destination: the folder where the file will be created
         :param ignore_if_file_exists: if true, we will not perform the download at all
@@ -512,9 +538,10 @@ class SessionScript(abc.ABC):
         result, http_message = urllib.request.urlretrieve(url, dst)
         return result
 
-    def allow_file_to_be_executed_by_anyone(self, file: path):
+    def allow_file_to_be_executed_by_anyone(self, file: path) -> None:
         """
         Allow the file to be executed by anyone. On a linux system it should be equal to "chmod o+x"
+
         :param file: the file whose permission needs to be changed
         """
         p = self.get_path(file)
@@ -527,6 +554,7 @@ class SessionScript(abc.ABC):
         We will copy only the files whose basename (e.g. foo.txt is the basename of /opt/foo/bar/foo.txt).
         We will copy the directories where a file is located as well
         matches the given regex
+
         :param src: folder where we will find files to copy
         :param dst: destination of the files
         :param regex: regex that determines wether or not a file is copies
@@ -565,6 +593,7 @@ class SessionScript(abc.ABC):
         We will copy only the files whose basename (e.g. foo.txt is the basename of /opt/foo/bar/foo.txt).
         We will copy the directories where a file is located as well
         matches the given regex
+
         :param src: folder where we will find files to copy
         :param regex: regex that determines wether or not a file is copies
         :return:
@@ -587,6 +616,7 @@ class SessionScript(abc.ABC):
     def move_file(self, src: path, dst: path):
         """
         Move a single file from a location to another one
+
         :param src: the file to move
         :param dst: the path where the file will be moved to
         """
@@ -598,6 +628,7 @@ class SessionScript(abc.ABC):
     def remove_file(self, name: path, ignore_if_not_exists: bool = True) -> bool:
         """
         Remove a file. If the cannot be removed (for some reason), ignore_if_not_exists determines if somethign goes wrong
+
         :param name: file to delete
         :param ignore_if_not_exists: if true, we won't raise exception if the file does not exists or cannot be removed
         :return: true if we have removed the file, false otherwise
@@ -628,6 +659,7 @@ class SessionScript(abc.ABC):
     def ls(self, folder: path = None, generate_absolute_path: bool = False) -> Iterable[path]:
         """
         Show the list of all the files in the given directory
+
         :param folder: folder to scan. default to CWD
         :param generate_absolute_path: if true, we will generate in the outptu the absolute path of the subfolders. Otherwise we will return only the
         :return:
@@ -644,6 +676,7 @@ class SessionScript(abc.ABC):
     def ls_only_files(self, folder: path = None, generate_absolute_path: bool = False) -> Iterable[path]:
         """
         Show the list of all the files (but not directories) in the given directory
+
         :param folder: folder to scan. default to CWD
         :param generate_absolute_path: if true, we will generate in the outptu the absolute path of the subfolders. Otherwise we will return only the
         :return:
@@ -662,6 +695,7 @@ class SessionScript(abc.ABC):
     def ls_only_directories(self, folder: path = None, generate_absolute_path: bool = False) -> Iterable[path]:
         """
         Show the list of all the directories in the given directory
+
         :param folder: folder to scan. default to CWD
         :param generate_absolute_path: if true, we will generate in the outptu the absolute path of the subfolders. Otherwise we will return only the
         names
@@ -681,6 +715,7 @@ class SessionScript(abc.ABC):
     def ls_recursive(self, folder: path = None) -> Iterable[path]:
         """
         Show the list of all the files in the given folder
+
         :param folder: folder to scan (default to cwd)
         :return: list of absolute filename representing the stored files
         """
@@ -695,6 +730,7 @@ class SessionScript(abc.ABC):
     def match(self, string: str, regex: str) -> bool:
         """
         Check if a given string matches perfectly the given regex
+
         :param string: the sting to check
         :param regex: the regex to check. The syntax is available at https://docs.python.org/3/library/re.html
         :return: true if such a substring can be found, false otherwise
@@ -705,6 +741,7 @@ class SessionScript(abc.ABC):
     def get_relative_path_wrt(self, p: path, reference: path):
         """
         If we were in folder reference, what actiosn should we perform in order to reach the file p?
+
         :param p: the file to reach
         :param reference: the folder we are in right now
         :return: relative path
@@ -714,6 +751,7 @@ class SessionScript(abc.ABC):
     def search(self, string: str, regex: str):
         """
         Check if a given string has a substring that matches the given regex
+
         :param string: the sting to check
         :param regex: the regex to check. The syntax is available at https://docs.python.org/3/library/re.html
         :return: true if such a substring can be found, false otherwise
@@ -724,6 +762,7 @@ class SessionScript(abc.ABC):
     def ls_directories_recursive(self, folder: path) -> Iterable[path]:
         """
         Show the list of all the directories in the given folder
+
         :param folder: folder to scan (default to cwd)
         :return: list of absolute filename representing the stored directories
         """
@@ -739,6 +778,7 @@ class SessionScript(abc.ABC):
         """
         Gain access to a directory. If the directory does nto exists, it is created
         If the path is relative, it is relative to the CWD
+
         :param folder: folder where we need to go into
         :param create_if_not_exists: if true, we will create the directory if we try to cd into a non existent directory
         """
@@ -750,23 +790,24 @@ class SessionScript(abc.ABC):
     def current_user(self) -> str:
         """
         get the user currently logged
-        :return:
+
+        :return: the user currently logged
         """
         return self._platform.get_current_username()
 
     def abs_wrt_cwd(self, *paths) -> path:
         """
         generate a path relative to cwd and generate the absolute path of it
-        :param paths:
-        :return:
+
+        :param paths: the single elements of a path to join and whose absolute path we need to compute
+        :return: absolute path, relative to the current working directory
         """
         return os.path.abspath(os.path.join(self._cwd, *paths))
 
-    def make_directories(self, folder: path):
+    def make_directories(self, folder: path) -> None:
         """
         Create all the needed directories for the given path
-        :param folder:
-        :return:
+        :param folder: folders to create
         """
         self._log_command(f"""Recursively create directories \"{self.get_path(folder)}\"""")
         os.makedirs(self.get_path(folder), exist_ok=True)
@@ -779,6 +820,7 @@ class SessionScript(abc.ABC):
         - "semver2": a semantic versionign string;
         We fetch the "latest" by looking at the one with the greater value. If the folder contains a folder which it is not compliant
         with folder_format, it is either ignored or rase error
+
         :param folder: folder where several folders are located
         :param prefix: a string that prefix folder_format
         :param folder_format: either "number" or "semver2"
@@ -823,7 +865,8 @@ class SessionScript(abc.ABC):
     def exec(self, command: Union[str, List[str]], cwd: path = None):
         """
         Execute a command as current user. if you use this command it is assumed you absolutely don't care about
-        the outpput of the command
+        the output of the command
+
         :param command: command to exexcute. If possible, prefer using a list rather than a string. string are stuill supported though
         :param cwd: directory where this command should be executed. If missing, the cwd is the CWD of the whole script
         """
@@ -843,6 +886,7 @@ class SessionScript(abc.ABC):
         """
         Execute a command as admin. if you use this command it is assumed you absolutely don't care about
         the outpput of the command
+
         :param command: command to exexcute. If possible, prefer using a list rather than a string. string are stuill supported though
         :param cwd: directory where this command should be executed. If missing, the cwd is the CWD of the whole script
         """
@@ -861,6 +905,7 @@ class SessionScript(abc.ABC):
     def exec_stdout(self, command: Union[str, List[str]], cwd: path = None) -> str:
         """
         Execute a command as current user. if you use this command it is assumed you care about the output of the command
+
         :param command: command to exexcute. If possible, prefer using a list rather than a string. string are stuill supported though
         :param cwd: directory where this command should be executed. If missing, the cwd is the CWD of the whole script
         """
@@ -880,6 +925,7 @@ class SessionScript(abc.ABC):
     def exec_admin_stdout(self, command: Union[str, List[str]], cwd: path = None) -> str:
         """
         Execute a command as admin. if you use this command it is assumed you care about the output of the command
+
         :param command: command to exexcute. If possible, prefer using a list rather than a string. string are stuill supported though
         :param cwd: directory where this command should be executed. If missing, the cwd is the CWD of the whole script
         """
@@ -923,7 +969,8 @@ class SessionScript(abc.ABC):
     def include_file(self, file: path):
         """
         Replace the include directive with the content fo the included file. Fails if there is no such path
-        :param file:
+
+        :param file: the external file to include in the script
         :return:
         """
 

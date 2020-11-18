@@ -58,3 +58,9 @@ html_theme = 'alabaster'
 html_static_path = ['_static']
 
 # -- Options for Latex output -------------------------------------------------
+
+latex_engine = "pdflatex"
+latex_elements = {
+    "papersize": "a4",
+    "pointsize": "12pt"
+}
