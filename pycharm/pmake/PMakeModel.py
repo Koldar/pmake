@@ -6,20 +6,35 @@ from typing import Any, Dict, Optional
 
 import colorama
 
+from pmake.IPMakeCache import IPMakeCache
+from pmake.JsonPMakeCache import JsonPMakeCache
 from pmake.commands import SessionScript
 from pmake.commons_types import path
 from pmake.constants import STANDARD_MODULES, STANDARD_VARIABLES
 
 
 class AttrDict():
+    """
+    A dictioanry whose values can be accessed with "." notation.
+    For instance:
+
+    d.foo is the same as d["foo"]
+    """
 
     def __init__(self, d):
         self.__d = d
 
-    def __getattr__(self, item):
+    def __getattr__(self, item: str) -> Any:
         return self.__d[item]
 
+    def __getitem__(self, item: str) -> Any:
+        return self.__d[item]
+
+
 class PMakeModel(abc.ABC):
+    """
+    The application model of pmake progam
+    """
 
     def __init__(self):
         self.input_file: Optional[str] = None
@@ -28,8 +43,9 @@ class PMakeModel(abc.ABC):
         self.log_level: Optional[str] = None
         self.session_script: "SessionScript" = SessionScript(self)
         self.variable: Dict[str, Any] = {}
-        self._eval_globals: Dict[str, Any] = None
-        self._eval_locals: Dict[str, Any] = None
+        self.pmake_cache: Optional["IPMakeCache"] = None
+        self._eval_globals: Optional[Dict[str, Any]] = None
+        self._eval_locals: Optional[Dict[str, Any]] = None
 
     def _get_eval_global(self) -> Dict[str, Any]:
         result = dict()
@@ -71,6 +87,8 @@ class PMakeModel(abc.ABC):
             self.execute()
         finally:
             colorama.deinit()
+            if self.pmake_cache is not None:
+                self.pmake_cache.update_cache()
 
     def execute(self):
         """
@@ -112,6 +130,8 @@ class PMakeModel(abc.ABC):
                 self._eval_locals = self._get_eval_locals()
             if self._eval_globals is None:
                 self._eval_globals = self._get_eval_global()
+            if self.pmake_cache is None:
+                self.pmake_cache = JsonPMakeCache("pmake-cache.json")
             exec(
                 string,
                 self._eval_globals,

@@ -8,21 +8,23 @@ import stat
 import sys
 
 import colorama
+import json
 import urllib.request
-from typing import List, Union, Iterable, Tuple, Any, Dict
+from typing import List, Union, Iterable, Tuple, Any, Dict, Callable
 
 import semver as semver
 
 from pmake.InterestingPath import InterestingPath
 from pmake.LinuxOSSystem import LinuxIOSSystem
+from pmake import PMakeModel
 from pmake.WindowsOSSystem import WindowsIOSSystem
 from pmake.commons_types import path
 
 
 class SessionScript(abc.ABC):
 
-    def __init__(self, model: "PMakeModel"):
-        self._model = model
+    def __init__(self, model: "PMakeModel.PMakeModel"):
+        self.model = model
         self._cwd = os.path.abspath(os.curdir)
         self._locals = {}
         self._foreground_mapping = {
@@ -136,6 +138,74 @@ class SessionScript(abc.ABC):
         """
         self._log_command(f"Checking if we are on a linux system")
         return os.name == "posix"
+
+    def set_variable_in_cache(self, name: str, value: Any, overwrite_if_exists: bool = True):
+        """
+        Set a variable inside the program cache. Setting variable in cache allows pmake to
+        store information between several runs of pmake.
+
+        How pmake stores the information is implementation dependent and it should not be relied upon
+
+        :param name: name of the variable to store
+        :param value: object to store
+        :param overwrite_if_exists: if true, if the cache already contain a variable with the same name, such a varaible will be replaced
+        with the new one
+        """
+        self.model.pmake_cache.set_variable_in_cache(
+            name=name,
+            value=value,
+            overwrites_is_exists=overwrite_if_exists
+        )
+
+    def has_variable_in_cache(self, name: str) -> bool:
+        """
+        Check if a variable is in the pmake cache
+
+        :param name: name of the variable to check
+        :return: true if a varaible with such a name is present in the cache, false otherwise
+        """
+        return self.model.pmake_cache.has_variable_in_cache(
+            name=name
+        )
+
+    def get_variable_in_cache(self, name: str) -> Any:
+        """
+        Get the variable from the cache. if the variable does not exist, an error is generated
+
+        :param name: name of the variable to check
+        :return: the value associated to such a variable
+        """
+        return self.model.pmake_cache.get_variable_in_cache(
+            name=name
+        )
+
+    def get_variable_in_cache_or(self, name: str, default: Any) -> Any:
+        """
+        Get the variable value from the cache or get a default value if it does not exist
+
+        :param name: name of the variable to fetch
+        :param default: if the variable does not exist in the cache, the value to retturn from this function
+        :return: the variable value
+        """
+        if self.model.pmake_cache.has_variable_in_cache(name):
+            return self.model.pmake_cache.get_variable_in_cache(name)
+        else:
+            return default
+
+    def add_or_update_variable(self, name: str, supplier: Callable[[], Any], mapper: Callable[[Any], Any]):
+        """
+        Add a new variable in the cache
+
+        :param name: the variable to set
+        :param supplier: function used to generate the value fo the variable if the variable does not exist in the cache
+        :param mapper: function used to generate the value fo the variable if the variable does exist in the cache. The input
+        is the variable old value
+        """
+        if self.model.pmake_cache.has_variable_in_cache(name):
+            new_value = mapper(self.model.pmake_cache.get_variable_in_cache(name))
+        else:
+            new_value = supplier()
+        self.model.pmake_cache.set_variable_in_cache(name, new_value)
 
     def echo(self, message: str, foreground: str = None, background: str = None):
         """
@@ -751,8 +821,29 @@ class SessionScript(abc.ABC):
         )
         return stdout
 
+    def execute_admin_with_password(self, command: Union[str, List[str]], password: str, cwd: str = None,
+                                    use_shell: bool = True) -> str:
+        """
+        Execute a command as admin by provingin the admin password. **THIS IS INCREEDIBLE UNSAFE!!!!!!!!!!!!**.
+        Please, I beg you, do **NOT** use this if you need any level of security!!!!! This will make the password visible
+        on top, on the history, everywhere on your system. Please use it only if you need to execute a command on your
+        local machine.
+
+        :param command: the command to execute
+        :param password: admin password
+        :param cwd: current working directory where the command is executed
+        :param use_shell: use_shell of subprocess method
+        :return: the stdout output of the command
+        """
+        return self._platform.execute_admin_with_password(
+            command=command,
+            password=password,
+            cwd=cwd,
+            use_shell=use_shell
+        )
+
     def include_string(self, string: str):
-        self._model.execute_string(string)
+        self.model.execute_string(string)
 
     def include_file(self, file: path):
         """
@@ -763,7 +854,7 @@ class SessionScript(abc.ABC):
 
         p = self.get_path(file)
         self._log_command(f"include file content \"{p}\"")
-        self._model.execute_file(p)
+        self.model.execute_file(p)
 
 
 

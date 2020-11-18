@@ -115,3 +115,6 @@ class WindowsIOSSystem(IOSSystem):
                         stderr = self._convert_stdout(f.read())
 
             return returncode, stdout, stderr
+
+    def execute_admin_with_password(self, command: Union[str, List[str]], password: str, cwd: str = None, use_shell: bool = True) -> str:
+        raise NotImplemented()

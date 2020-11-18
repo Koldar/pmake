@@ -33,6 +33,21 @@ class IOSSystem(abc.ABC):
     def execute_admin(self, command: Union[str, List[str]], cwd: str = None, use_shell: bool = True, capture_stdout: bool = True) -> Tuple[int, str, str]:
         pass
 
+    @abc.abstractmethod
+    def execute_admin_with_password(self, command: Union[str, List[str]], password: str, cwd: str = None, use_shell: bool = True) -> str:
+        """
+        Execute an admin command by passing an admin password. this is **INCREDIBLY INSECURE**!!!!!!!!!!!
+        Do **NOT** use it if security is concern (which is usually the case!). The command has been introduced because
+        it is normally the case to compile something on your machine and just for you.
+
+        :param command: the command to execute as admin
+        :param password: the password for admin
+        :param cwd: current working directory where the command is executed
+        :param use_shell: if true, we will enable the "use_shell" on subprocess methods
+        :return: the stdout of the command
+        """
+        pass
+
     def _get_semantic_version(self, s: str) -> semver.VersionInfo:
         if len(s.split(".")) == 1:
             return semver.VersionInfo.parse(f"{s}.0.0")
