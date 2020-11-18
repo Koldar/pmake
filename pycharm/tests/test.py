@@ -254,6 +254,15 @@ class MyTestCase(unittest.TestCase):
         """
         self.assertStdoutEquals("Hello", lambda: model.manage_pmakefile())
 
+    def test_execute_admin_with_password(self):
+        if os.name == "posix":
+            model = PMakeModel()
+            model.input_string = """
+                password = read_file_content("PASSWORD", trim_newlines=True)
+                echo(execute_admin_with_password("echo hello", password))
+            """
+            self.assertStdoutEquals("hello", lambda: model.manage_pmakefile())
+
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)

@@ -382,17 +382,21 @@ class SessionScript(abc.ABC):
                     continue
                 yield line.rstrip("\n\r")
 
-    def read_file_content(self, name: path, encoding: str = "utf-8") -> str:
+    def read_file_content(self, name: path, encoding: str = "utf-8", trim_newlines: bool = False) -> str:
         """
         Read the whole content of the file in a single string
         :param name: name of the file to load
         :param encoding: the encoding of the file. If unspecified, it is utf-8
+        :param trim_newlines: if true, we will trim the newlines, spaces and tabs at the beginning and at the end of the file
         :return: string repersenting the content of the file
         """
         p = self.get_path(name)
         self._log_command(f"Reading file {p} content")
         with open(p, "r", encoding=encoding) as f:
-            return f.read()
+            result = f.read()
+        if trim_newlines:
+            result = result.strip("\t\n\r ")
+        return result
 
     def append_string_at_end_of_file(self, name: path, content: Any, encoding: str = "utf-8"):
         """
