@@ -8,13 +8,12 @@ import stat
 import sys
 
 import colorama
-import json
+
 import urllib.request
-from typing import List, Union, Iterable, Tuple, Any, Dict, Callable
+from typing import List, Union, Iterable, Tuple, Any, Callable
 
-import semver as semver
+import semver
 
-from pmake.InterestingPath import InterestingPath
 from pmake.LinuxOSSystem import LinuxIOSSystem
 from pmake import PMakeModel
 from pmake.WindowsOSSystem import WindowsIOSSystem
@@ -22,6 +21,9 @@ from pmake.commons_types import path
 
 
 class SessionScript(abc.ABC):
+    """
+    Contains all the commands available for the user in a PMakefile.py file
+    """
 
     def __init__(self, model: "PMakeModel.PMakeModel"):
         self._model = model
@@ -171,7 +173,7 @@ class SessionScript(abc.ABC):
         :param name: name of the variable to store
         :param value: object to store
         :param overwrite_if_exists: if true, if the cache already contain a variable with the same name, such a varaible will be replaced
-        with the new one
+            with the new one
         """
         self._model.pmake_cache.set_variable_in_cache(
             name=name,
@@ -221,7 +223,7 @@ class SessionScript(abc.ABC):
         :param name: the variable to set
         :param supplier: function used to generate the value fo the variable if the variable does not exist in the cache
         :param mapper: function used to generate the value fo the variable if the variable does exist in the cache. The input
-        is the variable old value
+            is the variable old value
         """
         if self._model.pmake_cache.has_variable_in_cache(name):
             new_value = mapper(self._model.pmake_cache.get_variable_in_cache(name))
@@ -773,8 +775,8 @@ class SessionScript(abc.ABC):
         """
         Inside the given folder, there can be several folders, each of them with the same format. We cd into the "latest" one.
         How can we determine which is the "latest" one? Via folder_format. it is a string that is either:
-         - number: an integer number
-         - semver2: a semantic versionign string;
+        - "number": an integer number
+        - "semver2": a semantic versionign string;
         We fetch the "latest" by looking at the one with the greater value. If the folder contains a folder which it is not compliant
         with folder_format, it is either ignored or rase error
         :param folder: folder where several folders are located

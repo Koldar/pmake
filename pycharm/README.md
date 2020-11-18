@@ -36,3 +36,12 @@ You can build an executable via
 ```
 pyinstaller --hidden-import "colorama" --noconfirm --onefile --name "pmake" --icon "images\icon.ico" "pmake\pmake.py"
 ```
+
+# Documentation
+
+```
+pip install sphinx
+cd docs/
+sphinx-quickstart
+make html
+```

@@ -3,9 +3,7 @@ import logging
 import sys
 import textwrap
 
-import colorama
-
-import version
+from pmake import version
 from pmake.PMakeModel import PMakeModel
 from pmake.commands import SessionScript
 from pmake.constants import STANDARD_MODULES, STANDARD_VARIABLES

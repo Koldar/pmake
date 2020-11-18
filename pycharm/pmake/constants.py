@@ -3,7 +3,7 @@ import itertools
 import math
 import os
 
-import version
+from pmake import version
 
 STANDARD_MODULES = [
     ("math", math),

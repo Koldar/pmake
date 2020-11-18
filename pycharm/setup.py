@@ -2,7 +2,7 @@ import os
 import subprocess
 
 import setuptools
-import version
+from pmake import version
 
 from distutils.core import Command
 from distutils.command.build import build
