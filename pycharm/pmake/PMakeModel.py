@@ -38,6 +38,7 @@ class PMakeModel(abc.ABC):
         self.log_level: Optional[str] = None
         self.session_script: "SessionScript" = SessionScript(self)
         self.variable: Dict[str, Any] = {}
+        self.starting_cwd: path = os.path.abspath(os.curdir)
         self.pmake_cache: Optional["IPMakeCache"] = None
         self._eval_globals: Optional[Dict[str, Any]] = None
         self._eval_locals: Optional[Dict[str, Any]] = None

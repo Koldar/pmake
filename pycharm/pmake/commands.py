@@ -236,6 +236,18 @@ class SessionScript(abc.ABC):
             new_value = supplier()
         self._model.pmake_cache.set_variable_in_cache(name, new_value)
 
+    def get_starting_cwd(self) -> path:
+        """
+        :return: absolute path of where you have called pmake
+        """
+        return self._model.starting_cwd
+
+    def get_input_file_path(self) -> path:
+        """
+        :return: absolute path of the input file loaded
+        """
+        return self._model.input_file
+
     def echo(self, message: str, foreground: str = None, background: str = None):
         """
         Print a message on the screen
