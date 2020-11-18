@@ -310,6 +310,14 @@ class MyTestCase(unittest.TestCase):
 
         os.unlink("pmake-cache.json")
 
+    def test_is_program_installed(self):
+        model = PMakeModel()
+        model.input_string = """
+            echo(is_program_installed("echo"))
+            echo(is_program_installed("opasdfhiovsefuhawzxcvsdvbjkfawfhsd"))
+        """
+        self.assertStdoutEquals("True\nFalse", lambda: model.manage_pmakefile())
+
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)

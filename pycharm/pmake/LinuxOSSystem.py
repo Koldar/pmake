@@ -18,7 +18,7 @@ class LinuxIOSSystem(IOSSystem):
         code, stdout, stderr = self.execute("whoami")
         return stdout
 
-    def execute(self, command: Union[str, List[str]], cwd: str = None, use_shell: bool = True, capture_stdout: bool = True) -> \
+    def execute(self, command: Union[str, List[str]], cwd: str = None, use_shell: bool = True, capture_stdout: bool = True, check_output: bool = True) -> \
     Tuple[int, str, str]:
         if cwd is None:
             cwd = os.curdir
@@ -29,9 +29,10 @@ class LinuxIOSSystem(IOSSystem):
         else:
             raise TypeError(f"Invalid type of command {type(command)}!")
 
-        result = subprocess.run(command, cwd=cwd, shell=use_shell, capture_output=capture_stdout)
-        if result.returncode != 0:
-            raise ValueError(f"cwd=\"{cwd}\" command=\"{command}\" exit=\"{result.returncode}\"")
+        result = subprocess.run(args=command, cwd=cwd, shell=use_shell, capture_output=capture_stdout)
+        if check_output:
+            if result.returncode != 0:
+                raise ValueError(f"cwd=\"{cwd}\" command=\"{command}\" exit=\"{result.returncode}\"")
 
         if capture_stdout:
             stdout = self._convert_stdout(result.stdout)
@@ -42,19 +43,31 @@ class LinuxIOSSystem(IOSSystem):
         return result.returncode, stdout, stderr
 
     def execute_admin(self, command: Union[str, List[str]], cwd: str = None, use_shell: bool = True,
-                      capture_stdout: bool = True):
+                      capture_stdout: bool = True, check_output: bool = True):
         if cwd is None:
             cwd = os.curdir
         if isinstance(command, str):
-            return self.execute(command=f"sudo {command}", cwd=cwd, use_shell=use_shell, capture_stdout=capture_stdout)
+            return self.execute(
+                command=f"sudo {command}",
+                cwd=cwd,
+                use_shell=use_shell,
+                capture_stdout=capture_stdout,
+                check_output=check_output
+            )
         elif isinstance(command, list):
             tmp = ["sudo"]
             tmp.extend(command)
-            return self.execute(command=tmp, cwd=cwd, use_shell=use_shell, capture_stdout=capture_stdout)
+            return self.execute(
+                command=tmp,
+                cwd=cwd,
+                use_shell=use_shell,
+                capture_stdout=capture_stdout,
+                check_output=check_output
+            )
         else:
             raise TypeError(f"invalid command type {type(command)}")
 
-    def execute_admin_with_password(self, command: Union[str, List[str]], password: str, cwd: str = None, use_shell: bool = True) -> str:
+    def execute_admin_with_password(self, command: Union[str, List[str]], password: str, cwd: str = None, use_shell: bool = True, check_output: bool = True) -> str:
         if cwd is None:
             cwd = os.curdir
 
@@ -83,7 +96,8 @@ class LinuxIOSSystem(IOSSystem):
                     command=f"""cat '{temp_stdin.name}' | sudo --stdin bash '{temp_cmd.name}'""",
                     cwd=temp_dir,
                     use_shell=use_shell,
-                    capture_stdout=True
+                    capture_stdout=True,
+                    check_output=check_output
                 )
                 return stdout
             except Exception as e:
@@ -91,3 +105,12 @@ class LinuxIOSSystem(IOSSystem):
             finally:
                 os.unlink(temp_stdin.name)
                 os.unlink(temp_cmd.name)
+
+    def is_program_installed(self, program_name: str) -> bool:
+        exit_code, _, _ = self.execute(
+            command=f"which {program_name}",
+            use_shell=True,
+            capture_stdout=True,
+            check_output=False
+        )
+        return exit_code == 0

@@ -118,3 +118,6 @@ class WindowsIOSSystem(IOSSystem):
 
     def execute_admin_with_password(self, command: Union[str, List[str]], password: str, cwd: str = None, use_shell: bool = True) -> str:
         raise NotImplemented()
+
+    def is_program_installed(self, program_name: str) -> bool:
+        raise NotImplemented()

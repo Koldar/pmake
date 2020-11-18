@@ -26,15 +26,33 @@ class IOSSystem(abc.ABC):
 
     @abc.abstractmethod
     def execute(self, command: Union[str, List[str]], cwd: str = None, use_shell: bool = True,
-                      capture_stdout: bool = True) -> Tuple[int, str, str]:
+                      capture_stdout: bool = True, check_output: bool = True) -> Tuple[int, str, str]:
+        """
+        Execute an arbitrary command
+
+        :param command: the command to execute. Can either be a list of strnigs or a string
+        :param cwd: directory where the command will be executed
+        :param use_shell: parameter to pass to subprocess method
+        :param capture_stdout: if true, we will save the output of the program and return it (both stdout and stderr)
+        :param check_output: if true, we will generate an exception if the exit code is different than 0
+        """
         pass
 
     @abc.abstractmethod
-    def execute_admin(self, command: Union[str, List[str]], cwd: str = None, use_shell: bool = True, capture_stdout: bool = True) -> Tuple[int, str, str]:
+    def execute_admin(self, command: Union[str, List[str]], cwd: str = None, use_shell: bool = True, capture_stdout: bool = True, check_output: bool = True) -> Tuple[int, str, str]:
+        """
+        Execute an arbitrary command as an administrator
+
+        :param command: the command to execute. Can either be a list of strnigs or a string
+        :param cwd: directory where the command will be executed
+        :param use_shell: parameter to pass to subprocess method
+        :param capture_stdout: if true, we will save the output of the program and return it (both stdout and stderr)
+        :param check_output: if true, we will generate an exception if the exit code is different than 0
+        """
         pass
 
     @abc.abstractmethod
-    def execute_admin_with_password(self, command: Union[str, List[str]], password: str, cwd: str = None, use_shell: bool = True) -> str:
+    def execute_admin_with_password(self, command: Union[str, List[str]], password: str, cwd: str = None, use_shell: bool = True, check_output: bool = True) -> str:
         """
         Execute an admin command by passing an admin password. this is **INCREDIBLY INSECURE**!!!!!!!!!!!
         Do **NOT** use it if security is concern (which is usually the case!). The command has been introduced because
@@ -45,6 +63,17 @@ class IOSSystem(abc.ABC):
         :param cwd: current working directory where the command is executed
         :param use_shell: if true, we will enable the "use_shell" on subprocess methods
         :return: the stdout of the command
+        :param check_output: if true, we will generate an exception if the exit code is different than 0
+        """
+        pass
+
+    @abc.abstractmethod
+    def is_program_installed(self, program_name: str) -> bool:
+        """
+        Check if a program is installed on the platform.
+
+        :param program_name: name of the program
+        :return: true if the program is installed on the system, false otherwise4
         """
         pass
 

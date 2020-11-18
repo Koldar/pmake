@@ -280,6 +280,15 @@ class SessionScript(abc.ABC):
         with open(p, "w", encoding=encoding) as f:
             pass
 
+    def is_program_installed(self, program_name: str) -> bool:
+        """
+        Check if a program is reachable via commandline
+
+        :param program_name: the name of the program (e.g., dot)
+        :return: true if there is a program accessible to the PATH with the given name, false otherwise
+        """
+        return self._platform.is_program_installed(program_name)
+
     def create_empty_directory(self, name: path):
         """
         Create an empty directory in the CWD (if the path is relative)
