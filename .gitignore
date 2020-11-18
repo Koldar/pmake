@@ -7,3 +7,6 @@ venv/
 
 __pycache__/
 *.spec
+
+tests/PASSWORD
+tests/pmake-cache.json
