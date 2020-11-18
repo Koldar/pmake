@@ -214,12 +214,13 @@ class MyTestCase(unittest.TestCase):
         self.assertStdoutEquals("True", lambda: model.manage_pmakefile())
         shutil.rmtree("temp")
 
-    def test_admin(self):
-        model = PMakeModel()
-        model.input_string = """
-            echo(exec_admin_stdout("python --version"))
-        """
-        self.assertStdoutEquals("Python 3.8.6", lambda: model.manage_pmakefile())
+    def test_admin_windows(self):
+        if os.name == "nt":
+            model = PMakeModel()
+            model.input_string = """
+                echo(exec_admin_stdout("python3 --version"))
+            """
+            self.assertStdoutEquals("Python 3.8.6", lambda: model.manage_pmakefile())
 
     def test_whoami(self):
         model = PMakeModel()
@@ -228,11 +229,19 @@ class MyTestCase(unittest.TestCase):
         """
         self.assertStdout(lambda stdout: len(stdout) > 0, lambda: model.manage_pmakefile())
 
-    def test_variables(self):
+    def test_variables_01(self):
         model = PMakeModel()
         model.variable = [("foo", "bar")]
         model.input_string = """
             echo(variables['foo'])
+        """
+        self.assertStdoutEquals("bar", lambda: model.manage_pmakefile())
+
+    def test_variables_02(self):
+        model = PMakeModel()
+        model.variable = [("foo", "bar")]
+        model.input_string = """
+            echo(variables.foo)
         """
         self.assertStdoutEquals("bar", lambda: model.manage_pmakefile())
 
