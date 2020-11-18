@@ -1,25 +1,19 @@
 import abc
 import logging
+import os
 import textwrap
-from pyexpat import model
 from typing import Any, Dict, Optional
 
 import colorama
 
-from pmake.IPMakeCache import IPMakeCache
-from pmake.JsonPMakeCache import JsonPMakeCache
 from pmake.commands import SessionScript
 from pmake.commons_types import path
 from pmake.constants import STANDARD_MODULES, STANDARD_VARIABLES
+from pmake.linux_commands import LinuxSessionScript
+from pmake.windows_commands import WindowsSessionScript
 
 
-class AttrDict():
-    """
-    A dictioanry whose values can be accessed with "." notation.
-    For instance:
-
-    d.foo is the same as d["foo"]
-    """
+class AttrDict(object):
 
     def __init__(self, d):
         self.__d = d
@@ -47,6 +41,13 @@ class PMakeModel(abc.ABC):
         self._eval_globals: Optional[Dict[str, Any]] = None
         self._eval_locals: Optional[Dict[str, Any]] = None
 
+        if os.name == "nt":
+            self.session_script: "SessionScript" = WindowsSessionScript(self)
+        elif os.name == "posix":
+            self.session_script: "SessionScript" = LinuxSessionScript(self)
+        else:
+            self.session_script: "SessionScript" = SessionScript(self)
+
     def _get_eval_global(self) -> Dict[str, Any]:
         result = dict()
         for k in dir(self.session_script):
@@ -68,6 +69,19 @@ class PMakeModel(abc.ABC):
         if "variables" in result:
             raise KeyError(f"duplicate key \"variables\". It is already mapped to the value {result['variables']}")
         result["variables"] = AttrDict({k: v for k, v in self.variable})
+        if "model" in result:
+            raise KeyError(f"duplicate key \"model\". It is already mapped to the value {result['model']}")
+        result["model"] = self
+        if "commands" in result:
+            raise KeyError(f"duplicate key \"commands\". It is already mapped to the value {result['commands']}")
+        result["commands"] = self.session_script
+        if "interesting_paths" in result:
+            raise KeyError(f"duplicate key \"interesting_paths\". It is already mapped to the value {result['interesting_paths']}")
+        result["interesting_paths"] = self.session_script.interesting_paths
+        if "latest_interesting_path" in result:
+            raise KeyError(
+                f"duplicate key \"latest_interesting_path\". It is already mapped to the value {result['latest_interesting_path']}")
+        result["latest_interesting_path"] = self.session_script.latest_interesting_path
 
         return result
 

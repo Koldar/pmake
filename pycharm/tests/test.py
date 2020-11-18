@@ -218,9 +218,9 @@ class MyTestCase(unittest.TestCase):
         if os.name == "nt":
             model = PMakeModel()
             model.input_string = """
-                echo(exec_admin_stdout("python3 --version"))
+                echo(exec_admin_stdout("echo hello"))
             """
-            self.assertStdoutEquals("Python 3.8.6", lambda: model.manage_pmakefile())
+            self.assertStdoutEquals("hello", lambda: model.manage_pmakefile())
 
     def test_whoami(self):
         model = PMakeModel()
@@ -228,6 +228,32 @@ class MyTestCase(unittest.TestCase):
             echo(current_user())
         """
         self.assertStdout(lambda stdout: len(stdout) > 0, lambda: model.manage_pmakefile())
+
+   def test_copy_folder_content(self):
+        model = PMakeModel()
+        model.variable = [("foo", "bar")]
+        model.input_string = """
+            create_empty_directory("temp")
+            old_pwd = cwd()
+            cd("temp")
+            create_empty_file("foo.txt")
+            create_empty_file("bar.txt")
+            create_empty_file("baz.txt")
+            cd(old_pwd)
+            create_empty_directory("temp2")
+            
+            copy_folder_content(
+                folder="temp",
+                destination="temp2",
+            )
+            if is_file_exists(os.path.join("temp2", "bar.txt")):
+                echo("Hello")
+            if not is_directory_exists(os.path.join("temp2", "temp")):
+                echo("World")
+        """
+        self.assertStdoutEquals("Hello\nWorld", lambda: model.manage_pmakefile())
+        shutil.rmtree("temp")
+        shutil.rmtree("temp2")
 
     def test_variables_01(self):
         model = PMakeModel()
@@ -253,6 +279,13 @@ class MyTestCase(unittest.TestCase):
             remove_file("test-temp.py")
         """
         self.assertStdoutEquals("Hello", lambda: model.manage_pmakefile())
+
+    def test_commands(self):
+        model = PMakeModel()
+        model.input_string = """
+            commands.echo("Hello world")
+        """
+        self.assertStdoutEquals("Hello world", lambda: model.manage_pmakefile())
 
     def test_execute_admin_with_password(self):
         if os.name == "posix":
