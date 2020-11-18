@@ -163,6 +163,6 @@ class PMakeModel(abc.ABC):
                 self._eval_locals
             )
         except Exception as e:
-            logging.critical(f"exception occured {e}")
+            logging.critical(f"{colorama.Fore.RED}exception occured {e}{colorama.Style.RESET_ALL}")
             raise e
 

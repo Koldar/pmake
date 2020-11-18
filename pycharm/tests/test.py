@@ -384,6 +384,29 @@ class MyTestCase(unittest.TestCase):
         """
         self.assertStdoutEquals("NAME\nSURNAME\nMa ioli\nRossi\nPaolo\nBian hi\nC rlo\nVerdi", lambda: model.manage_pmakefile())
 
+    def test_convert_table_04(self):
+        model = PMakeModel()
+
+        table = "" \
+            + 'Port         Type              Board Name  FQBN            Core       ' + "\\n" \
+            + '/dev/ttyACM0 Serial Port (USB) Arduino Uno arduino:avr:uno arduino:avr' + "\\n"
+
+        model.input_string = f"""
+            table = convert_table("{table}")
+            echo(table[0][0])
+            echo(table[0][1])
+            echo(table[0][2])
+            echo(table[0][3])
+            echo(table[0][4])
+            echo(table[1][0])
+            echo(table[1][1])
+            echo(table[1][2])
+            echo(table[1][3])
+            echo(table[1][4])
+        """
+        self.assertStdoutEquals("Port\nType\nBoard Name\nFQBN\nCore\n/dev/ttyACM0\nSerial Port (USB)\nArduino Uno\narduino:avr:uno\narduino:avr",
+                                lambda: model.manage_pmakefile())
+
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)

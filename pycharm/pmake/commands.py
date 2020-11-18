@@ -331,7 +331,6 @@ class SessionScript(abc.ABC):
 
         return self.get_column_of_table(table, column_index)
 
-
     def convert_table(self, table_str: str) -> List[List[str]]:
         """
         Convert a table printed as:
@@ -362,9 +361,16 @@ class SessionScript(abc.ABC):
 
         column_index = [0]
         result = []
-        lines = list(filter(lambda x: len(x) > 0, map(lambda x: x.strip(), table_str.split("\n"))))
+        lines = list(
+            filter(
+                lambda x: len(x) > 0,
+                map(
+                    lambda x: x.strip(),
+                    table_str.split("\n")
+                )
+            )
+        )
         min_length = min(map(lambda x: len(x), lines))
-        max_length = max(map(lambda x: len(x), lines))
         for index in range(min_length):
             if is_column(index, lines):
                 column_index.append(index + 1)
