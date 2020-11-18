@@ -318,6 +318,72 @@ class MyTestCase(unittest.TestCase):
         """
         self.assertStdoutEquals("True\nFalse", lambda: model.manage_pmakefile())
 
+    def test_convert_table_01(self):
+        model = PMakeModel()
+
+        table = "" \
+            + "NAME    SURNAME" + "\\n" \
+            + "Mario   Rossi" + "\\n" \
+            + "Paolo   Bianchi" + "\\n" \
+            + "Carlo   Verdi" + "\\n"
+
+        model.input_string = f"""
+            table = convert_table("{table}")
+            echo(table[0][0])
+            echo(table[0][1])
+            echo(table[1][0])
+            echo(table[1][1])
+            echo(table[2][0])
+            echo(table[2][1])
+            echo(table[3][0])
+            echo(table[3][1])
+        """
+        self.assertStdoutEquals("NAME\nSURNAME\nMario\nRossi\nPaolo\nBianchi\nCarlo\nVerdi", lambda: model.manage_pmakefile())
+
+    def test_convert_table_02(self):
+        model = PMakeModel()
+
+        table = "" \
+            + "NAME    SURNAME" + "\\n" \
+            + "Ma io   Rossi" + "\\n" \
+            + "Paolo   Bian hi" + "\\n" \
+            + "C rlo   Verdi" + "\\n"
+
+        model.input_string = f"""
+            table = convert_table("{table}")
+            echo(table[0][0])
+            echo(table[0][1])
+            echo(table[1][0])
+            echo(table[1][1])
+            echo(table[2][0])
+            echo(table[2][1])
+            echo(table[3][0])
+            echo(table[3][1])
+        """
+        self.assertStdoutEquals("NAME\nSURNAME\nMa io\nRossi\nPaolo\nBian hi\nC rlo\nVerdi", lambda: model.manage_pmakefile())
+
+    def test_convert_table_03(self):
+        model = PMakeModel()
+
+        table = "" \
+            + "NAME    SURNAME" + "\\n" \
+            + "Ma ioli Rossi" + "\\n" \
+            + "Paolo   Bian hi" + "\\n" \
+            + "C rlo   Verdi" + "\\n"
+
+        model.input_string = f"""
+            table = convert_table("{table}")
+            echo(table[0][0])
+            echo(table[0][1])
+            echo(table[1][0])
+            echo(table[1][1])
+            echo(table[2][0])
+            echo(table[2][1])
+            echo(table[3][0])
+            echo(table[3][1])
+        """
+        self.assertStdoutEquals("NAME\nSURNAME\nMa ioli\nRossi\nPaolo\nBian hi\nC rlo\nVerdi", lambda: model.manage_pmakefile())
+
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
