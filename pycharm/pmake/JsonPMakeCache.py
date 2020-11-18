@@ -1,6 +1,6 @@
 import json
 import os
-from typing import Any, Dict
+from typing import Any, Dict, Iterable
 
 from pmake.IPMakeCache import IPMakeCache
 from pmake.commons_types import path
@@ -15,7 +15,17 @@ class JsonPMakeCache(IPMakeCache):
         if self.is_cache_present():
             with open(self.file_path, "r", encoding="utf-8") as f:
                 json_string = f.read()
-            self.d = json.loads(json_string)
+            self.d: Dict[str, Any] = json.loads(json_string)
+
+    def reset(self):
+        self.d.clear()
+        self.update_cache()
+
+    def is_empty(self) -> bool:
+        return len(self.d) == 0
+
+    def variable_names(self) -> Iterable[str]:
+        yield from self.d.keys()
 
     def is_cache_present(self) -> bool:
         return os.path.exists(self.file_path)

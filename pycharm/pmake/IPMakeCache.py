@@ -1,8 +1,33 @@
 import abc
-from typing import Any
+from typing import Any, Iterable
 
 
 class IPMakeCache(abc.ABC):
+
+    @abc.abstractmethod
+    def reset(self):
+        """
+        Completely empty the pmake file. After the operation, the cache is present, but it is empty.
+        It is required to persistently update the cache in this method
+        """
+        pass
+
+    @abc.abstractmethod
+    def is_empty(self) -> bool:
+        """
+        Check if there is at least one variable in cache
+
+        :return: true iff there is no variables in cache
+        """
+        pass
+
+    @abc.abstractmethod
+    def variable_names(self) -> Iterable[str]:
+        """
+        Set of variable names available in the cache.
+        They are only at top level
+        """
+        pass
 
     @abc.abstractmethod
     def is_cache_present(self) -> bool:

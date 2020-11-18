@@ -52,7 +52,7 @@ def parse_options(args):
         epilog=f"Massimo Bono 2020, Version {version.VERSION}",
         formatter_class=argparse.RawTextHelpFormatter,
     )
-    parser.add_argument("-f", "--input_file", type=str, required=False, default="PMakefile", help="""
+    parser.add_argument("-f", "--input_file", type=str, required=False, default="PMakefile.py", help="""
     The file in input. If not present it will be "PMakefile" on the CWD
     """)
     parser.add_argument("-s", "--input_string", type=str, required=False, default=None, help="""

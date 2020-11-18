@@ -6,6 +6,7 @@ from typing import Any, Dict, Optional
 
 import colorama
 
+from pmake.JsonPMakeCache import JsonPMakeCache
 from pmake.commands import SessionScript
 from pmake.commons_types import path
 from pmake.constants import STANDARD_MODULES, STANDARD_VARIABLES
@@ -55,33 +56,42 @@ class PMakeModel(abc.ABC):
                 continue
             if k in result:
                 raise KeyError(f"duplicate key \"{k}\". It is already mapped to the value {result[k]}")
+            logging.debug(f"Adding variable {k}")
             result[k] = getattr(self.session_script, k)
 
         for k, v in STANDARD_MODULES:
             if k in result:
                 raise KeyError(f"duplicate key \"{k}\". It is already mapped to the value {result[k]}")
+            logging.debug(f"Adding standard variable {k}")
             result[k] = v
         for name, value, description in STANDARD_VARIABLES:
             if name in result:
                 raise KeyError(f"duplicate key \"{name}\". It is already mapped to the value {result[name]}")
             result[name] = value
 
+        # SPECIAL VARIABLES
+
         if "variables" in result:
             raise KeyError(f"duplicate key \"variables\". It is already mapped to the value {result['variables']}")
+        logging.debug(f"Adding standard variable 'variable'")
         result["variables"] = AttrDict({k: v for k, v in self.variable})
         if "model" in result:
             raise KeyError(f"duplicate key \"model\". It is already mapped to the value {result['model']}")
+        logging.debug(f"Adding standard variable 'model'")
         result["model"] = self
         if "commands" in result:
             raise KeyError(f"duplicate key \"commands\". It is already mapped to the value {result['commands']}")
+        logging.debug(f"Adding standard variable 'commands'")
         result["commands"] = self.session_script
         if "interesting_paths" in result:
             raise KeyError(f"duplicate key \"interesting_paths\". It is already mapped to the value {result['interesting_paths']}")
-        result["interesting_paths"] = self.session_script.interesting_paths
+        logging.debug(f"Adding standard variable 'interesting_paths'")
+        result["interesting_paths"] = self.session_script._interesting_paths
         if "latest_interesting_path" in result:
             raise KeyError(
                 f"duplicate key \"latest_interesting_path\". It is already mapped to the value {result['latest_interesting_path']}")
-        result["latest_interesting_path"] = self.session_script.latest_interesting_path
+        logging.debug(f"Adding standard variable 'latest_interesting_path'")
+        result["latest_interesting_path"] = self.session_script._latest_interesting_path
 
         return result
 

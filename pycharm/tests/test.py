@@ -229,7 +229,7 @@ class MyTestCase(unittest.TestCase):
         """
         self.assertStdout(lambda stdout: len(stdout) > 0, lambda: model.manage_pmakefile())
 
-   def test_copy_folder_content(self):
+    def test_copy_folder_content(self):
         model = PMakeModel()
         model.variable = [("foo", "bar")]
         model.input_string = """
@@ -295,6 +295,20 @@ class MyTestCase(unittest.TestCase):
                 echo(execute_admin_with_password("echo hello", password))
             """
             self.assertStdoutEquals("hello", lambda: model.manage_pmakefile())
+
+    def test_cache_usage(self):
+        model = PMakeModel()
+        model.input_string = """
+            if has_variable_in_cache("foo"):
+                echo(get_variable_in_cache("foo"))
+            else:
+                set_variable_in_cache("foo", "bar")
+                echo("not found")
+        """
+        self.assertStdoutEquals("not found", lambda: model.manage_pmakefile())
+        self.assertStdoutEquals("bar", lambda: model.manage_pmakefile())
+
+        os.unlink("pmake-cache.json")
 
 
 if __name__ == '__main__':

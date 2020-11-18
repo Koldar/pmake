@@ -24,7 +24,7 @@ from pmake.commons_types import path
 class SessionScript(abc.ABC):
 
     def __init__(self, model: "PMakeModel.PMakeModel"):
-        self.model = model
+        self._model = model
         self._cwd = os.path.abspath(os.curdir)
         self._locals = {}
         self._foreground_mapping = {
@@ -54,8 +54,8 @@ class SessionScript(abc.ABC):
             raise ValueError(f"Cannot identify platform!")
 
         # fetches the interesting paths
-        self.interesting_paths = self._platform._fetch_interesting_paths(self)
-        self.latest_interesting_path = self._platform._fetch_latest_paths(self, self.interesting_paths)
+        self._interesting_paths = self._platform._fetch_interesting_paths(self)
+        self._latest_interesting_path = self._platform._fetch_latest_paths(self, self._interesting_paths)
 
     def get_latest_path_with_architecture(self, current_path: str, architecture: int) -> path:
         """
@@ -65,7 +65,7 @@ class SessionScript(abc.ABC):
         :return: the first path compliant with this path name
         """
         max_x = None
-        for x in filter(lambda x: x.architecture == architecture, self.interesting_paths[current_path]):
+        for x in filter(lambda x: x.architecture == architecture, self._interesting_paths[current_path]):
             if max_x is None:
                 max_x = x
             elif x.version > max_x.version:
@@ -155,6 +155,12 @@ class SessionScript(abc.ABC):
         self._log_command(f"Checking if we are on a linux system")
         return os.name == "posix"
 
+    def clear_cache(self):
+        """
+        Clear the cache of pmake
+        """
+        self._model.pmake_cache.reset()
+
     def set_variable_in_cache(self, name: str, value: Any, overwrite_if_exists: bool = True):
         """
         Set a variable inside the program cache. Setting variable in cache allows pmake to
@@ -167,7 +173,7 @@ class SessionScript(abc.ABC):
         :param overwrite_if_exists: if true, if the cache already contain a variable with the same name, such a varaible will be replaced
         with the new one
         """
-        self.model.pmake_cache.set_variable_in_cache(
+        self._model.pmake_cache.set_variable_in_cache(
             name=name,
             value=value,
             overwrites_is_exists=overwrite_if_exists
@@ -180,7 +186,7 @@ class SessionScript(abc.ABC):
         :param name: name of the variable to check
         :return: true if a varaible with such a name is present in the cache, false otherwise
         """
-        return self.model.pmake_cache.has_variable_in_cache(
+        return self._model.pmake_cache.has_variable_in_cache(
             name=name
         )
 
@@ -191,7 +197,7 @@ class SessionScript(abc.ABC):
         :param name: name of the variable to check
         :return: the value associated to such a variable
         """
-        return self.model.pmake_cache.get_variable_in_cache(
+        return self._model.pmake_cache.get_variable_in_cache(
             name=name
         )
 
@@ -203,8 +209,8 @@ class SessionScript(abc.ABC):
         :param default: if the variable does not exist in the cache, the value to retturn from this function
         :return: the variable value
         """
-        if self.model.pmake_cache.has_variable_in_cache(name):
-            return self.model.pmake_cache.get_variable_in_cache(name)
+        if self._model.pmake_cache.has_variable_in_cache(name):
+            return self._model.pmake_cache.get_variable_in_cache(name)
         else:
             return default
 
@@ -217,11 +223,11 @@ class SessionScript(abc.ABC):
         :param mapper: function used to generate the value fo the variable if the variable does exist in the cache. The input
         is the variable old value
         """
-        if self.model.pmake_cache.has_variable_in_cache(name):
-            new_value = mapper(self.model.pmake_cache.get_variable_in_cache(name))
+        if self._model.pmake_cache.has_variable_in_cache(name):
+            new_value = mapper(self._model.pmake_cache.get_variable_in_cache(name))
         else:
             new_value = supplier()
-        self.model.pmake_cache.set_variable_in_cache(name, new_value)
+        self._model.pmake_cache.set_variable_in_cache(name, new_value)
 
     def echo(self, message: str, foreground: str = None, background: str = None):
         """
@@ -901,7 +907,7 @@ class SessionScript(abc.ABC):
         )
 
     def include_string(self, string: str):
-        self.model.execute_string(string)
+        self._model.execute_string(string)
 
     def include_file(self, file: path):
         """
@@ -912,7 +918,7 @@ class SessionScript(abc.ABC):
 
         p = self.get_path(file)
         self._log_command(f"include file content \"{p}\"")
-        self.model.execute_file(p)
+        self._model.execute_file(p)
 
 
 
