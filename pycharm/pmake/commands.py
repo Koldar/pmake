@@ -248,6 +248,12 @@ class SessionScript(abc.ABC):
         """
         return self._model.input_file
 
+    def get_home_folder(self) -> path:
+        """
+        Get the home fodler of the currently logged used
+        """
+        return self._platform.get_home_folder()
+
     def get_pmakefile_dirpath(self) -> path:
         """
         :return: absolute path of the folder containing the main PMakefile path

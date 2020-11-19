@@ -7,9 +7,25 @@ from typing import Union, List, Tuple, Dict
 
 from pmake.IOSSystem import IOSSystem
 from pmake.InterestingPath import InterestingPath
+from pmake.commons_types import path
 
 
 class LinuxOSSystem(IOSSystem):
+
+    def get_env_variable(self, name: str) -> str:
+        exit_code, stdout, _ = self.execute(
+            command=f"printenv {name}",
+            use_shell=True,
+            capture_stdout=True,
+            check_output=False
+        )
+        if exit_code != 0:
+            raise ValueError(f"Cannot find the environment variable \"{name}\" for user \"{self.get_current_username()}\"")
+
+        return stdout.strip()
+
+    def get_home_folder(self) -> path:
+        return self.get_env_variable("HOME")
 
     def _fetch_interesting_paths(self, script: "SessionScript") -> Dict[str, List[InterestingPath]]:
         return {}

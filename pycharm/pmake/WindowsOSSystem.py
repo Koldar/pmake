@@ -9,9 +9,26 @@ import semver
 from pmake import commands
 from pmake.IOSSystem import IOSSystem
 from pmake.InterestingPath import InterestingPath
+from pmake.commons_types import path
 
 
 class WindowsOSSystem(IOSSystem):
+
+    def get_env_variable(self, name: str) -> str:
+        code, stdout, _ = self.execute(
+            command=f"echo %{name}%",
+            use_shell=True,
+            capture_stdout=True,
+        )
+
+        stdout = stdout.strip()
+        if len(stdout) == 0:
+            raise ValueError(f"Cannot find the environment variable \"{name}\" for user \"{self.get_current_username()}\"")
+
+        return stdout
+
+    def get_home_folder(self) -> path:
+        return self.get_env_variable("USERPROFILE")
 
     def _fetch_interesting_paths(self, script: "commands.SessionScript") -> Dict[str, List[InterestingPath]]:
 

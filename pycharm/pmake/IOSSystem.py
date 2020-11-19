@@ -4,6 +4,7 @@ from typing import Union, List, Tuple, Dict, Any
 import semver
 
 from pmake.InterestingPath import InterestingPath
+from pmake.commons_types import path
 
 
 class IOSSystem(abc.ABC):
@@ -74,6 +75,25 @@ class IOSSystem(abc.ABC):
 
         :param program_name: name of the program
         :return: true if the program is installed on the system, false otherwise4
+        """
+        pass
+
+    @abc.abstractmethod
+    def get_env_variable(self, name: str) -> str:
+        """
+        Get an evnironment variable value.
+        We will use the current user environment to determine the variable
+        Raises an exception if the variable does not exist
+
+        :param name: the environment variable to fetch
+        :return: the environmkent variable value
+        """
+        pass
+
+    @abc.abstractmethod
+    def get_home_folder(self) -> path:
+        """
+        Get the absolute home folder of the current user
         """
         pass
 
