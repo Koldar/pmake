@@ -939,18 +939,21 @@ class SessionScript(abc.ABC):
             for dirname in dirnames:
                 yield self.get_path(os.path.join(dirpath, dirname))
 
-    def cd(self, folder: path, create_if_not_exists: bool = True):
+    def cd(self, folder: path, create_if_not_exists: bool = True) -> path:
         """
         Gain access to a directory. If the directory does nto exists, it is created
         If the path is relative, it is relative to the CWD
 
         :param folder: folder where we need to go into
         :param create_if_not_exists: if true, we will create the directory if we try to cd into a non existent directory
+        :return: the directory where we have cd from
         """
+        result = self.cwd()
         self._log_command(f"""cd into folder \"{self.get_path(folder)}\"""")
         self._cwd = self.get_path(folder)
         if not os.path.exists(self._cwd) and create_if_not_exists:
             os.makedirs(self._cwd, exist_ok=True)
+        return result
 
     def current_user(self) -> str:
         """
