@@ -2,7 +2,7 @@ import abc
 import logging
 import os
 import textwrap
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, List
 
 import colorama
 
@@ -33,13 +33,39 @@ class PMakeModel(abc.ABC):
 
     def __init__(self):
         self.input_file: Optional[str] = None
+        """
+        File representing the "Makefile" of pmake
+        """
         self.input_string: Optional[str] = None
+        """
+        String to be used in place of ::input_file
+        """
         self.input_encoding: Optional[str] = None
+        """
+        Encoding of ::input_file
+        """
         self.log_level: Optional[str] = None
-        self.session_script: "SessionScript" = SessionScript(self)
+        """
+        level of the logger. INFO, DEBUG, CRITICAL
+        """
+
         self.variable: Dict[str, Any] = {}
+        """
+        Variables passed by the user from the command line via "--variable" argument
+        """
+        self.targets: List[str] = []
+        """
+        List of targets that the user wants to perform. This
+        list of targets are mpretty mch like the make one's (e.g., all, clean, install, uninstall)
+        """
         self.starting_cwd: path = os.path.abspath(os.curdir)
+        """
+        current working directory when pamke was executed
+        """
         self.pmake_cache: Optional["IPMakeCache"] = None
+        """
+        Cache containing data that the user wants t persist between different pmake runs
+        """
         self._eval_globals: Optional[Dict[str, Any]] = None
         self._eval_locals: Optional[Dict[str, Any]] = None
 
@@ -76,18 +102,27 @@ class PMakeModel(abc.ABC):
             raise KeyError(f"duplicate key \"variables\". It is already mapped to the value {result['variables']}")
         logging.debug(f"Adding standard variable 'variable'")
         result["variables"] = AttrDict({k: v for k, v in self.variable})
+
         if "model" in result:
             raise KeyError(f"duplicate key \"model\". It is already mapped to the value {result['model']}")
         logging.debug(f"Adding standard variable 'model'")
         result["model"] = self
+
         if "commands" in result:
             raise KeyError(f"duplicate key \"commands\". It is already mapped to the value {result['commands']}")
         logging.debug(f"Adding standard variable 'commands'")
         result["commands"] = self.session_script
+
+        if "targets" in result:
+            raise KeyError(f"duplicate key \"targets\". It is already mapped to the value {result['targets']}")
+        logging.debug(f"Adding standard variable 'targets'")
+        result["targets"] = self.targets
+
         if "interesting_paths" in result:
             raise KeyError(f"duplicate key \"interesting_paths\". It is already mapped to the value {result['interesting_paths']}")
         logging.debug(f"Adding standard variable 'interesting_paths'")
         result["interesting_paths"] = self.session_script._interesting_paths
+
         if "latest_interesting_path" in result:
             raise KeyError(
                 f"duplicate key \"latest_interesting_path\". It is already mapped to the value {result['latest_interesting_path']}")

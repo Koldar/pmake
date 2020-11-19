@@ -24,10 +24,11 @@ def parse_options(args):
         description=f"""
         A program like make, but platform independent. Requires python3
         
-        The file is basically written in python. within the input_fle, you can write python code in order to perform some tasks.
+        The file is basically written in python. within the input_fle, you can write python code in 
+        order to perform some tasks.
         So you can write loops, checks all the python juicy stuff in it withtout worries.
-        I have developed this utility for writing batch without worrying about the underlying operating system, hence 
-        several utilities are immeidately provided to you in order to perform basic stuff.
+        I have developed this utility for writing batch without worrying about the underlying operating system, 
+        hence several utilities are immeidately provided to you in order to perform basic stuff.
         
         Aside from the core functions, you can access these modules:
         
@@ -42,11 +43,17 @@ def parse_options(args):
 
 {core_constants}
 
-        You can access the variables passed to "--variable" by calling their name. For instance if oyu have "--variable "foo" "bar"
-        You can access foo variable via "variables.foo". You can access the set of all the commands via "commands.X" 
-        where "X" is the name of the command (e.g., "echo").
-        You can access "model" to gain access to the whole application shared context. You can access the interesting paths by using "interesting_path".
-        You can use the latest interesting paths by using "latest_interesting_path".
+        You can access the variables passed to "--variable" by calling their name. For instance if you have 
+        
+        "--variable "foo" "bar"
+        
+        From pamke script, you can access foo variable via "variables.foo". Aside from variable you
+        can access:
+         - the set of all the commands via "commands.X", where "X" is the name of the command (e.g., "echo");
+         - "model" to gain access to the whole application shared context;
+         - the interesting paths by using "interesting_path";
+         - the latest interesting paths by using "latest_interesting_path";
+         - the ordered list fo target the user has specified via "targets";
 
         
         """,
@@ -75,6 +82,13 @@ def parse_options(args):
     
     --value "VariableName" "variableValue"
     """)
+    parser.add_argument('targets', metavar="TARGET", nargs="*", type=str, help="""
+    An ordered list of pmake targets the user wants to build. For example, target names may be "all", 
+    "clean", "install", "uninstall".
+    
+    Targets are available via `targets` variable. You can check if a target has been requested by the user 
+    by calling `specifies_target`
+    """)
 
     options = parser.parse_args(args)
 
@@ -90,6 +104,7 @@ def main(args):
     model.log_level = options.log_level
     model.input_string = options.input_string
     model.variable = options.variable
+    model.targets = options.targets
 
     logging.basicConfig(level=getattr(logging, model.log_level))
     model.manage_pmakefile()

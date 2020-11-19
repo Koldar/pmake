@@ -14,7 +14,7 @@ from typing import List, Union, Iterable, Tuple, Any, Callable
 
 import semver
 
-from pmake import LinuxOSSystem
+from pmake import LinuxOSSystem, version
 from pmake import PMakeModel
 from pmake import WindowsOSSystem
 from pmake.commons_types import path
@@ -266,6 +266,14 @@ class SessionScript(abc.ABC):
         self._log_command(f"""echo \"{message}\"""")
         print(self._color_str(message, foreground, background))
 
+    def specifies_target(self, target_name: str) -> bool:
+        """
+        Check if the the user has specified the given target
+
+        :param target_name: the name of the target that we need to check
+        :return: true if the target has been declard by the user, false otherwise
+        """
+        return target_name in self._model.targets
     def pairs(self, it: Iterable[Any]) -> Iterable[Tuple[Any, Any]]:
         """
         Convert the iterable into an iterable of pairs.
