@@ -274,6 +274,17 @@ class SessionScript(abc.ABC):
         :return: true if the target has been declard by the user, false otherwise
         """
         return target_name in self._model.targets
+
+    def require_pmake_version(self, lowerbound: str) -> None:
+        """
+        Check if the current version of pmake is greater or equal than the given one.
+        If the current version of pmake is not compliant with this constraint, an error is generated
+
+        :param lowerbound: the minimum version this script is compliant with
+        """
+        if lowerbound < version.VERSION:
+            raise ValueError(f"The script requires at least version {lowerbound} to be installed. Current version is {version.VERSION}")
+
     def pairs(self, it: Iterable[Any]) -> Iterable[Tuple[Any, Any]]:
         """
         Convert the iterable into an iterable of pairs.
