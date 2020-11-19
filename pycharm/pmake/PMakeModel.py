@@ -1,7 +1,10 @@
 import abc
 import logging
 import os
+import re
+import sys
 import textwrap
+import traceback
 from typing import Any, Dict, Optional, List
 
 import colorama
@@ -65,6 +68,12 @@ class PMakeModel(abc.ABC):
         self.pmake_cache: Optional["IPMakeCache"] = None
         """
         Cache containing data that the user wants t persist between different pmake runs
+        """
+        self._pmakefiles_include_stack: List[path] = []
+        """
+        Represents the PMakefile pmake is handling. Each time we include something, the code within it is executed.
+        If an error occurs, we must know where the error is. Hence this variable is pretty useful to detect that.
+        This list acts as a stack
         """
         self._eval_globals: Optional[Dict[str, Any]] = None
         self._eval_locals: Optional[Dict[str, Any]] = None
@@ -171,7 +180,14 @@ class PMakeModel(abc.ABC):
         with open(input_file, "r", encoding=self.input_encoding) as f:
             input_str = f.read()
 
-        self.execute_string(input_str)
+        try:
+            # add a new level in the stack
+            self._pmakefiles_include_stack.append(input_file)
+            #execute the file
+            self.execute_string(input_str)
+        finally:
+            self._pmakefiles_include_stack.pop()
+
 
     def execute_string(self, string: str):
         """
@@ -198,6 +214,37 @@ class PMakeModel(abc.ABC):
                 self._eval_locals
             )
         except Exception as e:
-            logging.critical(f"{colorama.Fore.RED}exception occured {e}{colorama.Style.RESET_ALL}")
+            logging.critical(f"{colorama.Fore.RED}exception occured:{colorama.Style.RESET_ALL}")
+            trace = traceback.format_exc()
+            # Example of "trace"
+            # Traceback (most recent call last):
+            #   File "pmake/PMakeModel.py", line 197, in execute_string
+            #   File "<string>", line 43, in <module>
+            #   File "<string>", line 43, in <lambda>
+            # NameError: name 'ARDUINO_LIBRARY_LOCATION' is not defined
+            lines = trace.splitlines()
+            lines = lines[1:-1]
+            last_line = lines[-1]
+            try:
+                line_no = last_line.split(", ")[1]
+                m = re.match(r"^\s*line\s*([\d]+)$", line_no)
+                line_no = m.group(1)
+                line_no = int(line_no)
+            except:
+                line_no = "unknown"
+            try:
+                file_path = last_line.split(", ")[0]
+                m = re.match(r"^\s*File\s*\"([^\"]+)\"$", file_path)
+                file_path = m.group(1)
+                if file_path == "<string>":
+                    # this occurs when the problem is inside a PMakefile. We poll the stack
+                    file_path = self._pmakefiles_include_stack[-1]
+            except:
+                file_path = "unknown"
+
+            # logging.critical(f"{colorama.Fore.RED}{trace}{colorama.Style.RESET_ALL}")
+            logging.critical(f"{colorama.Fore.RED}Cause = {e}{colorama.Style.RESET_ALL}")
+            logging.critical(f"{colorama.Fore.RED}File = {file_path}{colorama.Style.RESET_ALL}")
+            logging.critical(f"{colorama.Fore.RED}Line = {line_no}{colorama.Style.RESET_ALL}")
             raise e
 
