@@ -118,8 +118,8 @@ class PMakeModel(abc.ABC):
         logging.debug(f"Adding standard variable 'variable'")
         result["variables"] = AttrDict(self.variable)
         logging.info(f"Variables passed frm CLI:")
-        for k, v in self.variable.items():
-            logging.info(f'{k} = {v}')
+        for i, (k, v) in enumerate(self.variable.items()):
+            logging.info(f' {i}. {k} = {v}')
 
         if "model" in result:
             raise KeyError(f"duplicate key \"model\". It is already mapped to the value {result['model']}")
@@ -230,7 +230,7 @@ class PMakeModel(abc.ABC):
             #   File "<string>", line 43, in <lambda>
             # NameError: name 'ARDUINO_LIBRARY_LOCATION' is not defined
             lines = trace.splitlines()
-            logging.debug("Stacktrace:\n{lines}")
+            print(f"{colorama.Fore.RED}{traceback.format_exc()}{colorama.Style.RESET_ALL}")
             lines = lines[1:-1]
             last_line = lines[-1]
 

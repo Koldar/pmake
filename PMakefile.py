@@ -28,7 +28,6 @@ def update_version():
 
 
 def uninstall():
-
     execute_admin_with_password_stdout_on_screen(
         password=ADMIN_PASSWORD,
         commands="pip3 uninstall --yes pmake",
@@ -38,7 +37,7 @@ def uninstall():
 def build():
     execute_and_forget([
         f"source venv/bin/activate",
-        f"python setup.py sdist bdist_wheel",
+        f"python setup.py bdist_wheel",
         f"deactivate"
     ])
 
@@ -46,8 +45,9 @@ def build():
 def generate_documentation():
     oldcwd = cd("docs")
     execute_stdout_on_screen([
-        "make html latexpdf"
-    ])
+            "make html latexpdf"
+        ],
+    )
     cd(oldcwd)
 
 
