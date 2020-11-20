@@ -28,6 +28,12 @@ class AttrDict(object):
     def __getitem__(self, item: str) -> Any:
         return self.__d[item]
 
+    def __contains__(self, item) -> bool:
+        return item in self.__d
+
+    def has_key(self, item: str) -> bool:
+        return item in self
+
 
 class PMakeModel(abc.ABC):
     """
@@ -110,7 +116,10 @@ class PMakeModel(abc.ABC):
         if "variables" in result:
             raise KeyError(f"duplicate key \"variables\". It is already mapped to the value {result['variables']}")
         logging.debug(f"Adding standard variable 'variable'")
-        result["variables"] = AttrDict({k: v for k, v in self.variable})
+        result["variables"] = AttrDict(self.variable)
+        logging.info(f"Variables passed frm CLI:")
+        for k, v in self.variable.items():
+            logging.info(f'{k} = {v}')
 
         if "model" in result:
             raise KeyError(f"duplicate key \"model\". It is already mapped to the value {result['model']}")
@@ -183,11 +192,10 @@ class PMakeModel(abc.ABC):
         try:
             # add a new level in the stack
             self._pmakefiles_include_stack.append(input_file)
-            #execute the file
+            # execute the file
             self.execute_string(input_str)
         finally:
             self._pmakefiles_include_stack.pop()
-
 
     def execute_string(self, string: str):
         """
@@ -198,7 +206,6 @@ class PMakeModel(abc.ABC):
 
         try:
             # remove the first line if it is empty
-            string = string
             string = textwrap.dedent(string)
             logging.debug("input string:")
             logging.debug(string)
@@ -214,7 +221,7 @@ class PMakeModel(abc.ABC):
                 self._eval_locals
             )
         except Exception as e:
-            logging.critical(f"{colorama.Fore.RED}exception occured:{colorama.Style.RESET_ALL}")
+            print(f"{colorama.Fore.RED}Exception occured:{colorama.Style.RESET_ALL}")
             trace = traceback.format_exc()
             # Example of "trace"
             # Traceback (most recent call last):
@@ -223,8 +230,11 @@ class PMakeModel(abc.ABC):
             #   File "<string>", line 43, in <lambda>
             # NameError: name 'ARDUINO_LIBRARY_LOCATION' is not defined
             lines = trace.splitlines()
+            logging.debug("Stacktrace:\n{lines}")
             lines = lines[1:-1]
             last_line = lines[-1]
+
+            # fetch line number
             try:
                 line_no = last_line.split(", ")[1]
                 m = re.match(r"^\s*line\s*([\d]+)$", line_no)
@@ -232,6 +242,8 @@ class PMakeModel(abc.ABC):
                 line_no = int(line_no)
             except:
                 line_no = "unknown"
+
+            # fetch file name
             try:
                 file_path = last_line.split(", ")[0]
                 m = re.match(r"^\s*File\s*\"([^\"]+)\"$", file_path)
@@ -243,8 +255,8 @@ class PMakeModel(abc.ABC):
                 file_path = "unknown"
 
             # logging.critical(f"{colorama.Fore.RED}{trace}{colorama.Style.RESET_ALL}")
-            logging.critical(f"{colorama.Fore.RED}Cause = {e}{colorama.Style.RESET_ALL}")
-            logging.critical(f"{colorama.Fore.RED}File = {file_path}{colorama.Style.RESET_ALL}")
-            logging.critical(f"{colorama.Fore.RED}Line = {line_no}{colorama.Style.RESET_ALL}")
+            print(f"{colorama.Fore.RED}Cause = {e}{colorama.Style.RESET_ALL}")
+            print(f"{colorama.Fore.RED}File = {file_path}{colorama.Style.RESET_ALL}")
+            print(f"{colorama.Fore.RED}Line = {line_no}{colorama.Style.RESET_ALL}")
             raise e
 

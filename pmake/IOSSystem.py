@@ -1,5 +1,8 @@
 import abc
-from typing import Union, List, Tuple, Dict, Any
+import os
+import stat
+import tempfile
+from typing import Union, List, Tuple, Dict, Any, Iterable
 
 import semver
 
@@ -21,50 +24,125 @@ class IOSSystem(abc.ABC):
         """
         pass
 
+    def create_temp_directory_with(self, directory_prefix: str) -> Any:
+        """
+        Create a temporary directory on the file system where to put temporary files
+
+        :param directory_prefix: a prefix to be put before the temporary folder
+        :return: a value which can be the input of a "with" statement. The folder will be automatically removed at the
+        end of the with. The value returned is actually the absolute path of the temp directory
+        """
+        return tempfile.TemporaryDirectory(prefix=directory_prefix)
+
+    def create_temp_file_with(self, directory: str, file_prefix: str = None, file_suffix: str = None, encoding: str = None, mode: str = None) -> Any:
+        """
+        Create a temporary file on the file system. The return value of this function is something you can give to the
+        "with" statement. The file will be automatically remove at the end of the with. You can access the file absolute path
+        via the field "name" of the return value
+
+        :param directory: the directory where to put the file
+        :param file_prefix: a string that will be put at the beginning of the filename
+        :param file_suffix: a string that will be put at the end of the filename
+        :param encoding: encoding used to open the file
+        :param mode: the mode used to open the file. E.g., "w", "r", "w+". See open for further information
+        :return: a return value that can be used as input of with statement
+        """
+        return tempfile.NamedTemporaryFile(
+            mode=mode,
+            encoding=encoding,
+            prefix=file_prefix,
+            suffix=file_suffix,
+            dir=directory,
+            delete=True
+        )
+
+    def create_temp_file(self, directory: str, file_prefix: str = None, file_suffix: str = None, readable_for_all: bool = False, executable_for_owner: bool = False, executable_for_all: bool = False) -> path:
+        """
+        Creates the file
+        Like ::create_temp_file_with, but the file needs to be manually removed
+
+        :param directory: the directory where to put the file
+        :param file_prefix: a string that will be put at the beginning of the filename
+        :param file_suffix: a string that will be put at the end of the filename
+        :param readable_for_all: if True, the file can be read by anyone
+        :param executable_for_owner: if True, the file can be executed by the owner
+        :param executable_for_all: if True, anyone can execute the file
+        :return: the absolute path of the temp file
+        """
+        fd, file_path = tempfile.mkstemp(
+            prefix=file_prefix,
+            suffix=file_suffix,
+            dir=directory,
+        )
+        os.close(fd)
+        if readable_for_all:
+            self.mark_file_as_readable_by_all(file_path)
+        if executable_for_all:
+            self.mark_file_as_executable_by_all(file_path)
+        if executable_for_owner:
+            self.mark_file_as_executable_by_owner(file_path)
+
+        return file_path
+
+    def mark_file_as_readable_by_user(self, file_path: path):
+        """
+        Mark the file as readable by the owner
+
+        :param file_path: the file involved
+        """
+        st = os.stat(file_path)
+        os.chmod(file_path, mode=st.st_mode | stat.S_IRUSR)
+
+    def mark_file_as_executable_by_owner(self, file_path: path):
+        """
+        Mark the filev as executable by the owner
+
+        :param file_path: the file involved
+        """
+        st = os.stat(file_path)
+        os.chmod(file_path, mode=st.st_mode | stat.S_IXUSR)
+
+    def mark_file_as_readable_by_all(self, file_path: path):
+        """
+        Mark the file as readable by all
+
+        :param file_path: the file involved
+        """
+        st = os.stat(file_path)
+        os.chmod(file_path, mode=st.st_mode | stat.S_IROTH)
+
+    def mark_file_as_executable_by_all(self, file_path: path):
+        """
+        Mark the filev as executable by all
+
+        :param file_path: the file involved
+        """
+        st = os.stat(file_path)
+        os.chmod(file_path, mode=st.st_mode | stat.S_IXOTH)
+
     @abc.abstractmethod
     def get_current_username(self) -> str:
         pass
 
     @abc.abstractmethod
-    def execute(self, command: Union[str, List[str]], cwd: str = None, use_shell: bool = True,
-                      capture_stdout: bool = True, check_output: bool = True) -> Tuple[int, str, str]:
+    def execute_command(self, commands: List[Union[str, List[str]]], show_output_on_screen: bool, capture_stdout: bool, cwd: str = None, env: Dict[str, str] = None, check_exit_code: bool = True, timeout: int = None, execute_as_admin: bool = False, admin_password: str = None, log_entry: bool = False) -> Tuple[int, str, str]:
         """
         Execute an arbitrary command
 
-        :param command: the command to execute. Can either be a list of strnigs or a string
+        :param commands: the commands to execute. They need to be executed in the same environment. Can either be a list of strnigs or a string
+        :param show_output_on_screen: if True, we need to display in real time the stdout of the command on the stdout of pmake as well
+        :param capture_stdout: if True, we need to return the stdout of the command
         :param cwd: directory where the command will be executed
-        :param use_shell: parameter to pass to subprocess method
-        :param capture_stdout: if true, we will save the output of the program and return it (both stdout and stderr)
-        :param check_output: if true, we will generate an exception if the exit code is different than 0
-        """
-        pass
-
-    @abc.abstractmethod
-    def execute_admin(self, command: Union[str, List[str]], cwd: str = None, use_shell: bool = True, capture_stdout: bool = True, check_output: bool = True) -> Tuple[int, str, str]:
-        """
-        Execute an arbitrary command as an administrator
-
-        :param command: the command to execute. Can either be a list of strnigs or a string
-        :param cwd: directory where the command will be executed
-        :param use_shell: parameter to pass to subprocess method
-        :param capture_stdout: if true, we will save the output of the program and return it (both stdout and stderr)
-        :param check_output: if true, we will generate an exception if the exit code is different than 0
-        """
-        pass
-
-    @abc.abstractmethod
-    def execute_admin_with_password(self, command: Union[str, List[str]], password: str, cwd: str = None, use_shell: bool = True, check_output: bool = True) -> str:
-        """
-        Execute an admin command by passing an admin password. this is **INCREDIBLY INSECURE**!!!!!!!!!!!
-        Do **NOT** use it if security is concern (which is usually the case!). The command has been introduced because
-        it is normally the case to compile something on your machine and just for you.
-
-        :param command: the command to execute as admin
-        :param password: the password for admin
-        :param cwd: current working directory where the command is executed
-        :param use_shell: if true, we will enable the "use_shell" on subprocess methods
-        :return: the stdout of the command
-        :param check_output: if true, we will generate an exception if the exit code is different than 0
+        :param env: a dictionary representing the key-values of the environment variables
+        :param check_exit_code: if true, we will generate an exception if the exit code is different than 0
+        :param timeout: if positive, we will give up waiting for the command after the amount of seconds
+        :param execute_as_admin: if True, we will elevate our current user to admin privileges. We assume this operation requires no input for the user.
+        :param admin_password: **[UNSAFE!!!!]** If you **really** need, you might want to run a command as an admin
+            only on your laptop, and you want a really quick and dirty way to execute it, like as in the shell.
+            Do **not** use this in production code, since the password will be 'printed in clear basically everywhere!
+            (e.g., history, system monitor, probabily in a file as well)
+        :param log_entry: if True, we will emit on the console what we are executing
+        :return: triple. The first element is the error code, the second is the stdout (if captured), the third is stderr
         """
         pass
 
@@ -96,6 +174,52 @@ class IOSSystem(abc.ABC):
         Get the absolute home folder of the current user
         """
         pass
+
+    def ls(self, folder: path, generate_absolute_path: bool = False) -> Iterable[path]:
+        """
+        Show the list of all the files in the given directory
+
+        :param folder: folder to scan.
+        :param generate_absolute_path: if true, we will generate in the outptu the absolute path of the subfolders.
+            Otherwise we will return only the
+        :return: iterable of files in the directory
+        """
+        for x in os.listdir(folder):
+            if generate_absolute_path:
+                yield os.path.abspath(os.path.join(folder, x))
+            else:
+                yield x
+
+    def ls_only_files(self, folder: path, generate_absolute_path: bool = False) -> Iterable[path]:
+        """
+        Show the list of all the files (but not directories) in the given directory
+
+        :param folder: folder to scan.
+        :param generate_absolute_path: if true, we will generate in the outptu the absolute path of the subfolders. Otherwise we will return only the
+        :return: iterable of files in the directory
+        """
+        for f in os.listdir(folder):
+            if os.path.isfile(f):
+                if generate_absolute_path:
+                    yield os.path.abspath(os.path.join(folder, f))
+                else:
+                    yield f
+
+    def ls_only_directories(self, folder: path, generate_absolute_path: bool = False) -> Iterable[path]:
+        """
+        Show the list of all the directories in the given directory
+
+        :param folder: folder to scan.
+        :param generate_absolute_path: if true, we will generate in the outptu the absolute path of the subfolders.
+            Otherwise we will return only the names
+        :return: iterable of folders in directory
+        """
+        for f in os.listdir(folder):
+            if os.path.isdir(os.path.abspath(os.path.join(folder, f))):
+                if generate_absolute_path:
+                    yield os.path.abspath(os.path.join(folder, f))
+                else:
+                    yield f
 
     def _get_semantic_version(self, s: str) -> semver.VersionInfo:
         if len(s.split(".")) == 1:

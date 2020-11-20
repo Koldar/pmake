@@ -3,11 +3,14 @@ import logging
 import os
 import sys
 import textwrap
+import trace
+import traceback
 
 from pmake import version
 from pmake.PMakeModel import PMakeModel
 from pmake.commands import SessionScript
 from pmake.constants import STANDARD_MODULES, STANDARD_VARIABLES
+from pmake.exceptions.PMakeException import AssertionPMakeException, InvalidScenarioPMakeException, PMakeException
 
 
 def parse_options(args):
@@ -26,9 +29,9 @@ def parse_options(args):
         
         The file is basically written in python. within the input_fle, you can write python code in 
         order to perform some tasks.
-        So you can write loops, checks all the python juicy stuff in it withtout worries.
+        So you can write loops, checks all the python juicy stuff in it without worries.
         I have developed this utility for writing batch without worrying about the underlying operating system, 
-        hence several utilities are immeidately provided to you in order to perform basic stuff.
+        hence several utilities are immediately provided to you in order to perform basic stuff.
         
         Aside from the core functions, you can access these modules:
         
@@ -55,6 +58,14 @@ def parse_options(args):
          - the latest interesting paths by using "latest_interesting_path";
          - the ordered list fo target the user has specified via "targets";
 
+        Return Status
+        =============
+
+         - 0: no error detected
+         - 1: an assertion failed
+         - 2: a variable allowing to discern between mutually exclusive scenarios is invalid
+         - 254: a generic error that is explicitly thrown by pmake
+         - 255: a serious error while executing pmake.
         
         """,
         epilog=f"Massimo Bono 2020, Version {version.VERSION}",
@@ -70,8 +81,8 @@ def parse_options(args):
     parser.add_argument("-e", "--input_encoding", type=str, required=False, default="utf-8", help="""
     Encoding of the input file
     """)
-    parser.add_argument("-l", "--log_level", type=str, required=False, default="CRITICAL", help="""
-    Log level of the application. Allowed values are "INFO", "DEBUG", "CRITICAL"
+    parser.add_argument("-l", "--log_level", type=str, required=False, default="INFO", help="""
+    Log level of the application. Allowed values are "INFO", "DEBUG", "INFO"
     """)
     parser.add_argument("-m", "--python_module", nargs=2, action="append", default=None, help="""
     A python module that the script will load. The first argument represents the name that you will use in the PMakefile
@@ -98,17 +109,33 @@ def parse_options(args):
 def main(args):
     options = parse_options(args)
 
+    log_level = options.log_level
+    logging.basicConfig(
+        level="INFO",
+        datefmt="%Y-%m-%dT%H:%M:%S",
+        format='%(asctime)s %(funcName)20s@%(lineno)4d[%(levelname)8s] - %(message)s',
+    )
+    logging.debug(f"Logging set to {log_level} (DEBUG={logging.DEBUG}, INFO={logging.INFO}, WARNING={logging.WARN}, ERROR={logging.ERROR}, CRITICAL={logging.CRITICAL})")
+
     model = PMakeModel()
     model.input_file = os.path.abspath(options.input_file)
     model.input_encoding = options.input_encoding
     model.log_level = options.log_level
     model.input_string = options.input_string
-    model.variable = options.variable
+    logging.critical(options.variable)
+    model.variable = {x[0]: x[1] for x in options.variable}
     model.targets = options.targets
-
-    logging.basicConfig(level=getattr(logging, model.log_level))
     model.manage_pmakefile()
 
 
 if __name__ == "__main__":
-    main(sys.argv[1:])
+    try:
+        main(sys.argv[1:])
+    except AssertionPMakeException as e:
+        sys.exit(1)
+    except InvalidScenarioPMakeException as e:
+        sys.exit(2)
+    except PMakeException as e:
+        sys.exit(254)
+    except Exception as e:
+        raise e

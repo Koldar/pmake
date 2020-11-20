@@ -10,7 +10,7 @@ import sys
 import colorama
 
 import urllib.request
-from typing import List, Union, Iterable, Tuple, Any, Callable
+from typing import List, Union, Iterable, Tuple, Any, Callable, Dict
 
 import semver
 
@@ -18,6 +18,7 @@ from pmake import LinuxOSSystem, version
 from pmake import PMakeModel
 from pmake import WindowsOSSystem
 from pmake.commons_types import path
+from pmake.exceptions.PMakeException import AssertionPMakeException, PMakeException
 
 
 class SessionScript(abc.ABC):
@@ -25,7 +26,7 @@ class SessionScript(abc.ABC):
     Contains all the commands available for the user in a PMakefile.py file
     """
 
-    def __init__(self, model: "PMakeModel.PMakeModel"):
+    def __init__(self, model: "PMakeModel"):
         self._model = model
         self._cwd = os.path.abspath(os.curdir)
         self._locals = {}
@@ -53,7 +54,7 @@ class SessionScript(abc.ABC):
         elif self.on_linux():
             self._platform = LinuxOSSystem.LinuxOSSystem()
         else:
-            raise ValueError(f"Cannot identify platform!")
+            raise PMakeException(f"Cannot identify platform!")
 
         # fetches the interesting paths
         self._interesting_paths = self._platform._fetch_interesting_paths(self)
@@ -126,6 +127,112 @@ class SessionScript(abc.ABC):
 
         return result
 
+    def ensure_condition(self, condition: Callable[[], bool], message: str = "") -> None:
+        """
+        Perform a check. If the condition is **not** satisfied, we raise exception
+
+        :param condition: the condition to check. generate exception if the result is False
+        :param message: the message to show if the exception needs to be generated
+        """
+
+        if not condition():
+            raise AssertionPMakeException(f"pmake needs to generate a custom exception: {message}")
+
+    def ensure_has_variable(self, name: str) -> None:
+        """
+        Ensure the user has passed a variable via "--variable" CLI utils.
+        If not, an exception is generated
+
+        :param name: the variable name to check
+
+        """
+        return self.ensure_condition(lambda: name in self._model.variable, message=f"""No variable passed with "--variable" named "{name}".""")
+
+    def semantic_version_2_only_core(self, filename: str) -> semver.VersionInfo:
+        """
+        A function that can be used within ::get_latest_version_in_folder
+
+        :param filename: the absolute path of a file that contains a version
+        :return: the version
+        """
+        regex = r"\d+\.\d+\.\d+"
+        b = os.path.basename(filename)
+        m = re.search(regex, b)
+        logging.debug(f"checking if \"{filename}\" satisfies \"{regex}\"")
+        if m is None:
+            raise PMakeException(f"Cannot find the regex {regex} within file \"{b}\"!")
+        logging.debug(f"yes: \"{m.group(0)}\"")
+        return semver.VersionInfo.parse(m.group(0))
+
+    def quasi_semantic_version_2_only_core(self, filename: str) -> semver.VersionInfo:
+        """
+        A function that can be used within ::get_latest_version_in_folder.
+        It accepts values like "1.0.0", but also "1.0" and "1"
+
+        :param filename: the absolute path of a file that contains a version
+        :return: the version
+        """
+        regex = r"\d+(?:\.\d+(?:\.\d+)?)?"
+        b = os.path.basename(filename)
+        m = re.search(regex, b)
+        if m is None:
+            raise PMakeException(f"Cannot find the regex {regex} within file \"{b}\"!")
+        result = m.group(0)
+        if len(result.split(".")) == 2:
+            result += ".0"
+        if len(result.split(".")) == 1:
+            result += ".0.0"
+        return semver.VersionInfo.parse(result)
+
+    def get_latest_version_in_folder(self, folder: path = None, should_consider: Callable[[path], bool] = None, version_fetcher: Callable[[str], semver.VersionInfo] = None) -> Tuple[semver.VersionInfo, List[path]]:
+        """
+        Scan the subfiles and subfolder of a given directory. We assume each file or folder has a version withint it.
+        Then fetches the latest version.
+        This command is useful in dierctories where all releases of a given software are placed. if we need to fetch
+        the latest one,
+        this function is perfect for the task.
+
+        :param folder: the folder to consider. If unspecified, it is the current working directory
+        :param should_consider: a function that allows you to determine if we need to consider or
+            not a subfile/subfolder. The input isan absolute path. If no function is given, we accept all the
+            sub files
+        :param version_fetcher: a function that extract a version from the filename. If left unspecified, we will
+            use ::semantic_version_2_only_core
+        :return: the latest version in the folder. The second element of the tuple is a collection of all the filenames
+            that specify the latest version
+        """
+
+        if folder is None:
+            folder = self._cwd
+        if should_consider is None:
+            should_consider = lambda x: True
+        if version_fetcher is None:
+            version_fetcher = self.quasi_semantic_version_2_only_core
+        p = self.get_path(folder)
+
+        result_version = None
+        result_list = []
+        for file in self._platform.ls(p, generate_absolute_path=True):
+            logging.debug(f"Shuld we consider {file} for fetching the latest version?")
+            if not should_consider(file):
+                continue
+            # find the version
+            v = version_fetcher(file)
+            logging.debug(f"fetched version {v}. Latest version detected up until now is {result_version}")
+            if result_version is None:
+                result_version = v
+                result_list = [file]
+                logging.debug(f"update version with {result_version}. Files are {' '.join(result_list)}")
+            elif v > result_version:
+                result_version = v
+                result_list = [file]
+                logging.debug(f"update version with {result_version}. Files are {' '.join(result_list)}")
+            elif v == result_version:
+                result_list.append(file)
+                logging.debug(f"update version with {result_version}. Files are {' '.join(result_list)}")
+
+        return result_version, result_list
+
     def _truncate_string(self, string: str, width: int, ndots: int = 3) -> str:
         if len(string) > (width - ndots):
             return string[:(width-ndots)] + "."*ndots
@@ -180,6 +287,7 @@ class SessionScript(abc.ABC):
         :param overwrite_if_exists: if true, if the cache already contain a variable with the same name, such a varaible will be replaced
             with the new one
         """
+        self._log_command(f"Setting {name}={value} in cache")
         self._model.pmake_cache.set_variable_in_cache(
             name=name,
             value=value,
@@ -234,6 +342,7 @@ class SessionScript(abc.ABC):
             new_value = mapper(self._model.pmake_cache.get_variable_in_cache(name))
         else:
             new_value = supplier()
+        self._log_command(f"Setting {name}={new_value} in cache")
         self._model.pmake_cache.set_variable_in_cache(name, new_value)
 
     def get_starting_cwd(self) -> path:
@@ -288,8 +397,11 @@ class SessionScript(abc.ABC):
 
         :param lowerbound: the minimum version this script is compliant with
         """
+        system_version = semver.VersionInfo.parse(version.VERSION)
+        script_version = semver.VersionInfo.parse(lowerbound)
+        self._log_command(f"Checking if script minimum pmake version ({script_version}) is compliant with pmake version ({system_version})")
         if lowerbound < version.VERSION:
-            raise ValueError(f"The script requires at least version {lowerbound} to be installed. Current version is {version.VERSION}")
+            raise PMakeException(f"The script requires at least version {script_version} to be installed. Current version is {system_version}")
 
     def pairs(self, it: Iterable[Any]) -> Iterable[Tuple[Any, Any]]:
         """
@@ -352,7 +464,7 @@ class SessionScript(abc.ABC):
                 column_index = index
                 break
         if column_index is None:
-            raise ValueError(f"Cannot find column named '{column_name}' in header: {', '.join(header)}")
+            raise PMakeException(f"Cannot find column named '{column_name}' in header: {', '.join(header)}")
 
         return self.get_column_of_table(table, column_index)
 
@@ -600,7 +712,7 @@ class SessionScript(abc.ABC):
                     continue
                 yield line.rstrip("\n\r")
 
-    def read_file_content(self, name: path, encoding: str = "utf-8", trim_newlines: bool = False) -> str:
+    def read_file_content(self, name: path, encoding: str = "utf-8", trim_newlines: bool = True) -> str:
         """
         Read the whole content of the file in a single string
 
@@ -617,7 +729,56 @@ class SessionScript(abc.ABC):
             result = result.strip("\t\n\r ")
         return result
 
-    def append_string_at_end_of_file(self, name: path, content: Any, encoding: str = "utf-8"):
+    def remove_last_n_line_from_file(self, name: path, n: int = 1, consider_empty_line: bool = False, encoding: str = "utf-8") -> List[str]:
+        """
+        Read the content of a file and remove the last n lines from the file involved. Then, rewrites the whole file
+
+        :param name: file involved. If relative, it is relative to ::cwd()
+        :param n: the number of lines to remove at the end.
+        :param consider_empty_line: if True, we consider empty lines as well.
+        :param encoding: the encoding used to rewrite file
+        :return: the lines just removed
+        """
+
+        p = self.get_path(name)
+
+        self._log_command(f"Remove {n} lines at the end of file {p} (consider empty line = {consider_empty_line})")
+        with open(name, mode="r", encoding=encoding) as f:
+            lines = list(f.readlines())
+
+        result = []
+        final_i = 0
+        for i, line in enumerate(reversed(lines)):
+            if final_i == n:
+                break
+
+            if consider_empty_line and line.strip() == "":
+                result.append(line)
+                continue
+            result.append(line)
+            final_i += 1
+
+        # write the file
+        with open(name, mode="w", encoding=encoding) as f:
+            f.writelines(lines[:-final_i])
+
+        return result
+
+    def append_string_at_end_of_file(self, name: path, content: Any, encoding: str = "utf-8") -> None:
+        """
+        Append a string at the end of the file. carriage return is automatically added
+
+        :param name: filename
+        :param content: string to append
+        :param encoding: encoding of the file. If missing, "utf-8" is used
+        """
+        self.append_strings_at_end_of_file(
+            name=name,
+            content=[content],
+            encoding=encoding
+        )
+
+    def append_strings_at_end_of_file(self, name: path, content: Iterable[Any], encoding: str = "utf-8") -> None:
         """
         Append a string at the end of the file. carriage return is automatically added
 
@@ -628,7 +789,8 @@ class SessionScript(abc.ABC):
         p = self.get_path(name)
         self._log_command(f"Appending {content} into file file {p}")
         with open(p, "a", encoding=encoding) as f:
-            f.write(str(content) + "\n")
+            for x in content:
+                f.write(str(x) + "\n")
 
     def copy_file(self, src: path, dst: path):
         """
@@ -663,7 +825,7 @@ class SessionScript(abc.ABC):
                 adst
             )
         else:
-            raise ValueError(f"Cannot determine if {asrc} is a file or a directory!")
+            raise InvalidScenarioPMakeException(f"Cannot determine if {asrc} is a file or a directory!")
 
     def copy_folder_content(self, folder: path, destination: path):
         """
@@ -826,17 +988,14 @@ class SessionScript(abc.ABC):
         Show the list of all the files in the given directory
 
         :param folder: folder to scan. default to CWD
-        :param generate_absolute_path: if true, we will generate in the outptu the absolute path of the subfolders. Otherwise we will return only the
-        :return:
+        :param generate_absolute_path: if true, we will generate in the outptu the absolute path of the subfolders.
+            Otherwise we will return only the
+        :return: iterable of all the files in the given directory
         """
         if folder is None:
             folder = self._cwd
         self._log_command(f"""listing files of folder \"{self.get_path(folder)}\"""")
-        for x in os.listdir(folder):
-            if generate_absolute_path:
-                yield os.path.abspath(os.path.join(folder, x))
-            else:
-                yield x
+        yield from self._platform.ls(folder, generate_absolute_path)
 
     def ls_only_files(self, folder: path = None, generate_absolute_path: bool = False) -> Iterable[path]:
         """
@@ -850,12 +1009,7 @@ class SessionScript(abc.ABC):
             folder = self._cwd
         p = self.get_path(folder)
         self._log_command(f"""listing files in fodler \"{p}\"""")
-        for f in os.listdir(p):
-            if os.path.isfile(f):
-                if generate_absolute_path:
-                    yield os.path.abspath(os.path.join(p, f))
-                else:
-                    yield f
+        yield from self._platform.ls_only_files(p, generate_absolute_path)
 
     def ls_only_directories(self, folder: path = None, generate_absolute_path: bool = False) -> Iterable[path]:
         """
@@ -870,12 +1024,7 @@ class SessionScript(abc.ABC):
             folder = self._cwd
         p = self.get_path(folder)
         self._log_command(f"""listing folders in folder \"{p}\"""")
-        for f in os.listdir(p):
-            if os.path.isdir(os.path.abspath(os.path.join(p, f))):
-                if generate_absolute_path:
-                    yield os.path.abspath(os.path.join(p, f))
-                else:
-                    yield f
+        yield from self._platform.ls_only_directories(p, generate_absolute_path)
 
     def ls_recursive(self, folder: path = None) -> Iterable[path]:
         """
@@ -1006,7 +1155,7 @@ class SessionScript(abc.ABC):
             for subfolder in self.ls_only_directories(p):
                 if not subfolder.startswith(prefix):
                     if error_if_mismatch:
-                        raise ValueError(f"subfolder \"{subfolder}\" in \"{p}\" does not start with \"{prefix}\"")
+                        raise PMakeException(f"subfolder \"{subfolder}\" in \"{p}\" does not start with \"{prefix}\"")
                     else:
                         continue
 
@@ -1017,7 +1166,7 @@ class SessionScript(abc.ABC):
                     elif folder_format == "number":
                         folders[int(subfolder_id)] = subfolder
                     else:
-                        raise ValueError(f"invalid folder_format \"{folder_format}\"")
+                        raise InvalidScenarioPMakeException(f"invalid folder_format \"{folder_format}\"")
                 except Exception as e:
                     if error_if_mismatch:
                         raise e
@@ -1030,106 +1179,356 @@ class SessionScript(abc.ABC):
         finally:
             self._disable_log_command = False
 
-    def exec(self, command: Union[str, List[str]], cwd: path = None):
+    def create_temp_directory_with(self, directory_prefix: str) -> Any:
         """
-        Execute a command as current user. if you use this command it is assumed you absolutely don't care about
-        the output of the command
+        Create a temporary directory on the file system where to put temporary files
 
-        :param command: command to exexcute. If possible, prefer using a list rather than a string. string are stuill supported though
-        :param cwd: directory where this command should be executed. If missing, the cwd is the CWD of the whole script
+        :param directory_prefix: a prefix to be put before the temporary folder
+        :return: a value which can be the input of a "with" statement. The folder will be automatically removed at the
+        end of the with. You can access the directory filename via the result field "name"
         """
-        self._log_command(f"""Execute command without capturing output \"{command}\"""")
+        return self._platform.create_temp_directory_with(directory_prefix)
+
+    def create_temp_file(self, directory: str, file_prefix: str = None, file_suffix: str = None, mode: str = "r",
+                         encoding: str = "utf-8", readable_for_all: bool = False, executable_for_owner: bool = False,
+                         executable_for_all: bool = False) -> Tuple[Any, str]:
+        """
+        Creates the file. You need to manually dispose of the file by yourself
+
+        :param directory: the directory where to put the file
+        :param file_prefix: a string that will be put at the beginning of the filename
+        :param file_suffix: a string that will be put at the end of the filename
+        :param mode: how we will open the file. E.g., "r", "w"
+        :param encoding: the encodign of the file. Default to "utf-8"
+        :param readable_for_all: if True, the file can be read by anyone
+        :param executable_for_owner: if True, the file can be executed by the owner
+        :param executable_for_all: if True, anyone can execute the file
+        :return: a tuple where the first item is the object you can use to read/write into the file. The second element
+            is the absolute path of the temp file
+        """
+        return self._platform.create_temp_file(
+            directory=directory,
+            file_prefix=file_prefix,
+            file_suffix=file_suffix,
+            mode=mode,
+            encoding=encoding,
+            readable_for_all=readable_for_all,
+            executable_for_owner=executable_for_owner,
+            executable_for_all=executable_for_all
+        )
+
+    def execute_and_forget(self, commands: Union[str, List[Union[str, List[str]]]], cwd: path = None, env: Dict[str, str] = None, check_exit_code: bool = True, timeout: int = None) -> int:
+        """
+        Execute a command but ensure that no stdout will be printed on the console
+
+        :param commands: the command to execute. They will be exeucte in the same context
+        :param cwd: current working directory where the command is executed
+        :param env: a dictionary representing the key-values of the environment variables
+        :param check_exit_code: if true, we will generate an exception if the exit code is different than 0
+        :param timeout: if positive, we will give up waiting for the command after the amount of seconds
+        :return: triple. The first element is the error code, the second is the stdout (if captured), the third is stderr
+        """
         if cwd is None:
             cwd = self._cwd
         else:
             cwd = self.get_path(cwd)
-        self._platform.execute(
-            command=command,
+
+        if isinstance(commands, str):
+            commands = [commands]
+
+        result, _, _ = self._platform.execute_command(
+            commands=commands,
+            show_output_on_screen=False,
+            capture_stdout=False,
             cwd=cwd,
-            use_shell=True,
-            capture_stdout=False
+            env=env,
+            check_exit_code=check_exit_code,
+            timeout=timeout,
+            execute_as_admin=False,
+            admin_password=None,
+            log_entry=True,
         )
+        return result
 
-    def exec_admin(self, command: Union[str, List[str]], cwd: path = None):
+    def execute_stdout_on_screen(self, commands: Union[str, List[Union[str, List[str]]]], cwd: path = None, env: Dict[str, str] = None, check_exit_code: bool = True, timeout: int = None) -> int:
         """
-        Execute a command as admin. if you use this command it is assumed you absolutely don't care about
-        the outpput of the command
+        Execute a command. We won't capture the stdout but we will show it on pmake console
 
-        :param command: command to exexcute. If possible, prefer using a list rather than a string. string are stuill supported though
-        :param cwd: directory where this command should be executed. If missing, the cwd is the CWD of the whole script
+        :param commands: the command to execute. They will be exeucte in the same context
+        :param cwd: current working directory where the command is executed
+        :param env: a dictionary representing the key-values of the environment variables
+        :param check_exit_code: if true, we will generate an exception if the exit code is different than 0
+        :param timeout: if positive, we will give up waiting for the command after the amount of seconds
+        :return: triple. The first element is the error code, the second is the stdout (if captured), the third is stderr
         """
-        self._log_command(f"""Execute admin command without capturing output \"{command}\"""")
         if cwd is None:
             cwd = self._cwd
         else:
             cwd = self.get_path(cwd)
-        self._platform.execute_admin(
-            command=command,
+
+        if isinstance(commands, str):
+            commands = [commands]
+
+        result, _, _ = self._platform.execute_command(
+            commands=commands,
+            show_output_on_screen=True,
+            capture_stdout=False,
             cwd=cwd,
-            use_shell=True,
-            capture_stdout=False
+            env=env,
+            check_exit_code=check_exit_code,
+            timeout=timeout,
+            execute_as_admin=False,
+            admin_password=None,
+            log_entry=True,
         )
+        return result
 
-    def exec_stdout(self, command: Union[str, List[str]], cwd: path = None) -> str:
+    def execute_return_stdout(self, commands: Union[str, List[Union[str, List[str]]]], cwd: path = None, env: Dict[str, str] = None, check_exit_code: bool = True, timeout: int = None) -> Tuple[int, str, str]:
         """
-        Execute a command as current user. if you use this command it is assumed you care about the output of the command
+        Execute a command. We won't show the stdout on pmake console but we will capture it and returned it
 
-        :param command: command to exexcute. If possible, prefer using a list rather than a string. string are stuill supported though
-        :param cwd: directory where this command should be executed. If missing, the cwd is the CWD of the whole script
+        :param commands: the command to execute. They will be exeucte in the same context
+        :param cwd: current working directory where the command is executed
+        :param env: a dictionary representing the key-values of the environment variables
+        :param check_exit_code: if true, we will generate an exception if the exit code is different than 0
+        :param timeout: if positive, we will give up waiting for the command after the amount of seconds
+        :return: triple. The first element is the error code, the second is the stdout (if captured), the third is stderr
         """
-        self._log_command(f"""Execute command capturing output \"{command}\"""")
         if cwd is None:
             cwd = self._cwd
         else:
             cwd = self.get_path(cwd)
-        code, stdout, stderr = self._platform.execute(
-            command=command,
+
+        if isinstance(commands, str):
+            commands = [commands]
+
+        exit_code, stdout, stderr = self._platform.execute_command(
+            commands=commands,
+            show_output_on_screen=False,
+            capture_stdout=True,
             cwd=cwd,
-            use_shell=True,
-            capture_stdout=True
+            env=env,
+            check_exit_code=check_exit_code,
+            timeout=timeout,
+            execute_as_admin=False,
+            admin_password=None,
+            log_entry=True
         )
-        return stdout
+        return exit_code, stdout, stderr
 
-    def exec_admin_stdout(self, command: Union[str, List[str]], cwd: path = None) -> str:
+    def execute_admin_and_forget(self, commands: Union[str, List[Union[str, List[str]]]], cwd: path = None, env: Dict[str, str] = None, check_exit_code: bool = True, timeout: int = None) -> int:
         """
-        Execute a command as admin. if you use this command it is assumed you care about the output of the command
+        Execute a command as admin but ensure that no stdout will be printed on the console
 
-        :param command: command to exexcute. If possible, prefer using a list rather than a string. string are stuill supported though
-        :param cwd: directory where this command should be executed. If missing, the cwd is the CWD of the whole script
+        :param commands: the command to execute. They will be exeucte in the same context
+        :param cwd: current working directory where the command is executed
+        :param env: a dictionary representing the key-values of the environment variables
+        :param check_exit_code: if true, we will generate an exception if the exit code is different than 0
+        :param timeout: if positive, we will give up waiting for the command after the amount of seconds
+        :return: triple. The first element is the error code, the second is the stdout (if captured), the third is stderr
         """
-        self._log_command(f"""Execute admin command capturing output \"{command}\"""")
         if cwd is None:
             cwd = self._cwd
         else:
             cwd = self.get_path(cwd)
-        code, stdout, stderr = self._platform.execute_admin(
-            command=command,
-            cwd=self._cwd,
-            use_shell=True,
-            capture_stdout=True
-        )
-        return stdout
 
-    def execute_admin_with_password(self, command: Union[str, List[str]], password: str, cwd: str = None,
-                                    use_shell: bool = True) -> str:
+        if isinstance(commands, str):
+            commands = [commands]
+
+        result, _, _ = self._platform.execute_command(
+            commands=commands,
+            show_output_on_screen=False,
+            capture_stdout=False,
+            cwd=cwd,
+            env=env,
+            check_exit_code=check_exit_code,
+            timeout=timeout,
+            execute_as_admin=True,
+            admin_password=None,
+            log_entry=True,
+        )
+        return result
+
+    def execute_admin_stdout_on_screen(self, commands: Union[str, List[Union[str, List[str]]]], cwd: path = None, env: Dict[str, str] = None, check_exit_code: bool = True, timeout: int = None) -> int:
+        """
+        Execute a command as an admin. We won't capture the stdout but we will show it on pmake console
+
+        :param commands: the command to execute. They will be exeucte in the same context
+        :param cwd: current working directory where the command is executed
+        :param env: a dictionary representing the key-values of the environment variables
+        :param check_exit_code: if true, we will generate an exception if the exit code is different than 0
+        :param timeout: if positive, we will give up waiting for the command after the amount of seconds
+        :return: triple. The first element is the error code, the second is the stdout (if captured), the third is stderr
+        """
+        if cwd is None:
+            cwd = self._cwd
+        else:
+            cwd = self.get_path(cwd)
+
+        if isinstance(commands, str):
+            commands = [commands]
+
+        result, _, _ = self._platform.execute_command(
+            commands=commands,
+            show_output_on_screen=True,
+            capture_stdout=False,
+            cwd=cwd,
+            env=env,
+            check_exit_code=check_exit_code,
+            timeout=timeout,
+            execute_as_admin=True,
+            admin_password=None,
+            log_entry=True,
+        )
+        return result
+
+    def execute_admin_return_stdout(self, commands: Union[str, List[Union[str, List[str]]]], cwd: path = None, env: Dict[str, str] = None, check_exit_code: bool = True, timeout: int = None) -> Tuple[int, str, str]:
+        """
+        Execute a command as an admin. We won't show the stdout on pmake console but we will capture it and returned it
+
+        :param commands: the command to execute. They will be exeucte in the same context
+        :param cwd: current working directory where the command is executed
+        :param env: a dictionary representing the key-values of the environment variables
+        :param check_exit_code: if true, we will generate an exception if the exit code is different than 0
+        :param timeout: if positive, we will give up waiting for the command after the amount of seconds
+        :return: triple. The first element is the error code, the second is the stdout (if captured), the third is stderr
+        """
+        if cwd is None:
+            cwd = self._cwd
+        else:
+            cwd = self.get_path(cwd)
+
+        if isinstance(commands, str):
+            commands = [commands]
+
+        exit_code, stdout, stderr = self._platform.execute_command(
+            commands=commands,
+            show_output_on_screen=False,
+            capture_stdout=True,
+            cwd=cwd,
+            env=env,
+            check_exit_code=check_exit_code,
+            timeout=timeout,
+            execute_as_admin=True,
+            admin_password=None,
+            log_entry=True
+        )
+        return exit_code, stdout, stderr
+
+    def execute_admin_with_password_fire_and_forget(self, commands: Union[str, List[Union[str, List[str]]]], password: str,
+                                                    cwd: str = None, env: Dict[str, str] = None,
+                                                    check_exit_code: bool = True, timeout: int = None) -> int:
         """
         Execute a command as admin by provingin the admin password. **THIS IS INCREEDIBLE UNSAFE!!!!!!!!!!!!**.
         Please, I beg you, do **NOT** use this if you need any level of security!!!!! This will make the password visible
         on top, on the history, everywhere on your system. Please use it only if you need to execute a command on your
         local machine.
 
-        :param command: the command to execute
-        :param password: admin password
+        :param commands: the command to execute. They will be exeucte in the same context
         :param cwd: current working directory where the command is executed
-        :param use_shell: use_shell of subprocess method
-        :return: the stdout output of the command
+        :param env: a dictionary representing the key-values of the environment variables
+        :param check_exit_code: if true, we will generate an exception if the exit code is different than 0
+        :param timeout: if positive, we will give up waiting for the command after the amount of seconds
+        :param password: **[UNSAFE!!!!]** If you **really** need, you might want to run a command as an admin
+            only on your laptop, and you want a really quick and dirty way to execute it, like as in the shell.
+            Do **not** use this in production code, since the password will be 'printed in clear basically everywhere!
+            (e.g., history, system monitor, probabily in a file as well)
         """
-        return self._platform.execute_admin_with_password(
-            command=command,
-            password=password,
+        if cwd is None:
+            cwd = self.cwd()
+        else:
+            cwd = self.get_path(cwd)
+
+        if isinstance(commands, str):
+            commands = [commands]
+
+        result, _, _ = self._platform.execute_command(
+            commands=commands,
+            show_output_on_screen=False,
+            capture_stdout=False,
             cwd=cwd,
-            use_shell=use_shell
+            env=env,
+            check_exit_code=check_exit_code,
+            timeout=timeout,
+            execute_as_admin=True,
+            admin_password=password,
+            log_entry=True,
         )
+        return result
+
+    def execute_admin_with_password_stdout_on_screen(self, commands: Union[str, List[Union[str, List[str]]]], password: str, cwd: path = None, env: Dict[str, str] = None, check_exit_code: bool = True, timeout: int = None) -> int:
+        """
+        Execute a command as an admin. We won't capture the stdout but we will show it on pmake console
+
+        :param commands: the command to execute. They will be exeucte in the same context
+        :param password: **[UNSAFE!!!!]** If you **really** need, you might want to run a command as an admin
+            only on your laptop, and you want a really quick and dirty way to execute it, like as in the shell.
+            Do **not** use this in production code, since the password will be 'printed in clear basically everywhere!
+            (e.g., history, system monitor, probabily in a file as well)
+        :param cwd: current working directory where the command is executed
+        :param env: a dictionary representing the key-values of the environment variables
+        :param check_exit_code: if true, we will generate an exception if the exit code is different than 0
+        :param timeout: if positive, we will give up waiting for the command after the amount of seconds
+        :return: triple. The first element is the error code, the second is the stdout (if captured), the third is stderr
+        """
+        if cwd is None:
+            cwd = self._cwd
+        else:
+            cwd = self.get_path(cwd)
+
+        if isinstance(commands, str):
+            commands = [commands]
+
+        result, _, _ = self._platform.execute_command(
+            commands=commands,
+            show_output_on_screen=True,
+            capture_stdout=False,
+            cwd=cwd,
+            env=env,
+            check_exit_code=check_exit_code,
+            timeout=timeout,
+            execute_as_admin=True,
+            admin_password=password,
+            log_entry=True,
+        )
+        return result
+
+    def execute_admin_with_password_return_stdout(self, commands: Union[str, List[Union[str, List[str]]]], password: str, cwd: path = None, env: Dict[str, str] = None, check_exit_code: bool = True, timeout: int = None) -> Tuple[int, str, str]:
+        """
+        Execute a command as an admin. We won't show the stdout on pmake console but we will capture it and returned it
+
+        :param commands: the command to execute. They will be exeucte in the same context
+        :param password: **[UNSAFE!!!!]** If you **really** need, you might want to run a command as an admin
+            only on your laptop, and you want a really quick and dirty way to execute it, like as in the shell.
+            Do **not** use this in production code, since the password will be 'printed in clear basically everywhere!
+            (e.g., history, system monitor, probabily in a file as well)
+        :param cwd: current working directory where the command is executed
+        :param env: a dictionary representing the key-values of the environment variables
+        :param check_exit_code: if true, we will generate an exception if the exit code is different than 0
+        :param timeout: if positive, we will give up waiting for the command after the amount of seconds
+        :return: triple. The first element is the error code, the second is the stdout (if captured), the third is stderr
+        """
+        if cwd is None:
+            cwd = self._cwd
+        else:
+            cwd = self.get_path(cwd)
+
+        if isinstance(commands, str):
+            commands = [commands]
+
+        exit_code, stdout, stderr = self._platform.execute_command(
+            commands=commands,
+            show_output_on_screen=False,
+            capture_stdout=True,
+            cwd=cwd,
+            env=env,
+            check_exit_code=check_exit_code,
+            timeout=timeout,
+            execute_as_admin=True,
+            admin_password=password,
+            log_entry=True
+        )
+        return exit_code, stdout, stderr
 
     def include_string(self, string: str):
         self._model.execute_string(string)

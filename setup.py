@@ -68,7 +68,7 @@ def get_data_files() -> List[Tuple[str, List[str]]]:
             ("bin", [os.path.join("scripts", "pmake")])
         ]
     else:
-        raise ValueError(f"invalid os name {os.name}")
+        raise InvalidScenarioPMakeException(f"invalid os name {os.name}")
 
 
 setuptools.setup(

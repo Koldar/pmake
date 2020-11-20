@@ -1,3 +1,4 @@
+import logging
 import os
 import subprocess
 import tempfile
@@ -10,6 +11,7 @@ from pmake import commands
 from pmake.IOSSystem import IOSSystem
 from pmake.InterestingPath import InterestingPath
 from pmake.commons_types import path
+from pmake.exceptions.PMakeException import PMakeException
 
 
 class WindowsOSSystem(IOSSystem):
@@ -23,7 +25,7 @@ class WindowsOSSystem(IOSSystem):
 
         stdout = stdout.strip()
         if len(stdout) == 0:
-            raise ValueError(f"Cannot find the environment variable \"{name}\" for user \"{self.get_current_username()}\"")
+            raise PMakeException(f"Cannot find the environment variable \"{name}\" for user \"{self.get_current_username()}\"")
 
         return stdout
 
@@ -67,24 +69,12 @@ class WindowsOSSystem(IOSSystem):
         return interesting_paths
 
     def get_current_username(self) -> str:
-        code, stdout, stderr = self.execute("whoami")
+        code, stdout, stderr = self.execute_command(
+            commands=["whoami"],
+            capture_stdout=True,
+            show_output_on_screen=False,
+        )
         return stdout.split("\\")[1]
-
-    def execute(self, command: Union[str, List[str]], cwd: str = None, use_shell: bool = True, capture_stdout: bool = True) -> \
-    Tuple[int, str, str]:
-        if cwd is None:
-            cwd = os.curdir
-        result = subprocess.run(command, cwd=cwd, shell=use_shell, capture_output=capture_stdout)
-        if result.returncode != 0:
-            raise ValueError(f"cwd=\"{cwd}\" command=\"{command}\" exit=\"{result.returncode}\"")
-
-        if capture_stdout:
-            stdout = self._convert_stdout(result.stdout)
-            stderr = self._convert_stdout(result.stderr)
-        else:
-            stdout = ""
-            stderr = ""
-        return result.returncode, stdout, stderr
 
     def execute_admin(self, command: Union[str, List[str]], cwd: str = None, use_shell: bool = True,
                       capture_stdout: bool = True):

@@ -287,12 +287,55 @@ class MyTestCase(unittest.TestCase):
         """
         self.assertStdoutEquals("Hello world", lambda: model.manage_pmakefile())
 
-    def test_execute_admin_with_password(self):
+    def test_execute_and_forget(self):
+        model = PMakeModel()
+        model.input_string = """
+            echo(execute_and_forget("echo hello"))
+        """
+        self.assertStdoutEquals("0", lambda: model.manage_pmakefile())
+
+    def test_execute_stdout_on_screen(self):
+        model = PMakeModel()
+        model.input_string = """
+            execute_stdout_on_screen(["echo hello > temp.txt"])
+            echo(read_file_content("temp.txt"))
+            remove_file("temp.txt")
+        """
+        self.assertStdoutEquals("hello", lambda: model.manage_pmakefile())
+
+    def test_execute_return_stdout(self):
+        model = PMakeModel()
+        model.input_string = """
+            echo(execute_return_stdout("echo hello")[1])
+        """
+        self.assertStdoutEquals("hello", lambda: model.manage_pmakefile())
+
+    def test_admin_execute_and_forget(self):
         if os.name == "posix":
             model = PMakeModel()
             model.input_string = """
-                password = read_file_content("PASSWORD", trim_newlines=True)
-                echo(execute_admin_with_password("echo hello", password))
+                password = read_file_content("PASSWORD")
+                echo(execute_admin_with_password_fire_and_forget(["echo hello"], password))
+            """
+            self.assertStdoutEquals("0", lambda: model.manage_pmakefile())
+
+    def test_admin_execute_stdout_on_screen(self):
+        if os.name == "posix":
+            model = PMakeModel()
+            model.input_string = """
+                password = read_file_content("PASSWORD")
+                execute_admin_with_password_stdout_on_screen(["echo hello > temp.txt"], password)
+                echo(read_file_content("temp.txt"))
+                remove_file("temp.txt")
+            """
+            self.assertStdoutEquals("hello", lambda: model.manage_pmakefile())
+
+    def test_execute_admin_with_password_return_stdout(self):
+        if os.name == "posix":
+            model = PMakeModel()
+            model.input_string = """
+                password = read_file_content("PASSWORD")
+                echo(execute_admin_with_password_return_stdout(["echo hello"], password)[1])
             """
             self.assertStdoutEquals("hello", lambda: model.manage_pmakefile())
 
@@ -309,6 +352,45 @@ class MyTestCase(unittest.TestCase):
         self.assertStdoutEquals("bar", lambda: model.manage_pmakefile())
 
         os.unlink("pmake-cache.json")
+
+    def test_get_latest_version_in_folder_01(self):
+        model = PMakeModel()
+        model.input_string = """
+            make_directories("temp")
+            oldcwd = cd("temp")
+            create_empty_file("awesome-1.0.0")
+            create_empty_file("awesome-1.0.1")
+            create_empty_file("awesome-1.10.0")
+            create_empty_file("awesome-2.0.1")
+            create_empty_file("awesome-1.8.1")
+            latest_version, file_list = get_latest_version_in_folder() 
+            echo(latest_version)
+            echo(len(file_list))
+            echo(os.path.basename(file_list[0]))
+            cd(oldcwd)
+        """
+        self.assertStdoutEquals("2.0.1\n1\nawesome-2.0.1", lambda: model.manage_pmakefile())
+
+    def test_get_latest_version_in_folder_02(self):
+        model = PMakeModel()
+        model.input_string = """
+            make_directories("temp")
+            oldcwd = cd("temp")
+            create_empty_file("awesome-1.0.0")
+            create_empty_file("awesome-1.0.1")
+            create_empty_file("awesome-1.10.0")
+            create_empty_file("awesome-2.0.1")
+            create_empty_file("awesome-1.8.1")
+            create_empty_file("awesome2-2.0.1")
+            latest_version, file_list = get_latest_version_in_folder(version_fetcher=semantic_version_2_only_core)
+            file_list = sorted(file_list) 
+            echo(latest_version)
+            echo(len(file_list))
+            echo(os.path.basename(file_list[0]))
+            echo(os.path.basename(file_list[1]))
+            cd(oldcwd)
+        """
+        self.assertStdoutEquals("2.0.1\n2\nawesome-2.0.1\nawesome2-2.0.1", lambda: model.manage_pmakefile())
 
     def test_is_program_installed(self):
         model = PMakeModel()
