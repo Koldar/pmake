@@ -231,33 +231,33 @@ class MyTestCase(unittest.TestCase):
 
     def test_copy_folder_content(self):
         model = PMakeModel()
-        model.variable = [("foo", "bar")]
+        model.variable = {"foo": "bar"}
         model.input_string = """
-            create_empty_directory("temp")
+            create_empty_directory("temp_copy")
             old_pwd = cwd()
-            cd("temp")
+            cd("temp_copy")
             create_empty_file("foo.txt")
             create_empty_file("bar.txt")
             create_empty_file("baz.txt")
             cd(old_pwd)
-            create_empty_directory("temp2")
+            create_empty_directory("temp2_copy")
             
             copy_folder_content(
-                folder="temp",
-                destination="temp2",
+                folder="temp_copy",
+                destination="temp2_copy",
             )
-            if is_file_exists(os.path.join("temp2", "bar.txt")):
+            if is_file_exists(os.path.join("temp2_copy", "bar.txt")):
                 echo("Hello")
-            if not is_directory_exists(os.path.join("temp2", "temp")):
+            if not is_directory_exists(os.path.join("temp2_copy", "temp_copy")):
                 echo("World")
         """
         self.assertStdoutEquals("Hello\nWorld", lambda: model.manage_pmakefile())
-        shutil.rmtree("temp")
-        shutil.rmtree("temp2")
+        shutil.rmtree("temp_copy")
+        shutil.rmtree("temp2_copy")
 
     def test_variables_01(self):
         model = PMakeModel()
-        model.variable = [("foo", "bar")]
+        model.variable = {"foo": "bar"}
         model.input_string = """
             echo(variables['foo'])
         """
@@ -265,7 +265,7 @@ class MyTestCase(unittest.TestCase):
 
     def test_variables_02(self):
         model = PMakeModel()
-        model.variable = [("foo", "bar")]
+        model.variable = {"foo": "bar"}
         model.input_string = """
             echo(variables.foo)
         """
@@ -297,9 +297,9 @@ class MyTestCase(unittest.TestCase):
     def test_execute_stdout_on_screen(self):
         model = PMakeModel()
         model.input_string = """
-            execute_stdout_on_screen(["echo hello > temp.txt"])
-            echo(read_file_content("temp.txt"))
-            remove_file("temp.txt")
+            execute_stdout_on_screen(["echo hello > temp.txt"], cwd=cwd())
+            echo(read_file_content("/tmp/temp.txt"))
+            remove_file("/tmp/temp.txt")
         """
         self.assertStdoutEquals("hello", lambda: model.manage_pmakefile())
 
@@ -314,7 +314,7 @@ class MyTestCase(unittest.TestCase):
         if os.name == "posix":
             model = PMakeModel()
             model.input_string = """
-                password = read_file_content("PASSWORD")
+                password = read_file_content("../PASSWORD")
                 echo(execute_admin_with_password_fire_and_forget(["echo hello"], password))
             """
             self.assertStdoutEquals("0", lambda: model.manage_pmakefile())
@@ -323,10 +323,10 @@ class MyTestCase(unittest.TestCase):
         if os.name == "posix":
             model = PMakeModel()
             model.input_string = """
-                password = read_file_content("PASSWORD")
-                execute_admin_with_password_stdout_on_screen(["echo hello > temp.txt"], password)
-                echo(read_file_content("temp.txt"))
-                remove_file("temp.txt")
+                password = read_file_content("../PASSWORD")
+                execute_admin_with_password_stdout_on_screen(commands=["echo hello > /tmp/temp.txt"], password=password)
+                echo(read_file_content("/tmp/temp.txt"))
+                remove_file("/tmp/temp.txt")
             """
             self.assertStdoutEquals("hello", lambda: model.manage_pmakefile())
 
@@ -334,7 +334,7 @@ class MyTestCase(unittest.TestCase):
         if os.name == "posix":
             model = PMakeModel()
             model.input_string = """
-                password = read_file_content("PASSWORD")
+                password = read_file_content("../PASSWORD")
                 echo(execute_admin_with_password_return_stdout(["echo hello"], password)[1])
             """
             self.assertStdoutEquals("hello", lambda: model.manage_pmakefile())

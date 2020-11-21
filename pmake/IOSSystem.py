@@ -1,4 +1,5 @@
 import abc
+import getpass
 import os
 import stat
 import tempfile
@@ -121,8 +122,19 @@ class IOSSystem(abc.ABC):
         os.chmod(file_path, mode=st.st_mode | stat.S_IXOTH)
 
     @abc.abstractmethod
-    def get_current_username(self) -> str:
+    def set_global_environment_variable(self, group_name: str, name: str, value: Any):
+        """
+        Set an environment variable available for all the users on the system.
+        This function may require a reboot in order to persistently work
+
+        :param group_name: name of the group the variable belongs to. May be ignored by the function implementation
+        :param name: the variable name
+        :param value: the variable value to set
+        """
         pass
+
+    def get_current_username(self) -> str:
+        return getpass.getuser()
 
     @abc.abstractmethod
     def execute_command(self, commands: List[Union[str, List[str]]], show_output_on_screen: bool, capture_stdout: bool, cwd: str = None, env: Dict[str, Any] = None, check_exit_code: bool = True, timeout: int = None, execute_as_admin: bool = False, admin_password: str = None, log_entry: bool = False) -> Tuple[int, str, str]:

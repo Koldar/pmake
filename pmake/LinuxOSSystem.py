@@ -57,69 +57,66 @@ class LinuxOSSystem(IOSSystem):
                         f.write(f"{admin_password}\n")
 
                     if show_output_on_screen and capture_stdout:
-                        actual_command = f"""cat '{password_file}' | sudo {env_part} --stdin bash '{filepath}'"""
+                        actual_command = f"""cat '{password_file}' | sudo {env_part} --stdin --login bash '{filepath}'"""
                         actual_capture_output = True
                         actual_read_stdout = False
                     elif show_output_on_screen and not capture_stdout:
-                        actual_command = f"""cat '{password_file}' | sudo {env_part} --stdin bash '{filepath}'"""
+                        actual_command = f"""cat '{password_file}' | sudo {env_part} --stdin --login bash '{filepath}'"""
                         actual_capture_output = False
                         actual_read_stdout = False
                     elif not show_output_on_screen and capture_stdout:
-                        actual_command = f"""cat '{password_file}' | sudo {env_part} --stdin bash '{filepath}' > {stdout_filepath} 2>{stderr_filepath}"""
+                        actual_command = f"""cat '{password_file}' | sudo {env_part} --stdin --login bash '{filepath}' > {stdout_filepath} 2>{stderr_filepath}"""
                         actual_capture_output = False
                         actual_read_stdout = True
                     else:
-                        actual_command = f"""cat '{password_file}' | sudo {env_part} --stdin bash '{filepath}' 2>&1 > /dev/null"""
+                        actual_command = f"""cat '{password_file}' | sudo {env_part} --stdin --login bash '{filepath}' 2>&1 > /dev/null"""
                         actual_capture_output = False
                         actual_read_stdout = False
 
                 else:
 
                     if show_output_on_screen and capture_stdout:
-                        actual_command = f"""sudo {env_part} --login --shell bash '{filepath}'"""
+                        actual_command = f"""sudo {env_part} --login bash '{filepath}'"""
                         actual_capture_output = True
                         actual_read_stdout = False
                     elif show_output_on_screen and not capture_stdout:
-                        actual_command = f"""sudo {env_part} --login --shell bash '{filepath}'"""
+                        actual_command = f"""sudo {env_part} --login bash '{filepath}'"""
                         actual_capture_output = False
                         actual_read_stdout = False
                     elif not show_output_on_screen and capture_stdout:
-                        actual_command = f"""sudo {env_part} --login --shell bash '{filepath}' > {stdout_filepath} 2>{stderr_filepath}"""
+                        actual_command = f"""sudo {env_part} --login bash '{filepath}' > {stdout_filepath} 2>{stderr_filepath}"""
                         actual_capture_output = False
                         actual_read_stdout = True
                     else:
-                        actual_command = f"""sudo {env_part} --login --shell bash '{filepath}' 2>&1 > /dev/null"""
+                        actual_command = f"""sudo {env_part} --login bash '{filepath}' 2>&1 > /dev/null"""
                         actual_capture_output = False
                         actual_read_stdout = False
 
             else:
-
-
                 if show_output_on_screen and capture_stdout:
-                    actual_command = f"""sudo {env_part} --user {self.get_current_username()} bash --login '{filepath}'"""
+                    actual_command = f"""sudo {env_part} --user {self.get_current_username()} --login bash '{filepath}'"""
                     actual_capture_output = True
                     actual_read_stdout = False
                 elif show_output_on_screen and not capture_stdout:
-                    actual_command = f"""sudo {env_part} --user {self.get_current_username()} bash --login '{filepath}'"""
+                    actual_command = f"""sudo {env_part} --user {self.get_current_username()} --login bash '{filepath}'"""
                     actual_capture_output = False
                     actual_read_stdout = False
                 elif not show_output_on_screen and capture_stdout:
-                    actual_command = f"""sudo {env_part} --user {self.get_current_username()} bash --login '{filepath}' > {stdout_filepath} 2>{stderr_filepath}"""
+                    actual_command = f"""sudo {env_part} --user {self.get_current_username()} --login bash '{filepath}' > {stdout_filepath} 2>{stderr_filepath}"""
                     actual_capture_output = False
                     actual_read_stdout = True
                 else:
-                    actual_command = f"""sudo {env_part} --user {self.get_current_username()} bash --login '{filepath}' 2>&1 > /dev/null"""
+                    actual_command = f"""sudo {env_part} --user {self.get_current_username()} --login bash '{filepath}' 2>&1 > /dev/null"""
                     actual_capture_output = False
                     actual_read_stdout = False
 
             if log_entry:
-                log_method = logging.critical
+                log_method = logging.info
             else:
                 log_method = logging.debug
-            log_method = print
-            print(f"Executing {actual_command}")
+            log_method(f"Executing {actual_command}")
             with open(filepath, "r") as f:
-                print(f"in file \"{filepath}\" = \n{f.read()}")
+                log_method(f"in file \"{filepath}\" = \n{f.read()}")
 
             result = subprocess.run(
                 args=actual_command,
@@ -165,14 +162,19 @@ class LinuxOSSystem(IOSSystem):
     def _fetch_interesting_paths(self, script: "SessionScript") -> Dict[str, List[InterestingPath]]:
         return {}
 
-    def get_current_username(self) -> str:
-        return "koldar"
-        # code, stdout, stderr = self.execute_command(
-        #     commands=["whoami"],
-        #     show_output_on_screen=False,
-        #     capture_stdout=True,
-        # )
-        # return stdout
+    def set_global_environment_variable(self, group_name: str, name: str, value: Any):
+        open()
+        file_with_environment = f"/etc/profile.d/{group_name}.sh"
+        self.execute_command(
+            commands=[f"cat {file_with_environment}"],
+            show_output_on_screen=False,
+            capture_stdout=True,
+            check_exit_code=False,
+        )
+        self.execute_command(commands=[
+            f"""echo 'export {name}="{value}" >> /etc/profile.d/{group_name}.bash""",
+        ],
+        execute_as_admin=True)
 
     def is_program_installed(self, program_name: str) -> bool:
         exit_code, _, _ = self.execute_command(
