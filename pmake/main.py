@@ -93,6 +93,9 @@ def parse_options(args):
     
     --value "VariableName" "variableValue"
     """)
+    parser.add_argument("-V", "--version", action="store_true", help="""
+    Show the version of th software and exits
+    """)
     parser.add_argument('targets', metavar="TARGET", nargs="*", type=str, help="""
     An ordered list of pmake targets the user wants to build. For example, target names may be "all", 
     "clean", "install", "uninstall".
@@ -108,6 +111,10 @@ def parse_options(args):
 
 def main(args):
     options = parse_options(args)
+
+    if options.version:
+        print(version.VERSION)
+        sys.exit(0)
 
     log_level = options.log_level
     logging.basicConfig(

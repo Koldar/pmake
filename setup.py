@@ -9,6 +9,8 @@ from distutils.command.build import build
 
 from typing import List, Tuple
 
+from pmake.exceptions.PMakeException import InvalidScenarioPMakeException
+
 with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 

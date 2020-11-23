@@ -4,7 +4,7 @@ global TWINE_PASSWORD
 global ADMIN_PASSWORD
 
 TWINE_USER = "Koldar"
-TWINE_PASSWORD = "qEYQLflN9jXxxQEL51RGN8e6l"
+TWINE_PASSWORD = read_file_content("TWINE_PASSWORD")
 ADMIN_PASSWORD = read_file_content("PASSWORD")
 
 
