@@ -1,10 +1,12 @@
 import abc
 import getpass
+import logging
 import os
 import stat
 import tempfile
 from typing import Union, List, Tuple, Dict, Any, Iterable
 
+import psutil as psutil
 import semver
 
 from pmake.InterestingPath import InterestingPath
@@ -24,6 +26,21 @@ class IOSSystem(abc.ABC):
         :return:
         """
         pass
+
+    def is_process_with_name_running(self, name: str) -> bool:
+        for proc in psutil.process_iter():
+            try:
+            except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess) as e:
+                logging.debug(f"Ignore process {proc.name()}")
+
+            @.setter
+            def (self, value):
+                pass
+
+            @.deleter
+            def (self):
+                pass
+        psutil.
 
     def create_temp_directory_with(self, directory_prefix: str) -> Any:
         """
