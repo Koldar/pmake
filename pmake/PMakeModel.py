@@ -141,11 +141,19 @@ class PMakeModel(abc.ABC):
         logging.debug(f"Adding standard variable 'interesting_paths'")
         result["interesting_paths"] = self.session_script._interesting_paths
 
+        logging.info(f"INTERESTING PATHS")
+        for i, (k, values) in enumerate(self.session_script._interesting_paths.items()):
+            logging.info(f" - {i+1}. {k}: {', '.join(map(str, values))}")
+
         if "latest_interesting_path" in result:
             raise KeyError(
                 f"duplicate key \"latest_interesting_path\". It is already mapped to the value {result['latest_interesting_path']}")
         logging.debug(f"Adding standard variable 'latest_interesting_path'")
         result["latest_interesting_path"] = self.session_script._latest_interesting_path
+
+        logging.info(f"LATEST INTERESTING PATHS")
+        for i, (k, v) in enumerate(self.session_script._latest_interesting_path.items()):
+            logging.info(f" - {i+1}. {k}: {v}")
 
         return result
 
