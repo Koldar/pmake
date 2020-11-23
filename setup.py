@@ -35,6 +35,7 @@ class generate_executable(Command):
         print(f"generating executable of pmake using main {main_script}...")
         PYINSTALLER = [
             "pyinstaller",
+            "--exclude-module", "tkinter",
             "--hidden-import", "semver",
             "--noconfirm", "--onefile",
             "--distpath", os.path.join("scripts"),
