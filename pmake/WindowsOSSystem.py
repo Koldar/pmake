@@ -16,6 +16,127 @@ from pmake.exceptions.PMakeException import PMakeException
 
 class WindowsOSSystem(IOSSystem):
 
+    def set_global_environment_variable(self, group_name: str, name: str, value: Any):
+        self.execute_command(commands=[
+                f"""setx /M "{name}" "{value}" """
+            ],
+            show_output_on_screen=False,
+            capture_stdout=True,
+        )
+
+    def execute_command(self, commands: List[Union[str, List[str]]], show_output_on_screen: bool, capture_stdout: bool,
+                        cwd: str = None, env: Dict[str, Any] = None, check_exit_code: bool = True, timeout: int = None,
+                        execute_as_admin: bool = False, admin_password: str = None, log_entry: bool = False) -> Tuple[
+        int, str, str]:
+        # fetch the current user environment variables and updates with the ones from the caller
+        actual_env = dict(os.environ)
+        if env is None:
+            env = {}
+        for k, v in env.items():
+            actual_env[k] = v
+
+        # create tempfile
+        with self.create_temp_directory_with("pmake-command-") as absolute_temp_dir:
+            filepath = self.create_temp_file(directory=absolute_temp_dir, file_prefix="cmd_", file_suffix=".bat",
+                                             executable_for_owner=True)
+            with open(filepath, "w") as f:
+                # set environment variables
+                for k,v in actual_env.items():
+                    f.write(f"setx {k} {v}\n")
+                # put the commands in the temp file
+                for cmd in commands:
+                    if isinstance(cmd, str):
+                        cmd_str = cmd
+                    elif isinstance(cmd, list):
+                        cmd_str = ' '.join(cmd)
+                    else:
+                        raise TypeError(f"Invalid type of command {type(cmd)}!")
+                    f.write(cmd_str)
+                    f.write("\n")
+
+            stdout_filepath = os.path.join(absolute_temp_dir, "stdout.txt")
+            stderr_filepath = os.path.join(absolute_temp_dir, "stderr.txt")
+
+            # Now execute file
+            if execute_as_admin:
+                if admin_password:
+                    raise NotImplemented()
+                else:
+
+                    # powershell_file = self.create_temp_file(directory=absolute_temp_dir, file_prefix="elevate", file_suffix=".ps1")
+                    # with open(powershell_file, "w") as f:
+                    #     f.write(f"""powershell -Command \"Start-Process -FilePath '{filepath}' -WorkingDirectory '{cwd}' -Wait -Verb RunAs\"""")
+
+                    if show_output_on_screen and capture_stdout:
+                        actual_command = f"""runas.exe /user:administrator {filepath}"""
+                        actual_capture_output = True
+                        actual_read_stdout = False
+                    elif show_output_on_screen and not capture_stdout:
+                        actual_command = f"""runas.exe /user:administrator {filepath}"""
+                        actual_capture_output = False
+                        actual_read_stdout = False
+                    elif not show_output_on_screen and capture_stdout:
+                        actual_command = f"""runas.exe /user:administrator {filepath} 1> {stdout_filepath} 2> {stderr_filepath}"""
+                        actual_capture_output = False
+                        actual_read_stdout = True
+                    else:
+                        actual_command = f"""runas.exe /user:administrator {filepath} > nul 2>&1"""
+                        actual_capture_output = False
+                        actual_read_stdout = False
+
+            else:
+
+                if show_output_on_screen and capture_stdout:
+                    actual_command = f"""{filepath}"""
+                    actual_capture_output = True
+                    actual_read_stdout = False
+                elif show_output_on_screen and not capture_stdout:
+                    actual_command = f"""{filepath}"""
+                    actual_capture_output = False
+                    actual_read_stdout = False
+                elif not show_output_on_screen and capture_stdout:
+                    actual_command = f"""{filepath} 1> {stdout_filepath} 2> {stderr_filepath}"""
+                    actual_capture_output = False
+                    actual_read_stdout = True
+                else:
+                    actual_command = f"""{filepath} > nul 2>&1"""
+                    actual_capture_output = False
+                    actual_read_stdout = False
+
+            if log_entry:
+                log_method = logging.info
+            else:
+                log_method = logging.debug
+            log_method(f"Executing {actual_command}")
+            with open(filepath, "r") as f:
+                log_method(f"in file \"{filepath}\" = \n{f.read()}")
+
+            result = subprocess.run(
+                args=actual_command,
+                cwd=cwd,
+                shell=True,
+                capture_output=actual_capture_output,
+                timeout=timeout,
+                env=env
+            )
+
+            if check_exit_code and result.returncode != 0:
+                raise PMakeException(f"cwd=\"{cwd}\" command=\"{actual_command}\" exit=\"{result.returncode}\"")
+
+            if actual_capture_output:
+                stdout = self._convert_stdout(result.stdout)
+                stderr = self._convert_stdout(result.stderr)
+            elif actual_read_stdout:
+                with open(stdout_filepath) as f:
+                    stdout = self._convert_stdout(f.read())
+                with open(stderr_filepath) as f:
+                    stderr = self._convert_stdout(f.read())
+            else:
+                stdout = ""
+                stderr = ""
+
+            return result.returncode, stdout, stderr
+
     def get_env_variable(self, name: str) -> str:
         code, stdout, _ = self.execute(
             command=f"echo %{name}%",
