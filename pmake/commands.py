@@ -6,6 +6,7 @@ import re
 import shutil
 import stat
 import sys
+import tempfile
 
 import colorama
 
@@ -1178,6 +1179,19 @@ class SessionScript(abc.ABC):
             self.cd(folders[latest_folder])
         finally:
             self._disable_log_command = False
+
+    def get_temp_filepath(self, prefix: str = None, suffix: str = None) -> str:
+        """
+        Get the filename of a temp file. You need to manually create such a temp file
+
+        :param prefix: a prefix the temp file to generate has
+        :param suffix: a suffix the temp file to generate has
+        :return: the temp path
+        """
+
+        fd, result = tempfile.mkstemp(prefix=prefix, suffix=suffix)
+        os.close(fd)
+        return result
 
     def create_temp_directory_with(self, directory_prefix: str) -> Any:
         """

@@ -214,11 +214,58 @@ class MyTestCase(unittest.TestCase):
         self.assertStdoutEquals("True", lambda: model.manage_pmakefile())
         shutil.rmtree("temp")
 
-    def test_admin_windows(self):
+    def test_fire_and_forget_windows(self):
         if os.name == "nt":
             model = PMakeModel()
             model.input_string = """
-                echo(exec_admin_stdout("echo hello"))
+                echo(execute_and_forget("echo hello > temp.txt"))
+            """
+            self.assertStdoutEquals("0", lambda: model.manage_pmakefile())
+
+    def test_admin_fire_and_forget_windows(self):
+        if os.name == "nt":
+            model = PMakeModel()
+            model.input_string = """
+                echo(execute_admin_and_forget("echo hello > temp.txt"))
+            """
+            self.assertStdoutEquals("0", lambda: model.manage_pmakefile())
+
+    def test_execute_stdout_on_screen_windows(self):
+        if os.name == "nt":
+            model = PMakeModel()
+            model.input_string = """
+                execute_stdout_on_screen("echo hello > temp.txt")
+                echo(read_file_content("temp.txt"))
+                remove_file("temp.txt")
+            """
+            self.assertStdoutEquals("hello", lambda: model.manage_pmakefile())
+
+    def test_admin_execute_stdout_on_screen_windows(self):
+        if os.name == "nt":
+            model = PMakeModel()
+            model.input_string = """
+               temp_file = get_temp_filepath()
+               execute_admin_stdout_on_screen(f"echo hello > {temp_file}")
+               echo(read_file_content(temp_file))
+               remove_file(temp_file)
+           """
+            self.assertStdoutEquals("hello", lambda: model.manage_pmakefile())
+
+    def test_execute_return_stdout_windows(self):
+        if os.name == "nt":
+            model = PMakeModel()
+            model.input_string = """
+                exit_core, v, _ = execute_return_stdout("echo hello")
+                echo(v)
+            """
+            self.assertStdoutEquals("hello", lambda: model.manage_pmakefile())
+
+    def test_admin_execute_return_stdout_windows(self):
+        if os.name == "nt":
+            model = PMakeModel()
+            model.input_string = """
+                exit_code, v, _ = execute_admin_return_stdout("echo hello")
+                echo(v)
             """
             self.assertStdoutEquals("hello", lambda: model.manage_pmakefile())
 
@@ -295,13 +342,14 @@ class MyTestCase(unittest.TestCase):
         self.assertStdoutEquals("0", lambda: model.manage_pmakefile())
 
     def test_execute_stdout_on_screen(self):
-        model = PMakeModel()
-        model.input_string = """
-            execute_stdout_on_screen(["echo hello > temp.txt"], cwd=cwd())
-            echo(read_file_content("/tmp/temp.txt"))
-            remove_file("/tmp/temp.txt")
-        """
-        self.assertStdoutEquals("hello", lambda: model.manage_pmakefile())
+        if os.name == "posix":
+            model = PMakeModel()
+            model.input_string = """
+                execute_stdout_on_screen(["echo hello > temp.txt"], cwd=cwd())
+                echo(read_file_content("/tmp/temp.txt"))
+                remove_file("/tmp/temp.txt")
+            """
+            self.assertStdoutEquals("hello", lambda: model.manage_pmakefile())
 
     def test_execute_return_stdout(self):
         model = PMakeModel()
@@ -392,13 +440,23 @@ class MyTestCase(unittest.TestCase):
         """
         self.assertStdoutEquals("2.0.1\n2\nawesome-2.0.1\nawesome2-2.0.1", lambda: model.manage_pmakefile())
 
-    def test_is_program_installed(self):
-        model = PMakeModel()
-        model.input_string = """
-            echo(is_program_installed("echo"))
-            echo(is_program_installed("opasdfhiovsefuhawzxcvsdvbjkfawfhsd"))
-        """
-        self.assertStdoutEquals("True\nFalse", lambda: model.manage_pmakefile())
+    def test_is_program_installed_linux(self):
+        if os.name == "posix":
+            model = PMakeModel()
+            model.input_string = """
+                echo(is_program_installed("echo"))
+                echo(is_program_installed("opasdfhiovsefuhawzxcvsdvbjkfawfhsd"))
+            """
+            self.assertStdoutEquals("True\nFalse", lambda: model.manage_pmakefile())
+
+    def test_is_program_installed_windows(self):
+        if os.name == "nt":
+            model = PMakeModel()
+            model.input_string = """
+                echo(is_program_installed("cmd.exe"))
+                echo(is_program_installed("opasdfhiovsefuhawzxcvsdvbjkfawfhsd"))
+            """
+            self.assertStdoutEquals("True\nFalse", lambda: model.manage_pmakefile())
 
     def test_convert_table_01(self):
         model = PMakeModel()
