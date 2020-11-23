@@ -63,13 +63,23 @@ class WindowsOSSystem(IOSSystem):
                 # Now execute file
                 if execute_as_admin:
                     if admin_password:
-                        raise NotImplemented()
+                        if show_output_on_screen and capture_stdout:
+                            actual_command = f"""powershell.exe -Command \"Start-Process -FilePath 'cmd.exe' -ArgumentList '/Q','/C','{filepath}' -WorkingDirectory '{cwd}' -Wait -Verb RunAs\""""
+                            actual_capture_output = True
+                            actual_read_stdout = False
+                        elif show_output_on_screen and not capture_stdout:
+                            actual_command = f"""powershell.exe -Command \"Start-Process -FilePath 'cmd.exe' -ArgumentList '/Q','/C','{filepath}' -WorkingDirectory '{cwd}' -Wait -Verb RunAs\""""
+                            actual_capture_output = False
+                            actual_read_stdout = False
+                        elif not show_output_on_screen and capture_stdout:
+                            actual_command = f"""powershell.exe -Command \"Start-Process -FilePath 'cmd.exe' -ArgumentList '/Q','/C','{filepath} 1> {stdout_filepath} 2> {stderr_filepath}' -WorkingDirectory '{cwd}' -Wait -Verb RunAs\""""
+                            actual_capture_output = False
+                            actual_read_stdout = True
+                        else:
+                            actual_command = f"""powershell.exe -Command \"Start-Process -FilePath 'cmd.exe' -ArgumentList '/Q','/C','{filepath} > nul 2>&1' -WorkingDirectory '{cwd}' -Wait -Verb RunAs\""""
+                            actual_capture_output = False
+                            actual_read_stdout = False
                     else:
-
-                        # powershell_file = self.create_temp_file(directory=absolute_temp_dir, file_prefix="elevate", file_suffix=".ps1")
-                        # with open(powershell_file, "w") as f:
-                        #     f.write(f"""powershell -Command \"Start-Process -FilePath '{filepath}' -WorkingDirectory '{cwd}' -Wait -Verb RunAs\"""")
-
                         if show_output_on_screen and capture_stdout:
                             actual_command = f"""powershell.exe -Command \"Start-Process -FilePath 'cmd.exe' -ArgumentList '/Q','/C','{filepath}' -WorkingDirectory '{cwd}' -Wait -Verb RunAs\""""
                             actual_capture_output = True

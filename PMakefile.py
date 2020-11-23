@@ -35,19 +35,34 @@ def uninstall():
 
 
 def build():
-    execute_and_forget([
-        f"source venv/bin/activate",
-        f"python setup.py bdist_wheel",
-        f"deactivate"
-    ])
+    if on_linux():
+        echo("building for linux", foreground="blue")
+        execute_and_forget([
+            f"source venv/bin/activate",
+            f"python setup.py bdist_wheel",
+            f"deactivate"
+        ])
+    elif on_windows():
+        echo("building for windows", foreground="blue")
+        execute_and_forget([
+            f"python setup.py bdist_wheel",
+        ])
+    else:
+        raise PMakeException()
 
 
 def generate_documentation():
     oldcwd = cd("docs")
-    execute_stdout_on_screen([
-            "make html latexpdf"
+    if on_linux():
+        execute_stdout_on_screen([
+                "make html latexpdf"
+            ],
+        )
+    elif on_windows():
+        execute_stdout_on_screen([
+            "make.bat html latexpdf"
         ],
-    )
+        )
     cd(oldcwd)
 
 
@@ -64,12 +79,24 @@ def install():
 
 def upload_to_test_pypi():
     latest_version, file_list = get_latest_version_in_folder("dist", version_fetcher=semantic_version_2_only_core)
-    upload_files = ' '.join(file_list)
-    execute_stdout_on_screen([
-        "source venv/bin/activate",
-        f"twine upload --verbose --repository testpypi --username \"{TWINE_USER}\" --password \"{TWINE_PASSWORD}\" {upload_files}",
-        "deactivate"
-    ])
+    upload_files = ' '.join(map(lambda x: f"\"{x}\"", file_list))
+
+    if on_linux():
+        echo("Uploading for linux", foreground="blue")
+        execute_stdout_on_screen([
+            #"source venv/bin/activate",
+            f"twine upload --verbose --repository testpypi --username \"{TWINE_USER}\" --password \"{TWINE_PASSWORD}\" {upload_files}",
+            #"deactivate"
+        ])
+    elif on_windows():
+        echo("Uploading for windows", foreground="blue")
+        execute_stdout_on_screen([
+            #"venv/Scripts/activate.bat",
+            f"twine upload --verbose --repository testpypi --username \"{TWINE_USER}\" --password \"{TWINE_PASSWORD}\" {upload_files}",
+            #"venv/Scripts/deactivate.bat"
+        ])
+    else:
+        raise PMakeException()
 
 
 if "clean" in targets:

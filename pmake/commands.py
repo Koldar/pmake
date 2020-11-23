@@ -19,7 +19,7 @@ from pmake import LinuxOSSystem, version
 from pmake import PMakeModel
 from pmake import WindowsOSSystem
 from pmake.commons_types import path
-from pmake.exceptions.PMakeException import AssertionPMakeException, PMakeException
+from pmake.exceptions.PMakeException import AssertionPMakeException, PMakeException, InvalidScenarioPMakeException
 
 
 class SessionScript(abc.ABC):
@@ -1575,6 +1575,4 @@ class SessionScript(abc.ABC):
         p = self.get_path(file)
         self._log_command(f"include file content \"{p}\"")
         self._model.execute_file(p)
-
-
 
