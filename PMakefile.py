@@ -19,11 +19,11 @@ def clean():
 
 
 def update_version():
-    echo("Updating version...", foreground="blue")
+    echo(f"Updating version to {variables.NEW_VERSION} in {cwd()}...", foreground="blue")
     ensure_has_variable("NEW_VERSION")
 
     version_filepath = os.path.join("pmake", "version.py")
-    write_file(version_filepath, f"VERSION = \"{variables.NEW_VERSION}\"")
+    write_file(version_filepath, f"VERSION = \"{variables.NEW_VERSION}\"", overwrite=True)
 
 
 def uninstall():
@@ -38,17 +38,15 @@ def build():
     echo("Building...", foreground="blue")
     if on_linux():
         echo("building for linux", foreground="blue")
-        execute_and_forget([
+        execute_stdout_on_screen([
             f"source {path('venv', 'bin', 'activate')}",
             f"python setup.py bdist_wheel",
             f"deactivate"
         ])
     elif on_windows():
-        echo("building for windows", foreground="blue")
-        execute_and_forget([
-            f"{path('venv', 'Scripts', 'activate.bat')}",
+        echo(f"building for windows in {cwd()}", foreground="blue")
+        execute_stdout_on_screen([
             f"python setup.py bdist_wheel",
-            f"{path('venv', 'Scripts', 'deactivate.bat')}",
         ])
     else:
         raise PMakeException()
@@ -76,10 +74,16 @@ def install():
     latest_version, file_list = get_latest_version_in_folder("dist", version_fetcher=semantic_version_2_only_core)
     echo(f"file list = {' '.join(file_list)}")
     wheel_file = list(filter(lambda x: '.whl' in x, file_list))[0]
-    execute_admin_with_password_stdout_on_screen(
-        password=ADMIN_PASSWORD,
-        commands=f"pip3 install {wheel_file}",
-    )
+    if on_linux():
+        execute_admin_with_password_stdout_on_screen(
+            password=ADMIN_PASSWORD,
+            commands=f"pip3 install {wheel_file}",
+        )
+    elif on_windows():
+        execute_admin_with_password_stdout_on_screen(
+            password=ADMIN_PASSWORD,
+            commands=f"pip install {wheel_file}",
+        )
 
 
 def upload_to_test_pypi():

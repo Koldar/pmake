@@ -23,6 +23,7 @@ from pmake import WindowsOSSystem
 from pmake.TargetDescriptor import TargetDescriptor
 from pmake.commons_types import path
 from pmake.exceptions.PMakeException import AssertionPMakeException, PMakeException, InvalidScenarioPMakeException
+from pmake import show_on_help
 
 
 class SessionScript(abc.ABC):
@@ -64,6 +65,7 @@ class SessionScript(abc.ABC):
         self._interesting_paths = self._platform._fetch_interesting_paths(self)
         self._latest_interesting_path = self._platform._fetch_latest_paths(self, self._interesting_paths)
 
+    @show_on_help.add_command('core')
     def get_latest_path_with_architecture(self, current_path: str, architecture: int) -> path:
         """
         get the latest path on the system with the specified archietcture
@@ -80,33 +82,6 @@ class SessionScript(abc.ABC):
                 max_x = x
 
         return max_x.path
-
-    @staticmethod
-    def _list_all_commands() -> Iterable[Tuple[str, str]]:
-
-        def get_str(t: Any) -> str:
-            if hasattr(t, "__name__"):
-                return t.__name__
-            else:
-                return str(t)
-
-        for command_name in filter(lambda x: not x.startswith("_"), dir(SessionScript)):
-            method = getattr(SessionScript, command_name)
-            fullargspec = inspect.getfullargspec(method)
-            arg_tmp = []
-            if 'return' in fullargspec.annotations:
-                result_type = get_str(fullargspec.annotations["return"])
-            else:
-                result_type = "None"
-            for x in fullargspec.args[1:]:
-                if x in fullargspec.annotations:
-                    param_type = get_str(fullargspec.annotations[x])
-                else:
-                    param_type = "Any"
-                arg_tmp.append(f"{x}: {param_type}")
-            method_signature = f"{command_name} ({', '.join(arg_tmp)}) -> {result_type}"
-
-            yield method_signature, method.__doc__
 
     def _color_str(self, message: str, foreground: str = None, background: str = None) -> str:
         """
@@ -131,6 +106,7 @@ class SessionScript(abc.ABC):
 
         return result
 
+    @show_on_help.add_command('core')
     def ensure_condition(self, condition: Callable[[], bool], message: str = "") -> None:
         """
         Perform a check. If the condition is **not** satisfied, we raise exception
@@ -142,6 +118,7 @@ class SessionScript(abc.ABC):
         if not condition():
             raise AssertionPMakeException(f"pmake needs to generate a custom exception: {message}")
 
+    @show_on_help.add_command('core')
     def ensure_has_variable(self, name: str) -> None:
         """
         Ensure the user has passed a variable via "--variable" CLI utils.
@@ -152,6 +129,7 @@ class SessionScript(abc.ABC):
         """
         return self.ensure_condition(lambda: name in self._model.variable, message=f"""No variable passed with "--variable" named "{name}".""")
 
+    @show_on_help.add_command('core')
     def semantic_version_2_only_core(self, filename: str) -> semver.VersionInfo:
         """
         A function that can be used within ::get_latest_version_in_folder
@@ -168,6 +146,7 @@ class SessionScript(abc.ABC):
         logging.debug(f"yes: \"{m.group(0)}\"")
         return semver.VersionInfo.parse(m.group(0))
 
+    @show_on_help.add_command('core')
     def quasi_semantic_version_2_only_core(self, filename: str) -> semver.VersionInfo:
         """
         A function that can be used within ::get_latest_version_in_folder.
@@ -188,6 +167,7 @@ class SessionScript(abc.ABC):
             result += ".0.0"
         return semver.VersionInfo.parse(result)
 
+    @show_on_help.add_command('core')
     def get_latest_version_in_folder(self, folder: path = None, should_consider: Callable[[path], bool] = None, version_fetcher: Callable[[str], semver.VersionInfo] = None) -> Tuple[semver.VersionInfo, List[path]]:
         """
         Scan the subfiles and subfolder of a given directory. We assume each file or folder has a version withint it.
@@ -243,6 +223,7 @@ class SessionScript(abc.ABC):
         else:
             return string
 
+    @show_on_help.add_command('core')
     def get_architecture(self) -> int:
         """
         check if the system is designed on a 32 or 64 bits
@@ -255,6 +236,7 @@ class SessionScript(abc.ABC):
         else:
             return 32
 
+    @show_on_help.add_command('core')
     def on_windows(self) -> bool:
         """
         Check if we are running on windows
@@ -264,6 +246,7 @@ class SessionScript(abc.ABC):
         self._log_command(f"Checking if we are on a windows system")
         return os.name == "nt"
 
+    @show_on_help.add_command('core')
     def on_linux(self) -> bool:
         """
         Check if we are running on linux
@@ -273,12 +256,14 @@ class SessionScript(abc.ABC):
         self._log_command(f"Checking if we are on a linux system")
         return os.name == "posix"
 
+    @show_on_help.add_command('core')
     def clear_cache(self):
         """
         Clear the cache of pmake
         """
         self._model.pmake_cache.reset()
 
+    @show_on_help.add_command('core')
     def set_variable_in_cache(self, name: str, value: Any, overwrite_if_exists: bool = True):
         """
         Set a variable inside the program cache. Setting variable in cache allows pmake to
@@ -298,6 +283,7 @@ class SessionScript(abc.ABC):
             overwrites_is_exists=overwrite_if_exists
         )
 
+    @show_on_help.add_command('core')
     def has_variable_in_cache(self, name: str) -> bool:
         """
         Check if a variable is in the pmake cache
@@ -309,6 +295,7 @@ class SessionScript(abc.ABC):
             name=name
         )
 
+    @show_on_help.add_command('core')
     def get_variable_in_cache(self, name: str) -> Any:
         """
         Get the variable from the cache. if the variable does not exist, an error is generated
@@ -320,6 +307,7 @@ class SessionScript(abc.ABC):
             name=name
         )
 
+    @show_on_help.add_command('core')
     def get_variable_in_cache_or(self, name: str, default: Any) -> Any:
         """
         Get the variable value from the cache or get a default value if it does not exist
@@ -333,6 +321,7 @@ class SessionScript(abc.ABC):
         else:
             return default
 
+    @show_on_help.add_command('core')
     def add_or_update_variable(self, name: str, supplier: Callable[[], Any], mapper: Callable[[Any], Any]):
         """
         Add a new variable in the cache
@@ -349,30 +338,35 @@ class SessionScript(abc.ABC):
         self._log_command(f"Setting {name}={new_value} in cache")
         self._model.pmake_cache.set_variable_in_cache(name, new_value)
 
+    @show_on_help.add_command('core')
     def get_starting_cwd(self) -> path:
         """
         :return: absolute path of where you have called pmake
         """
         return self._model.starting_cwd
 
+    @show_on_help.add_command('core')
     def get_pmakefile_path(self) -> path:
         """
         :return: absolute path of the main PMakefile path
         """
         return self._model.input_file
 
+    @show_on_help.add_command('core')
     def get_home_folder(self) -> path:
         """
         Get the home fodler of the currently logged used
         """
         return self._platform.get_home_folder()
 
+    @show_on_help.add_command('core')
     def get_pmakefile_dirpath(self) -> path:
         """
         :return: absolute path of the folder containing the main PMakefile path
         """
         return os.path.dirname(self._model.input_file)
 
+    @show_on_help.add_command('core')
     def echo(self, message: str, foreground: str = None, background: str = None):
         """
         Print a message on the screen
@@ -385,6 +379,7 @@ class SessionScript(abc.ABC):
         self._log_command(f"""echo \"{message}\"""")
         print(self._color_str(message, foreground, background))
 
+    @show_on_help.add_command('core')
     def is_process_running(self, program_name: str) -> bool:
         """
         Check if a program with the given name is currently running
@@ -394,6 +389,7 @@ class SessionScript(abc.ABC):
         """
         return self._platform.is_process_with_name_running(program_name)
 
+    @show_on_help.add_command('core')
     def kill_process_by_name(self, program_name: str, ignore_if_process_does_not_exists: bool = True):
         """
         Kill a program
@@ -402,8 +398,26 @@ class SessionScript(abc.ABC):
         :param ignore_if_process_does_not_exists: if the proces does not exist and thsi parameter is true, this
             function will **not** throw exception
         """
-        self._platform.kill_process_with_name(program_name, ignore_if_process_does_not_exists=ignore_if_process_does_not_exists)
+        self._platform.kill_process_with_name(
+            name=program_name,
+            ignore_if_process_does_not_exists=ignore_if_process_does_not_exists
+        )
 
+    @show_on_help.add_command('core')
+    def kill_process_by_pid(self, pid: int, ignore_if_process_does_not_exists: bool = True):
+        """
+        Kill a program
+
+        :param pid: pid of the program that is running on the system
+        :param ignore_if_process_does_not_exists: if the proces does not exist and thsi parameter is true, this
+            function will **not** throw exception
+        """
+        self._platform.kill_process_with_pid(
+            pid=pid,
+            ignore_if_process_does_not_exists=ignore_if_process_does_not_exists
+        )
+
+    @show_on_help.add_command('core')
     def is_target_requested(self, target_name: str) -> bool:
         """
         Check if the the user has specified the given target
@@ -413,6 +427,7 @@ class SessionScript(abc.ABC):
         """
         return target_name in self._model.requested_targets
 
+    @show_on_help.add_command('core')
     def declare_file_descriptor(self, description: str):
         """
         Defines what to write at the beginning of the info string that is displayed whenver the user wants to know
@@ -422,14 +437,15 @@ class SessionScript(abc.ABC):
         """
         self._model.info_description = description
 
+    @show_on_help.add_command('core')
     def declare_target(self, target_name: str, f: Callable[[], None], requires: Iterable[str] = None, description: str = ""):
         """
         Declare that the user can declare a pseudo-makefile target.
 
         :param target_name: name of the target to declare
         :param description: a description that is shown when listing all available targets
-        :param requires: list fo target names this target requires in order to be exeucted. They must already
-            exist in pmake envuironment
+        :param requires: list fo target names this target requires in order to be executed. They must already
+            exist in pmake environment
         :param f: the function to perform when the user requests this target
         """
         if requires is None:
@@ -447,9 +463,10 @@ class SessionScript(abc.ABC):
         for require in requires:
             self._model.target_network.add_edge(target_name, require)
 
+    @show_on_help.add_command('core')
     def get_target_descriptor(self, target_name: str) -> TargetDescriptor:
         """
-        Get a descriptor for a given pmake target. Raises exception if target is not delcared
+        Get a descriptor for a given pmake target. Raises exception if target is not declared
 
         :param target_name: name of the target
         :return: descriptor for the target
@@ -459,6 +476,7 @@ class SessionScript(abc.ABC):
         except KeyError:
             raise ValueError(f"No target named \"{target_name}\". Available are {', '.join(self._model.available_targets.keys())}")
 
+    @show_on_help.add_command('core')
     def process_targets(self):
         """
         Function used to process in the correct order. If the user requested to show the help for this file,
@@ -470,13 +488,13 @@ class SessionScript(abc.ABC):
         def show_target_help():
             if self._model.info_description is not None:
                 print(self._model.info_description)
-            for i, target_name in enumerate(self._model.available_targets):
-                target_descriptor = self._model.available_targets[target_name]
-                print(f" - {i}. {target_name}: {target_descriptor.description}")
+            for a_i, a_target_name in enumerate(self._model.available_targets):
+                a_target_descriptor = self._model.available_targets[a_target_name]
+                print(f" - {a_i}. {a_target_name}: {a_target_descriptor.description}")
 
         def perform_target(name: str, descriptor: TargetDescriptor):
             if name in already_done:
-                # do nothing if the node has alrady been processed
+                # do nothing if the node has already been processed
                 return
             if name in doing:
                 raise ValueError(f"Cyclic dependencies detected!")
@@ -490,7 +508,7 @@ class SessionScript(abc.ABC):
                 # OutEdgeDataView([(0, 1), (2, 3)])
                 for sink in map(lambda x: x[1], out_edges):
                     perform_target(sink, self._model.available_targets[sink])
-                # we have satisfied all requirements. Perfor this target
+                # we have satisfied all requirements. Perform this target
                 descriptor.function()
             # mark the node as "already done"
             doing.remove(name)
@@ -506,6 +524,7 @@ class SessionScript(abc.ABC):
                 self._log_command(f"Executing target \"{target_descriptor.name}\"")
                 perform_target(target_name, target_descriptor)
 
+    @show_on_help.add_command('core')
     def require_pmake_version(self, lowerbound: str) -> None:
         """
         Check if the current version of pmake is greater or equal than the given one.
@@ -519,6 +538,7 @@ class SessionScript(abc.ABC):
         if lowerbound > version.VERSION:
             raise PMakeException(f"The script requires at least version {script_version} to be installed. Current version is {system_version}")
 
+    @show_on_help.add_command('core')
     def get_command_line_string(self) -> str:
         """
         Get the command line string from the user
@@ -527,6 +547,7 @@ class SessionScript(abc.ABC):
         """
         return " ".join(sys.argv)
 
+    @show_on_help.add_command('core')
     def pairs(self, it: Iterable[Any]) -> Iterable[Tuple[Any, Any]]:
         """
         Convert the iterable into an iterable of pairs.
@@ -544,6 +565,7 @@ class SessionScript(abc.ABC):
                 yield previous, x
                 previous = x
 
+    @show_on_help.add_command('core')
     def grep(self, lines: Iterable[str], regex: str, reverse_match: bool = False) -> Iterable[str]:
         """
         Filter the lines fetched from terminal
@@ -562,6 +584,7 @@ class SessionScript(abc.ABC):
                 if m is not None:
                     yield line
 
+    @show_on_help.add_command('core')
     def get_column_of_table(self, table: List[List[str]], index: int) -> List[str]:
         """
         Select a single column from the table, generated by ::convert_table
@@ -572,6 +595,7 @@ class SessionScript(abc.ABC):
         """
         return list(map(lambda x: x[index], table))
 
+    @show_on_help.add_command('core')
     def get_column_of_table_by_name(self, table: List[List[str]], column_name: str) -> List[str]:
         """
         Select a single column from the table, generated by ::convert_table
@@ -592,6 +616,7 @@ class SessionScript(abc.ABC):
 
         return self.get_column_of_table(table, column_index)
 
+    @show_on_help.add_command('core')
     def convert_table(self, table_str: str) -> List[List[str]]:
         """
         Convert a table printed as:
@@ -658,6 +683,7 @@ class SessionScript(abc.ABC):
         if not self._disable_log_command:
             logging.info(message)
 
+    @show_on_help.add_command('core')
     def info(self, message: str):
         """
         Log a message using 'INFO' level
@@ -666,6 +692,7 @@ class SessionScript(abc.ABC):
         """
         logging.info(message)
 
+    @show_on_help.add_command('core')
     def critical(self, message: str):
         """
         Log a message using 'CRITICAL' level
@@ -674,6 +701,7 @@ class SessionScript(abc.ABC):
         """
         logging.critical(message)
 
+    @show_on_help.add_command('core')
     def debug(self, message: str):
         """
         Log a message using 'DEBUG' level
@@ -682,6 +710,7 @@ class SessionScript(abc.ABC):
         """
         logging.debug(message)
 
+    @show_on_help.add_command('core')
     def create_empty_file(self, name: path, encoding: str = "utf-8"):
         """
         Create an empty file. if the file is relative, it is relative to the CWD
@@ -694,6 +723,7 @@ class SessionScript(abc.ABC):
         with open(p, "w", encoding=encoding) as f:
             pass
 
+    @show_on_help.add_command('core')
     def is_program_installed(self, program_name: str) -> bool:
         """
         Check if a program is reachable via commandline
@@ -703,6 +733,7 @@ class SessionScript(abc.ABC):
         """
         return self._platform.is_program_installed(program_name)
 
+    @show_on_help.add_command('core')
     def create_empty_directory(self, name: path):
         """
         Create an empty directory in the CWD (if the path is relative)
@@ -712,6 +743,7 @@ class SessionScript(abc.ABC):
         p = self.abs_path(name)
         os.makedirs(name=p, exist_ok=True)
 
+    @show_on_help.add_command('core')
     def is_file_exists(self, name: path) -> bool:
         """
         Check if a file exists
@@ -723,6 +755,7 @@ class SessionScript(abc.ABC):
         self._log_command(f"Checking if the file {p} exists")
         return os.path.exists(p)
 
+    @show_on_help.add_command('core')
     def is_file_empty(self, name: path) -> bool:
         """
         Checks if a file exists. If exists, check if it empty as well.
@@ -737,6 +770,7 @@ class SessionScript(abc.ABC):
         with open(p, "r") as f:
             return f.read(1) == ""
 
+    @show_on_help.add_command('core')
     def is_directory_exists(self, name: path) -> bool:
         """
         Check if a directory exists.
@@ -750,6 +784,7 @@ class SessionScript(abc.ABC):
             return True
         return False
 
+    @show_on_help.add_command('core')
     def is_directory_empty(self, name: path) -> bool:
         """
         Check if a directory exists and is empty
@@ -763,6 +798,7 @@ class SessionScript(abc.ABC):
             return len(os.listdir(p)) == 0
         return False
 
+    @show_on_help.add_command('core')
     def is_file_non_empty(self, name: path) -> bool:
         """
         Checks if a file exists. If exists, check if it is not empty as well.
@@ -777,6 +813,7 @@ class SessionScript(abc.ABC):
         with open(p, "r") as f:
             return f.read(1) != ""
 
+    @show_on_help.add_command('core')
     def write_file(self, name: path, content: Any, encoding: str = "utf-8", overwrite: bool = False, add_newline: bool = True):
         """
         Write into a file with the specified content. if overwrite is unset, we will do nothing if the file already exists
@@ -789,7 +826,7 @@ class SessionScript(abc.ABC):
         """
 
         p = self.abs_path(name)
-        self._log_command(f"Writing file {p} with content {self._truncate_string(content, 20)}")
+        self._log_command(f"Writing file \"{p}\" with content \"{self._truncate_string(content, 20)}\"")
         if not overwrite and os.path.exists(p):
             return
         else:
@@ -798,6 +835,7 @@ class SessionScript(abc.ABC):
                 if add_newline:
                     f.write("\n")
 
+    @show_on_help.add_command('core')
     def write_lines(self, name: path, content: Iterable[Any], encoding: str = "utf-8", overwrite: bool = False):
         """
         Write severla lines into a file. if overwrite is unset, we will do nothing if the file already exists
@@ -817,6 +855,7 @@ class SessionScript(abc.ABC):
                 for x in content:
                     f.write(str(x) + "\n")
 
+    @show_on_help.add_command('core')
     def read_lines(self, name: path, encoding: str = "utf-8") -> Iterable[str]:
         """
         Read the content of a file and yields as many item as there are lines in the file.
@@ -836,6 +875,7 @@ class SessionScript(abc.ABC):
                     continue
                 yield line.rstrip("\n\r")
 
+    @show_on_help.add_command('core')
     def read_file_content(self, name: path, encoding: str = "utf-8", trim_newlines: bool = True) -> str:
         """
         Read the whole content of the file in a single string
@@ -853,6 +893,7 @@ class SessionScript(abc.ABC):
             result = result.strip("\t\n\r ")
         return result
 
+    @show_on_help.add_command('core')
     def remove_last_n_line_from_file(self, name: path, n: int = 1, consider_empty_line: bool = False, encoding: str = "utf-8") -> List[str]:
         """
         Read the content of a file and remove the last n lines from the file involved. Then, rewrites the whole file
@@ -888,6 +929,7 @@ class SessionScript(abc.ABC):
 
         return result
 
+    @show_on_help.add_command('core')
     def append_string_at_end_of_file(self, name: path, content: Any, encoding: str = "utf-8") -> None:
         """
         Append a string at the end of the file. carriage return is automatically added
@@ -902,6 +944,7 @@ class SessionScript(abc.ABC):
             encoding=encoding
         )
 
+    @show_on_help.add_command('core')
     def append_strings_at_end_of_file(self, name: path, content: Iterable[Any], encoding: str = "utf-8") -> None:
         """
         Append a string at the end of the file. carriage return is automatically added
@@ -916,6 +959,7 @@ class SessionScript(abc.ABC):
             for x in content:
                 f.write(str(x) + "\n")
 
+    @show_on_help.add_command('core')
     def copy_file(self, src: path, dst: path):
         """
         Copy a single file from a position to another one
@@ -928,6 +972,7 @@ class SessionScript(abc.ABC):
         self._log_command(f"""copy file from \"{asrc}\" to \"{adst}\"""")
         shutil.copyfile(asrc, adst)
 
+    @show_on_help.add_command('core')
     def copy_tree(self, src: path, dst: path):
         """
         Copy a whole directory tree or a single file
@@ -951,6 +996,7 @@ class SessionScript(abc.ABC):
         else:
             raise InvalidScenarioPMakeException(f"Cannot determine if {asrc} is a file or a directory!")
 
+    @show_on_help.add_command('core')
     def copy_folder_content(self, folder: path, destination: path):
         """
         Copy all the content of "folder" into the folder "destination"
@@ -972,6 +1018,7 @@ class SessionScript(abc.ABC):
         finally:
             self._disable_log_command = True
 
+    @show_on_help.add_command('core')
     def download_url(self, url: str, destination: path = None, ignore_if_file_exists: bool = True) -> path:
         """
         Download an artifact from internet
@@ -989,6 +1036,7 @@ class SessionScript(abc.ABC):
         result, http_message = urllib.request.urlretrieve(url, dst)
         return result
 
+    @show_on_help.add_command('core')
     def allow_file_to_be_executed_by_anyone(self, file: path) -> None:
         """
         Allow the file to be executed by anyone. On a linux system it should be equal to "chmod o+x"
@@ -999,6 +1047,7 @@ class SessionScript(abc.ABC):
         self._log_command(f"""Allowing any user to unr {p}""")
         os.chmod(p, mode=stat.S_IEXEC)
 
+    @show_on_help.add_command('core')
     def copy_files_that_basename(self, src: path, dst: path, regex: str):
         """
         Copy the files located (directly or indirctly) in src into dst.
@@ -1025,12 +1074,26 @@ class SessionScript(abc.ABC):
         finally:
             self._disable_log_command = True
 
+    @show_on_help.add_command('core')
     def move_tree(self, src: path, dst: path):
+        """
+        Move an entire directory tree from one position to another one
+
+        :param src: path of the directory to move
+        :param dst: path of the directory that we will create
+        """
         self._log_command(f"""Recursively move files from \"{src}\" to \"{dst}\"""")
         self.copy_tree(src, dst)
         self.remove_tree(src)
 
-    def remove_tree(self, src: path, ignore_if_not_exists: bool = True):
+    @show_on_help.add_command('core')
+    def remove_tree(self, src: path, ignore_if_not_exists: bool = True) -> None:
+        """
+        Remove a dirctory tree
+
+        :param src: the directory to remove
+        :param ignore_if_not_exists: if the directory does not exists, we do nothing if htis field is true
+        """
         self._log_command(f"""Recursively remove files from \"{src}\"""")
         try:
             shutil.rmtree(src)
@@ -1038,6 +1101,7 @@ class SessionScript(abc.ABC):
             if not ignore_if_not_exists:
                 raise e
 
+    @show_on_help.add_command('core')
     def remove_files_that_basename(self, src: path, regex: str):
         """
         Remove the files located (directly or indirectly) in src.
@@ -1064,6 +1128,7 @@ class SessionScript(abc.ABC):
         finally:
             self._disable_log_command = True
 
+    @show_on_help.add_command('core')
     def move_file(self, src: path, dst: path):
         """
         Move a single file from a location to another one
@@ -1076,6 +1141,7 @@ class SessionScript(abc.ABC):
         self._log_command(f"""move file from \"{asrc}\" to \"{adst}\"""")
         shutil.move(asrc, adst)
 
+    @show_on_help.add_command('core')
     def remove_file(self, name: path, ignore_if_not_exists: bool = True) -> bool:
         """
         Remove a file. If the cannot be removed (for some reason), ignore_if_not_exists determines if somethign goes wrong
@@ -1094,6 +1160,7 @@ class SessionScript(abc.ABC):
                 raise e
             return False
 
+    @show_on_help.add_command('core')
     def cwd(self) -> path:
         """
 
@@ -1101,6 +1168,7 @@ class SessionScript(abc.ABC):
         """
         return os.path.abspath(self._cwd)
 
+    @show_on_help.add_command('core')
     def path(self, *p: str) -> path:
         """
         Generate a path compliant wit the underlying operating system path scheme.
@@ -1112,6 +1180,7 @@ class SessionScript(abc.ABC):
 
         return os.path.join(*p)
 
+    @show_on_help.add_command('core')
     def abs_path(self, *p: path) -> path:
         """
         Generate a path compliant with the underlying operating system path scheme.
@@ -1126,6 +1195,7 @@ class SessionScript(abc.ABC):
         else:
             return os.path.abspath(os.path.join(self._cwd, actual_path))
 
+    @show_on_help.add_command('core')
     def ls(self, folder: path = None, generate_absolute_path: bool = False) -> Iterable[path]:
         """
         Show the list of all the files in the given directory
@@ -1140,6 +1210,7 @@ class SessionScript(abc.ABC):
         self._log_command(f"""listing files of folder \"{self.abs_path(folder)}\"""")
         yield from self._platform.ls(folder, generate_absolute_path)
 
+    @show_on_help.add_command('core')
     def ls_only_files(self, folder: path = None, generate_absolute_path: bool = False) -> Iterable[path]:
         """
         Show the list of all the files (but not directories) in the given directory
@@ -1154,6 +1225,7 @@ class SessionScript(abc.ABC):
         self._log_command(f"""listing files in fodler \"{p}\"""")
         yield from self._platform.ls_only_files(p, generate_absolute_path)
 
+    @show_on_help.add_command('core')
     def ls_only_directories(self, folder: path = None, generate_absolute_path: bool = False) -> Iterable[path]:
         """
         Show the list of all the directories in the given directory
@@ -1169,6 +1241,7 @@ class SessionScript(abc.ABC):
         self._log_command(f"""listing folders in folder \"{p}\"""")
         yield from self._platform.ls_only_directories(p, generate_absolute_path)
 
+    @show_on_help.add_command('core')
     def ls_recursive(self, folder: path = None) -> Iterable[path]:
         """
         Show the list of all the files in the given folder
@@ -1184,6 +1257,7 @@ class SessionScript(abc.ABC):
             for filename in filenames:
                 yield self.abs_path(os.path.join(dirpath, filename))
 
+    @show_on_help.add_command('core')
     def match(self, string: str, regex: str) -> bool:
         """
         Check if a given string matches perfectly the given regex
@@ -1195,6 +1269,7 @@ class SessionScript(abc.ABC):
         m = re.match(regex, string)
         return m is not None
 
+    @show_on_help.add_command('core')
     def get_relative_path_wrt(self, p: path, reference: path):
         """
         If we were in folder reference, what actiosn should we perform in order to reach the file p?
@@ -1205,6 +1280,7 @@ class SessionScript(abc.ABC):
         """
         return os.path.relpath(path=p, start=reference)
 
+    @show_on_help.add_command('core')
     def search(self, string: str, regex: str):
         """
         Check if a given string has a substring that matches the given regex
@@ -1216,6 +1292,7 @@ class SessionScript(abc.ABC):
         m = re.match(regex, string)
         return m is not None
 
+    @show_on_help.add_command('core')
     def ls_directories_recursive(self, folder: path) -> Iterable[path]:
         """
         Show the list of all the directories in the given folder
@@ -1231,6 +1308,7 @@ class SessionScript(abc.ABC):
             for dirname in dirnames:
                 yield self.abs_path(os.path.join(dirpath, dirname))
 
+    @show_on_help.add_command('core')
     def echo_variables(self, foreground: str = None, background: str = None):
         """
         Echo all the variables defined in "variables"
@@ -1241,6 +1319,7 @@ class SessionScript(abc.ABC):
         for k, v in self._model.variable.items():
             self.echo(f"{k} = {v}", foreground=foreground, background=background)
 
+    @show_on_help.add_command('core')
     def read_variables_from_properties(self, file: path, encoding: str = "utf-8") -> None:
         """
         Read a set of easy variables from a property file. All the read variables will be available in the "variables"
@@ -1265,6 +1344,7 @@ class SessionScript(abc.ABC):
                 continue
             self._model.variable[k] = v
 
+    @show_on_help.add_command('core')
     def cd(self, *folder: path, create_if_not_exists: bool = True) -> path:
         """
         Gain access to a directory. If the directory does nto exists, it is created
@@ -1283,6 +1363,7 @@ class SessionScript(abc.ABC):
             os.makedirs(self._cwd, exist_ok=True)
         return result
 
+    @show_on_help.add_command('core')
     def current_user(self) -> str:
         """
         get the user currently logged
@@ -1291,6 +1372,7 @@ class SessionScript(abc.ABC):
         """
         return self._platform.get_current_username()
 
+    @show_on_help.add_command('core')
     def abs_wrt_cwd(self, *paths) -> path:
         """
         generate a path relative to cwd and generate the absolute path of it
@@ -1300,6 +1382,7 @@ class SessionScript(abc.ABC):
         """
         return os.path.abspath(os.path.join(self._cwd, *paths))
 
+    @show_on_help.add_command('core')
     def make_directories(self, folder: path) -> None:
         """
         Create all the needed directories for the given path
@@ -1308,6 +1391,7 @@ class SessionScript(abc.ABC):
         self._log_command(f"""Recursively create directories \"{self.abs_path(folder)}\"""")
         os.makedirs(self.abs_path(folder), exist_ok=True)
 
+    @show_on_help.add_command('core')
     def cd_into_directories(self, folder: path, prefix: str, folder_format: str, error_if_mismatch: bool = True):
         """
         Inside the given folder, there can be several folders, each of them with the same format. We cd into the "latest" one.
@@ -1358,6 +1442,7 @@ class SessionScript(abc.ABC):
         finally:
             self._disable_log_command = False
 
+    @show_on_help.add_command('core')
     def get_temp_filepath(self, prefix: str = None, suffix: str = None) -> str:
         """
         Get the filename of a temp file. You need to manually create such a temp file
@@ -1371,6 +1456,7 @@ class SessionScript(abc.ABC):
         os.close(fd)
         return result
 
+    @show_on_help.add_command('core')
     def create_temp_directory_with(self, directory_prefix: str) -> Any:
         """
         Create a temporary directory on the file system where to put temporary files
@@ -1381,9 +1467,10 @@ class SessionScript(abc.ABC):
         """
         return self._platform.create_temp_directory_with(directory_prefix)
 
+    @show_on_help.add_command('core')
     def create_temp_file(self, directory: str, file_prefix: str = None, file_suffix: str = None, mode: str = "r",
                          encoding: str = "utf-8", readable_for_all: bool = False, executable_for_owner: bool = False,
-                         executable_for_all: bool = False) -> Tuple[Any, str]:
+                         executable_for_all: bool = False) -> path:
         """
         Creates the file. You need to manually dispose of the file by yourself
 
@@ -1395,20 +1482,20 @@ class SessionScript(abc.ABC):
         :param readable_for_all: if True, the file can be read by anyone
         :param executable_for_owner: if True, the file can be executed by the owner
         :param executable_for_all: if True, anyone can execute the file
-        :return: a tuple where the first item is the object you can use to read/write into the file. The second element
-            is the absolute path of the temp file
+        :return: the absolute path of the temp file
         """
+
+        self._log_command(f"Create a temporary file")
         return self._platform.create_temp_file(
             directory=directory,
             file_prefix=file_prefix,
             file_suffix=file_suffix,
-            mode=mode,
-            encoding=encoding,
             readable_for_all=readable_for_all,
             executable_for_owner=executable_for_owner,
             executable_for_all=executable_for_all
         )
 
+    @show_on_help.add_command('core')
     def execute_and_forget(self, commands: Union[str, List[Union[str, List[str]]]], cwd: path = None, env: Dict[str, str] = None, check_exit_code: bool = True, timeout: int = None) -> int:
         """
         Execute a command but ensure that no stdout will be printed on the console
@@ -1442,6 +1529,7 @@ class SessionScript(abc.ABC):
         )
         return result
 
+    @show_on_help.add_command('core')
     def execute_stdout_on_screen(self, commands: Union[str, List[Union[str, List[str]]]], cwd: path = None,
                                  env: Dict[str, Any] = None, check_exit_code: bool = True, timeout: int = None) -> int:
         """
@@ -1476,6 +1564,7 @@ class SessionScript(abc.ABC):
         )
         return result
 
+    @show_on_help.add_command('core')
     def execute_return_stdout(self, commands: Union[str, List[Union[str, List[str]]]], cwd: path = None,
                               env: Dict[str, Any] = None,
                               check_exit_code: bool = True, timeout: int = None) -> Tuple[int, str, str]:
@@ -1511,6 +1600,7 @@ class SessionScript(abc.ABC):
         )
         return exit_code, stdout, stderr
 
+    @show_on_help.add_command('core')
     def execute_admin_and_forget(self, commands: Union[str, List[Union[str, List[str]]]], cwd: path = None,
                                  env: Dict[str, Any] = None,
                                  check_exit_code: bool = True, timeout: int = None) -> int:
@@ -1546,6 +1636,7 @@ class SessionScript(abc.ABC):
         )
         return result
 
+    @show_on_help.add_command('core')
     def execute_admin_stdout_on_screen(self, commands: Union[str, List[Union[str, List[str]]]], cwd: path = None,
                                        env: Dict[str, Any] = None,
                                        check_exit_code: bool = True, timeout: int = None) -> int:
@@ -1582,6 +1673,7 @@ class SessionScript(abc.ABC):
         )
         return result
 
+    @show_on_help.add_command('core')
     def execute_admin_return_stdout(self, commands: Union[str, List[Union[str, List[str]]]], cwd: path = None,
                                     env: Dict[str, Any] = None,
                                     check_exit_code: bool = True, timeout: int = None) -> Tuple[int, str, str]:
@@ -1618,6 +1710,7 @@ class SessionScript(abc.ABC):
         )
         return exit_code, stdout, stderr
 
+    @show_on_help.add_command('core')
     def execute_admin_with_password_fire_and_forget(self, commands: Union[str, List[Union[str, List[str]]]],
                                                     password: str,
                                                     cwd: str = None, env: Dict[str, Any] = None,
@@ -1660,6 +1753,7 @@ class SessionScript(abc.ABC):
         )
         return result
 
+    @show_on_help.add_command('core')
     def execute_admin_with_password_stdout_on_screen(self, commands: Union[str, List[Union[str, List[str]]]], password: str, cwd: path = None, env: Dict[str, Any] = None, check_exit_code: bool = True, timeout: int = None) -> int:
         """
         Execute a command as an admin. We won't capture the stdout but we will show it on pmake console
@@ -1698,6 +1792,7 @@ class SessionScript(abc.ABC):
         )
         return result
 
+    @show_on_help.add_command('core')
     def execute_admin_with_password_return_stdout(self, commands: Union[str, List[Union[str, List[str]]]],
                                                   password: str, cwd: path = None, env: Dict[str, Any] = None,
                                                   check_exit_code: bool = True,
@@ -1739,15 +1834,22 @@ class SessionScript(abc.ABC):
         )
         return exit_code, stdout, stderr
 
-    def include_string(self, string: str):
+    @show_on_help.add_command('core')
+    def include_string(self, string: str) -> None:
+        """
+        Include and execute the code within the given string
+
+        :param string: the commands to execute
+        """
+        self._log_command(f"Include and execute string \"{string}\"")
         self._model.execute_string(string)
 
-    def include_file(self, file: path):
+    @show_on_help.add_command('core')
+    def include_file(self, file: path) -> None:
         """
         Replace the include directive with the content fo the included file. Fails if there is no such path
 
         :param file: the external file to include in the script
-        :return:
         """
 
         p = self.abs_path(file)

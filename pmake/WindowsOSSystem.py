@@ -43,8 +43,10 @@ class WindowsOSSystem(IOSSystem):
                 filepath = self.create_temp_file(directory=absolute_temp_dir, file_prefix="cmd_", file_suffix=".cmd",
                                                  executable_for_owner=True)
                 with open(filepath, "w") as f:
+                    f.write("@echo off\n")
+                    f.write("\n")
                     # set environment variables
-                    for k,v in actual_env.items():
+                    for k, v in actual_env.items():
                         f.write(f"set {k}={v}\n")
                     # put the commands in the temp file
                     for cmd in commands:
@@ -64,55 +66,55 @@ class WindowsOSSystem(IOSSystem):
                 if execute_as_admin:
                     if admin_password:
                         if show_output_on_screen and capture_stdout:
-                            actual_command = f"""powershell.exe -Command \"Start-Process -FilePath 'cmd.exe' -ArgumentList '/Q','/C','{filepath}' -WorkingDirectory '{cwd}' -Wait -Verb RunAs\""""
+                            actual_command = f"""powershell.exe -Command \"Start-Process -FilePath 'cmd.exe' -ArgumentList '/C','{filepath}' -WorkingDirectory '{cwd}' -Wait -Verb RunAs\""""
                             actual_capture_output = True
                             actual_read_stdout = False
                         elif show_output_on_screen and not capture_stdout:
-                            actual_command = f"""powershell.exe -Command \"Start-Process -FilePath 'cmd.exe' -ArgumentList '/Q','/C','{filepath}' -WorkingDirectory '{cwd}' -Wait -Verb RunAs\""""
+                            actual_command = f"""powershell.exe -Command \"Start-Process -FilePath 'cmd.exe' -ArgumentList '/C','{filepath}' -WorkingDirectory '{cwd}' -Wait -Verb RunAs\""""
                             actual_capture_output = False
                             actual_read_stdout = False
                         elif not show_output_on_screen and capture_stdout:
-                            actual_command = f"""powershell.exe -Command \"Start-Process -FilePath 'cmd.exe' -ArgumentList '/Q','/C','{filepath} 1> {stdout_filepath} 2> {stderr_filepath}' -WorkingDirectory '{cwd}' -Wait -Verb RunAs\""""
+                            actual_command = f"""powershell.exe -Command \"Start-Process -FilePath 'cmd.exe' -ArgumentList '/C','{filepath} 1> {stdout_filepath} 2> {stderr_filepath}' -WorkingDirectory '{cwd}' -Wait -Verb RunAs\""""
                             actual_capture_output = False
                             actual_read_stdout = True
                         else:
-                            actual_command = f"""powershell.exe -Command \"Start-Process -FilePath 'cmd.exe' -ArgumentList '/Q','/C','{filepath} > nul 2>&1' -WorkingDirectory '{cwd}' -Wait -Verb RunAs\""""
+                            actual_command = f"""powershell.exe -Command \"Start-Process -FilePath 'cmd.exe' -ArgumentList '/C','{filepath} > nul 2>&1' -WorkingDirectory '{cwd}' -Wait -Verb RunAs\""""
                             actual_capture_output = False
                             actual_read_stdout = False
                     else:
                         if show_output_on_screen and capture_stdout:
-                            actual_command = f"""powershell.exe -Command \"Start-Process -FilePath 'cmd.exe' -ArgumentList '/Q','/C','{filepath}' -WorkingDirectory '{cwd}' -Wait -Verb RunAs\""""
+                            actual_command = f"""powershell.exe -Command \"Start-Process -FilePath 'cmd.exe' -ArgumentList '/C','{filepath}' -WorkingDirectory '{cwd}' -Wait -Verb RunAs\""""
                             actual_capture_output = True
                             actual_read_stdout = False
                         elif show_output_on_screen and not capture_stdout:
-                            actual_command = f"""powershell.exe -Command \"Start-Process -FilePath 'cmd.exe' -ArgumentList '/Q','/C','{filepath}' -WorkingDirectory '{cwd}' -Wait -Verb RunAs\""""
+                            actual_command = f"""powershell.exe -Command \"Start-Process -FilePath 'cmd.exe' -ArgumentList '/C','{filepath}' -WorkingDirectory '{cwd}' -Wait -Verb RunAs\""""
                             actual_capture_output = False
                             actual_read_stdout = False
                         elif not show_output_on_screen and capture_stdout:
-                            actual_command = f"""powershell.exe -Command \"Start-Process -FilePath 'cmd.exe' -ArgumentList '/Q','/C','{filepath} 1> {stdout_filepath} 2> {stderr_filepath}' -WorkingDirectory '{cwd}' -Wait -Verb RunAs\""""
+                            actual_command = f"""powershell.exe -Command \"Start-Process -FilePath 'cmd.exe' -ArgumentList '/C','{filepath} 1> {stdout_filepath} 2> {stderr_filepath}' -WorkingDirectory '{cwd}' -Wait -Verb RunAs\""""
                             actual_capture_output = False
                             actual_read_stdout = True
                         else:
-                            actual_command = f"""powershell.exe -Command \"Start-Process -FilePath 'cmd.exe' -ArgumentList '/Q','/C','{filepath} > nul 2>&1' -WorkingDirectory '{cwd}' -Wait -Verb RunAs\""""
+                            actual_command = f"""powershell.exe -Command \"Start-Process -FilePath 'cmd.exe' -ArgumentList '/C','{filepath} > nul 2>&1' -WorkingDirectory '{cwd}' -Wait -Verb RunAs\""""
                             actual_capture_output = False
                             actual_read_stdout = False
 
                 else:
 
                     if show_output_on_screen and capture_stdout:
-                        actual_command = f"""cmd.exe /Q /C \"{filepath}\""""
+                        actual_command = f"""cmd.exe /C \"{filepath}\""""
                         actual_capture_output = True
                         actual_read_stdout = False
                     elif show_output_on_screen and not capture_stdout:
-                        actual_command = f"""cmd.exe /Q /C \"{filepath}\""""
+                        actual_command = f"""cmd.exe /C \"{filepath}\""""
                         actual_capture_output = False
                         actual_read_stdout = False
                     elif not show_output_on_screen and capture_stdout:
-                        actual_command = f"""cmd.exe /Q /C \"{filepath} 1> {stdout_filepath} 2> {stderr_filepath}\""""
+                        actual_command = f"""cmd.exe /C \"{filepath} 1> {stdout_filepath} 2> {stderr_filepath}\""""
                         actual_capture_output = False
                         actual_read_stdout = True
                     else:
-                        actual_command = f"""cmd.exe /Q /C \"{filepath} > nul 2>&1\""""
+                        actual_command = f"""cmd.exe /C \"{filepath} > nul 2>&1\""""
                         actual_capture_output = False
                         actual_read_stdout = False
 

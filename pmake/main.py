@@ -1,16 +1,53 @@
 import argparse
+import inspect
 import logging
 import os
 import sys
 import textwrap
-import trace
-import traceback
+from typing import Tuple, Iterable, Any, Dict
 
-from pmake import version
+from pmake import version, show_on_help
 from pmake.PMakeModel import PMakeModel
 from pmake.commands import SessionScript
 from pmake.constants import STANDARD_MODULES, STANDARD_VARIABLES
 from pmake.exceptions.PMakeException import AssertionPMakeException, InvalidScenarioPMakeException, PMakeException
+
+
+def list_commands() -> Iterable[Tuple[str, str, str]]:
+    def get_str(t: Any) -> str:
+        if hasattr(t, "__name__"):
+            return t.__name__
+        else:
+            return str(t)
+
+    for command_group, command_list in show_on_help.add_command.call_dictionary.items():
+        for command in command_list:
+            # method = getattr(SessionScript, command_name)
+            method = command
+            fullargspec = inspect.getfullargspec(method)
+            arg_tmp = []
+            if 'return' in fullargspec.annotations:
+                result_type = get_str(fullargspec.annotations["return"])
+            else:
+                result_type = "None"
+            for x in fullargspec.args[1:]:
+                if x in fullargspec.annotations:
+                    param_type = get_str(fullargspec.annotations[x])
+                else:
+                    param_type = "Any"
+                arg_tmp.append(f"{x}: {param_type}")
+            method_signature = f"{command.__name__} ({', '.join(arg_tmp)}) -> {result_type}"
+
+            yield command_group, method_signature, method.__doc__
+
+
+def build_dict_of_commands() -> Dict[str, Iterable[Tuple[str, str]]]:
+    result = {}
+    for group, signature, doc in list_commands():
+        if group not in result:
+            result[group] = []
+        result[group].append((signature, doc))
+    return result
 
 
 def parse_options(args):
@@ -19,8 +56,14 @@ def parse_options(args):
     core_constants = f'\n'.join(map(lambda x: f' {x[0] + 1}. {x[1][0]}: {x[1][2]};', enumerate(STANDARD_VARIABLES)))
     core_constants = textwrap.dedent(core_constants)
 
-    convenience_commands = '\n'.join(map(lambda x: f' * {x[1][0]}\n{x[1][1]}\n', enumerate(SessionScript._list_all_commands())))
-    convenience_commands = textwrap.dedent(convenience_commands)
+    convenience_commands = []
+    for group_name, group_commands in build_dict_of_commands().items():
+        convenience_commands.append(f"{'#'*20} {group_name.upper()} {'#'*20}")
+        convenience_commands.append('#' * 50)
+        for command_signature, command_doc in group_commands:
+            convenience_commands.append(f" * {command_signature}\n{textwrap.dedent(command_doc)}")
+
+    convenience_commands = '\n'.join(convenience_commands)
 
     parser = argparse.ArgumentParser(
         prog="pmake",

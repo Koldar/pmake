@@ -1,5 +1,3 @@
-import sys
-
 from pmake.main import main
 
 if __name__ == "__main__":

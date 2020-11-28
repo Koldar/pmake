@@ -3,8 +3,8 @@ Special commands related to windows
 """
 
 import os
-from typing import Dict, Any
 
+from pmake import show_on_help
 from pmake.commands import SessionScript, path
 
 
@@ -13,6 +13,7 @@ class WindowsSessionScript(SessionScript):
     def __init__(self, model: "PMakeModel"):
         super().__init__(model)
 
+    @show_on_help.add_command('windows')
     def test_windows(self, string: str):
         """
         Test if windows commands is loaded
@@ -20,6 +21,7 @@ class WindowsSessionScript(SessionScript):
         """
         self.echo(string)
 
+    @show_on_help.add_command('windows')
     def add_to_regasm(self, dll: path, regasm_exe: path = None, use_codebase: bool = True, use_tlb: bool = True):
         """
         Add a dll into a regasm (either 32 or 64 bit)
@@ -44,6 +46,7 @@ class WindowsSessionScript(SessionScript):
             cwd=os.path.dirname(dll)
         )
 
+    @show_on_help.add_command('windows')
     def publish_dotnet_project(self, cwd: path, runtime: str, configuration: str, solution_directory: path) -> str:
         """
         publish a dotnet project.

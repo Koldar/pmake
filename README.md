@@ -21,19 +21,56 @@ Admin privileges may be required. To show all the options you can exploit, use
 pmake --help
 ```
 
-As a simple, minimalistic example, create a file caleld `PMakefile.py` and past the following:
+As a simple, ultra minimalistic example, create a file caleld `PMakefile.py` and past the following:
 
 ```
 echo("Hello world!", foreground="blue")
 ```
 
+The `PMakefile` is actually just a python script, so you can do anything in it!
+This is by design, since in several build systems (`make`, `cmake`, `jenkins`) a lot of time you are
+constrained by the declarative syntax or by the huge pitfalls the build system provides.
+`pmake` tries not to be in your way: it gives you freedom.
+
+You can use targets, pretty much as in the Makefile, albeit the syntax is quite different:
+
+```
+def clean():
+    echo(f"Cleaning!!!!", foreground="blue")
+
+
+def build():
+    echo(f"Build!", foreground="blue")
+
+
+declare_file_descriptor(f"""
+    This string will be printed if you do `pmake --info`. Use this
+    to give to the enduser information about how to use this makefile! :) 
+""")
+declare_target(
+    target_name="clean",
+    description="Clean all folders that are automatically generated",
+    f=clean,
+    requires=[],
+)
+declare_target(
+    target_name="build",
+    description="Build your app",
+    f=build,
+    requires=["clean"],
+)
+
+# necessary
+process_targets()
+```
+
 Then, call in the same directory:
 
 ```
-pmake
+pmake build
 ```
 
-The file you have just created will be executed.
+The application will first invoke `clean` and then `build` functions.
 
 # For the developer
 
@@ -68,14 +105,6 @@ pip install dist\*.whl
 Note that after installation, `pmake.exe` (or `pmake`) will be automatically installed in `%PYTHONPATH%/Scripts` (or available in the `PATH`)
 
 to show a comprehensive help, with all the commands available to you.
-
-# Pyinstaller (optional)
-
-You can build an executable via
-
-```
-pyinstaller --noconfirm --onefile --name "pmake" --icon "images\icon.ico" "pmake\pmake.py"
-```
 
 # Using pmake to build pmake
 
