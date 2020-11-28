@@ -485,6 +485,28 @@ class MyTestCase(unittest.TestCase):
             """
             self.assertStdoutEquals("True\nFalse", lambda: model.manage_pmakefile())
 
+    def test_replace_regex_in_string(self):
+        model = PMakeModel()
+        model.input_string = r"""
+            echo(replace_regex_in_string(
+                string="3435spring9437",
+                regex=r"(?P<word>[a-z]+)",
+                replacement=r"\1aa",
+            ))
+        """
+        self.assertStdoutEquals("3435springaa9437", lambda: model.manage_pmakefile())
+
+    def replace_substring_in_string(self):
+        model = PMakeModel()
+        model.input_string = """
+            echo(replace_substring_in_string(
+                string="3435spring9437",
+                substring="ring",
+                replacement="aringa",
+            ))
+        """
+        self.assertStdoutEquals("3435sparinga9437", lambda: model.manage_pmakefile())
+
     def test_convert_table_01(self):
         model = PMakeModel()
 
