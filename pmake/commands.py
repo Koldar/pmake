@@ -15,9 +15,12 @@ from typing import List, Union, Iterable, Tuple, Any, Callable, Dict
 
 import semver
 
+import configparser
+
 from pmake import LinuxOSSystem, version
 from pmake import PMakeModel
 from pmake import WindowsOSSystem
+from pmake.TargetDescriptor import TargetDescriptor
 from pmake.commons_types import path
 from pmake.exceptions.PMakeException import AssertionPMakeException, PMakeException, InvalidScenarioPMakeException
 
@@ -209,7 +212,7 @@ class SessionScript(abc.ABC):
             should_consider = lambda x: True
         if version_fetcher is None:
             version_fetcher = self.quasi_semantic_version_2_only_core
-        p = self.get_path(folder)
+        p = self.abs_path(folder)
 
         result_version = None
         result_list = []
@@ -389,7 +392,38 @@ class SessionScript(abc.ABC):
         :param target_name: the name of the target that we need to check
         :return: true if the target has been declard by the user, false otherwise
         """
-        return target_name in self._model.targets
+        return target_name in self._model.requested_targets
+
+    def declare_target(self, target_name: str, description: str, requires: Iterable[str], f: Callable[[], None]):
+        """
+        Declare that the user can declare a pseudo-makefile target
+
+        :param target_name: name of the target to declare
+        :param description: a description that is shown when listing all available targets
+        :param requires: list fo target names this target requires in order to be exeucted
+        :param f: the function to perform when the user requests this target
+        """
+        self._model.available_targets.append(TargetDescriptor(
+            name=target_name,
+            description=description,
+            requires=list(requires),
+            function=f
+        ))
+
+    def process_targets(self):
+        """
+        Function used to process in the correct order.
+
+        It will call the function delcared in declare_target
+        """
+
+        target_done = set()
+
+        for i, target in enumerate(self._model.requested_targets):
+            target_descriptor = list(filter(lambda t: t.name == target, self._model.available_targets))[0]
+            self._log_command(f"Executing target \"{target_descriptor.name}\"")
+            target_descriptor.function()
+
 
     def require_pmake_version(self, lowerbound: str) -> None:
         """
@@ -401,8 +435,16 @@ class SessionScript(abc.ABC):
         system_version = semver.VersionInfo.parse(version.VERSION)
         script_version = semver.VersionInfo.parse(lowerbound)
         self._log_command(f"Checking if script minimum pmake version ({script_version}) is compliant with pmake version ({system_version})")
-        if lowerbound < version.VERSION:
+        if lowerbound > version.VERSION:
             raise PMakeException(f"The script requires at least version {script_version} to be installed. Current version is {system_version}")
+
+    def get_command_line_string(self) -> str:
+        """
+        Get the command line string from the user
+
+        :return: argv
+        """
+        return " ".join(sys.argv)
 
     def pairs(self, it: Iterable[Any]) -> Iterable[Tuple[Any, Any]]:
         """
@@ -566,7 +608,7 @@ class SessionScript(abc.ABC):
         :param name: file name to create
         :param encoding: encoding of the file. If unspecified, it is utf-8
         """
-        p = self.get_path(name)
+        p = self.abs_path(name)
         self._log_command(f"Creating empty file {p}")
         with open(p, "w", encoding=encoding) as f:
             pass
@@ -586,7 +628,7 @@ class SessionScript(abc.ABC):
 
         :param name:the name of the driectory to create
         """
-        p = self.get_path(name)
+        p = self.abs_path(name)
         os.makedirs(name=p, exist_ok=True)
 
     def is_file_exists(self, name: path) -> bool:
@@ -596,7 +638,7 @@ class SessionScript(abc.ABC):
         :param name: file whose existence we need to assert
         :return: true if the file exists, false otherwise
         """
-        p = self.get_path(name)
+        p = self.abs_path(name)
         self._log_command(f"Checking if the file {p} exists")
         return os.path.exists(p)
 
@@ -607,7 +649,7 @@ class SessionScript(abc.ABC):
         :param name: file to check
         :return: true if the file exists **and** has no bytes; false otherwise
         """
-        p = self.get_path(name)
+        p = self.abs_path(name)
         self._log_command(f"Checking if the file {p} exists and is empty")
         if not os.path.exists(p):
             return False
@@ -621,7 +663,7 @@ class SessionScript(abc.ABC):
         :param name: folder to check
         :return: true if the folder exists, false otherwise
         """
-        p = self.get_path(name)
+        p = self.abs_path(name)
         self._log_command(f"Checking if the folder {p} exists")
         if os.path.exists(p) and os.path.isdir(p):
             return True
@@ -634,7 +676,7 @@ class SessionScript(abc.ABC):
         :param name: folder to check
         :return: true if the folder exists and is empty, false otherwise
         """
-        p = self.get_path(name)
+        p = self.abs_path(name)
         self._log_command(f"Checking if the folder {p} exists and is empty")
         if os.path.exists(p) and os.path.isdir(p):
             return len(os.listdir(p)) == 0
@@ -647,7 +689,7 @@ class SessionScript(abc.ABC):
         :param name: file to check
         :return: true if the file exists **and** has at least one byte; false otherwise
         """
-        p = self.get_path(name)
+        p = self.abs_path(name)
         self._log_command(f"Checking if the file {p} exists and is empty")
         if not os.path.exists(p):
             return False
@@ -665,7 +707,7 @@ class SessionScript(abc.ABC):
         :param add_newline: if true, we will add a new line at the end of the content
         """
 
-        p = self.get_path(name)
+        p = self.abs_path(name)
         self._log_command(f"Writing file {p} with content {self._truncate_string(content, 20)}")
         if not overwrite and os.path.exists(p):
             return
@@ -685,7 +727,7 @@ class SessionScript(abc.ABC):
         :param overwrite: if true, we will overwrite the file
         """
 
-        p = self.get_path(name)
+        p = self.abs_path(name)
         self._log_command(f"Writing file {p} with content {len(list(content))} lines")
         if not overwrite and os.path.exists(p):
             return
@@ -703,7 +745,7 @@ class SessionScript(abc.ABC):
         :param encoding: encoding of the file. If unspecified, it is utf-8
         :return: iterable containing the lines of the file
         """
-        p = self.get_path(name)
+        p = self.abs_path(name)
         self._log_command(f"Reading lines from file {p}")
         with open(p, "r", encoding=encoding) as f:
             for line in f.readlines():
@@ -722,7 +764,7 @@ class SessionScript(abc.ABC):
         :param trim_newlines: if true, we will trim the newlines, spaces and tabs at the beginning and at the end of the file
         :return: string repersenting the content of the file
         """
-        p = self.get_path(name)
+        p = self.abs_path(name)
         self._log_command(f"Reading file {p} content")
         with open(p, "r", encoding=encoding) as f:
             result = f.read()
@@ -741,7 +783,7 @@ class SessionScript(abc.ABC):
         :return: the lines just removed
         """
 
-        p = self.get_path(name)
+        p = self.abs_path(name)
 
         self._log_command(f"Remove {n} lines at the end of file {p} (consider empty line = {consider_empty_line})")
         with open(name, mode="r", encoding=encoding) as f:
@@ -787,7 +829,7 @@ class SessionScript(abc.ABC):
         :param content: string to append
         :param encoding: encoding of the file. If missing, "utf-8" is used
         """
-        p = self.get_path(name)
+        p = self.abs_path(name)
         self._log_command(f"Appending {content} into file file {p}")
         with open(p, "a", encoding=encoding) as f:
             for x in content:
@@ -800,8 +842,8 @@ class SessionScript(abc.ABC):
         :param src: file to copy
         :param dst: destination where the file will be copied to
         """
-        asrc = self.get_path(src)
-        adst = self.get_path(dst)
+        asrc = self.abs_path(src)
+        adst = self.abs_path(dst)
         self._log_command(f"""copy file from \"{asrc}\" to \"{adst}\"""")
         shutil.copyfile(asrc, adst)
 
@@ -812,8 +854,8 @@ class SessionScript(abc.ABC):
         :param src: the folder or the file to copy.
         :param dst: the destination where the copied folder will be positioned
         """
-        asrc = self.get_path(src)
-        adst = self.get_path(dst)
+        asrc = self.abs_path(src)
+        adst = self.abs_path(dst)
         self._log_command(f"""Recursively copy files from \"{asrc}\" to \"{adst}\"""")
         if os.path.isdir(asrc):
             shutil.copytree(
@@ -835,8 +877,8 @@ class SessionScript(abc.ABC):
         :param folder: folder to copy files from
         :param destination: folder where the contents will be copied into
         """
-        afolder = self.get_path(folder)
-        adestination = self.get_path(destination)
+        afolder = self.abs_path(folder)
+        adestination = self.abs_path(destination)
         self._log_command(f"""Copies all files inside \"{afolder}\" into the folder \"{adestination}\"""")
 
         try:
@@ -858,7 +900,7 @@ class SessionScript(abc.ABC):
         :param ignore_if_file_exists: if true, we will not perform the download at all
         :return: path containing the downloaded item
         """
-        dst = self.get_path(destination)
+        dst = self.abs_path(destination)
         self._log_command(f"""Downloading {url} from internet into {dst}""")
         if ignore_if_file_exists and os.path.exists(dst):
             return dst
@@ -872,7 +914,7 @@ class SessionScript(abc.ABC):
 
         :param file: the file whose permission needs to be changed
         """
-        p = self.get_path(file)
+        p = self.abs_path(file)
         self._log_command(f"""Allowing any user to unr {p}""")
         os.chmod(p, mode=stat.S_IEXEC)
 
@@ -888,8 +930,8 @@ class SessionScript(abc.ABC):
         :param regex: regex that determines wether or not a file is copies
         :return:
         """
-        s = self.get_path(src)
-        d = self.get_path(dst)
+        s = self.abs_path(src)
+        d = self.abs_path(dst)
         self._log_command(f"Copy files from {s} into {d} which basename follows {regex}")
         try:
             self._disable_log_command = False
@@ -926,7 +968,7 @@ class SessionScript(abc.ABC):
         :param regex: regex that determines wether or not a file is copies
         :return:
         """
-        s = self.get_path(src)
+        s = self.abs_path(src)
         self._log_command(f"Remove the files from {s} which basename follows {regex}")
         try:
             self._disable_log_command = False
@@ -948,8 +990,8 @@ class SessionScript(abc.ABC):
         :param src: the file to move
         :param dst: the path where the file will be moved to
         """
-        asrc = self.get_path(src)
-        adst = self.get_path(dst)
+        asrc = self.abs_path(src)
+        adst = self.abs_path(dst)
         self._log_command(f"""move file from \"{asrc}\" to \"{adst}\"""")
         shutil.move(asrc, adst)
 
@@ -961,7 +1003,7 @@ class SessionScript(abc.ABC):
         :param ignore_if_not_exists: if true, we won't raise exception if the file does not exists or cannot be removed
         :return: true if we have removed the file, false otherwise
         """
-        p = self.get_path(name)
+        p = self.abs_path(name)
         self._log_command(f"remove file {p}")
         try:
             os.unlink(p)
@@ -978,11 +1020,30 @@ class SessionScript(abc.ABC):
         """
         return os.path.abspath(self._cwd)
 
-    def get_path(self, p: path) -> path:
-        if os.path.isabs(p):
-            return os.path.abspath(p)
+    def path(self, *p: str) -> path:
+        """
+        Generate a path compliant wit the underlying operating system path scheme.
+
+        If the path is relative, we will **not** join it with cwd
+
+        :param p: the path to build
+        """
+
+        return os.path.join(*p)
+
+    def abs_path(self, *p: path) -> path:
+        """
+        Generate a path compliant with the underlying operating system path scheme.
+
+        If the path is relative, it is relative to the cwd
+
+        :param p: the path to build
+        """
+        actual_path = os.path.join(*p)
+        if os.path.isabs(actual_path):
+            return os.path.abspath(actual_path)
         else:
-            return os.path.abspath(os.path.join(self._cwd, p))
+            return os.path.abspath(os.path.join(self._cwd, actual_path))
 
     def ls(self, folder: path = None, generate_absolute_path: bool = False) -> Iterable[path]:
         """
@@ -995,7 +1056,7 @@ class SessionScript(abc.ABC):
         """
         if folder is None:
             folder = self._cwd
-        self._log_command(f"""listing files of folder \"{self.get_path(folder)}\"""")
+        self._log_command(f"""listing files of folder \"{self.abs_path(folder)}\"""")
         yield from self._platform.ls(folder, generate_absolute_path)
 
     def ls_only_files(self, folder: path = None, generate_absolute_path: bool = False) -> Iterable[path]:
@@ -1008,7 +1069,7 @@ class SessionScript(abc.ABC):
         """
         if folder is None:
             folder = self._cwd
-        p = self.get_path(folder)
+        p = self.abs_path(folder)
         self._log_command(f"""listing files in fodler \"{p}\"""")
         yield from self._platform.ls_only_files(p, generate_absolute_path)
 
@@ -1023,7 +1084,7 @@ class SessionScript(abc.ABC):
         """
         if folder is None:
             folder = self._cwd
-        p = self.get_path(folder)
+        p = self.abs_path(folder)
         self._log_command(f"""listing folders in folder \"{p}\"""")
         yield from self._platform.ls_only_directories(p, generate_absolute_path)
 
@@ -1034,13 +1095,13 @@ class SessionScript(abc.ABC):
         :param folder: folder to scan (default to cwd)
         :return: list of absolute filename representing the stored files
         """
-        self._log_command(f"""listing direct and indirect files of folder \"{self.get_path(folder)}\"""")
+        self._log_command(f"""listing direct and indirect files of folder \"{self.abs_path(folder)}\"""")
         for dirpath, dirnames, filenames in os.walk(folder):
             # dirpath: the cwd wheren dirnames and filesnames are
             # dirnames: list of all the directories in dirpath
             # filenames: list of all the files in dirpath
             for filename in filenames:
-                yield self.get_path(os.path.join(dirpath, filename))
+                yield self.abs_path(os.path.join(dirpath, filename))
 
     def match(self, string: str, regex: str) -> bool:
         """
@@ -1081,15 +1142,49 @@ class SessionScript(abc.ABC):
         :param folder: folder to scan (default to cwd)
         :return: list of absolute filename representing the stored directories
         """
-        self._log_command(f"""listing direct and indirect folders of folder \"{self.get_path(folder)}\"""")
+        self._log_command(f"""listing direct and indirect folders of folder \"{self.abs_path(folder)}\"""")
         for dirpath, dirnames, filenames in os.walk(folder):
             # dirpath: the cwd wheren dirnames and filesnames are
             # dirnames: list of all the directories in dirpath
             # filenames: list of all the files in dirpath
             for dirname in dirnames:
-                yield self.get_path(os.path.join(dirpath, dirname))
+                yield self.abs_path(os.path.join(dirpath, dirname))
 
-    def cd(self, folder: path, create_if_not_exists: bool = True) -> path:
+    def echo_variables(self, foreground: str = None, background: str = None):
+        """
+        Echo all the variables defined in "variables"
+
+        :param foreground: the foregruodn color
+        :param background: the background color
+        """
+        for k, v in self._model.variable.items():
+            self.echo(f"{k} = {v}", foreground=foreground, background=background)
+
+    def read_variables_from_properties(self, file: path, encoding: str = "utf-8") -> None:
+        """
+        Read a set of easy variables from a property file. All the read variables will be available in the "variables"
+        value. If some variable name preexists, it will not be overriden
+        :see: https://docs.oracle.com/cd/E23095_01/Platform.93/ATGProgGuide/html/s0204propertiesfileformat01.html
+
+        :param file: the file to read
+        :param encoding: encoding of the file. If left missing, we will use utf-8
+        """
+
+        p = self.abs_path(file)
+        self._log_command(f"Reading variables from property file {p}")
+        config = configparser.ConfigParser()
+        # see https://stackoverflow.com/a/19359720/1887602
+        config.optionxform = str
+        with open(p, "r", encoding=encoding) as f:
+            config.read_string("[config]\n" + f.read())
+
+        for k, v in config["config"].items():
+            if k in self._model.variable:
+                logging.warning(f"Ignoring variable \"{k}\" from file {p}, since it alrady exist within the ambient")
+                continue
+            self._model.variable[k] = v
+
+    def cd(self, *folder: path, create_if_not_exists: bool = True) -> path:
         """
         Gain access to a directory. If the directory does nto exists, it is created
         If the path is relative, it is relative to the CWD
@@ -1099,8 +1194,10 @@ class SessionScript(abc.ABC):
         :return: the directory where we have cd from
         """
         result = self.cwd()
-        self._log_command(f"""cd into folder \"{self.get_path(folder)}\"""")
-        self._cwd = self.get_path(folder)
+        actual_folder = os.path.join(*folder)
+        p = self.abs_path(actual_folder)
+        self._log_command(f"""cd into folder \"{p}\"""")
+        self._cwd = p
         if not os.path.exists(self._cwd) and create_if_not_exists:
             os.makedirs(self._cwd, exist_ok=True)
         return result
@@ -1127,8 +1224,8 @@ class SessionScript(abc.ABC):
         Create all the needed directories for the given path
         :param folder: folders to create
         """
-        self._log_command(f"""Recursively create directories \"{self.get_path(folder)}\"""")
-        os.makedirs(self.get_path(folder), exist_ok=True)
+        self._log_command(f"""Recursively create directories \"{self.abs_path(folder)}\"""")
+        os.makedirs(self.abs_path(folder), exist_ok=True)
 
     def cd_into_directories(self, folder: path, prefix: str, folder_format: str, error_if_mismatch: bool = True):
         """
@@ -1147,7 +1244,7 @@ class SessionScript(abc.ABC):
         """
 
         try:
-            p = self.get_path(folder)
+            p = self.abs_path(folder)
             self._log_command(f"Cd'ing into the \"latest\" directory in folder \"{p}\" according to criterion \"{folder_format}\"")
             self._disable_log_command = True
             self.cd(folder)
@@ -1245,7 +1342,7 @@ class SessionScript(abc.ABC):
         if cwd is None:
             cwd = self._cwd
         else:
-            cwd = self.get_path(cwd)
+            cwd = self.abs_path(cwd)
 
         if isinstance(commands, str):
             commands = [commands]
@@ -1279,7 +1376,7 @@ class SessionScript(abc.ABC):
         if cwd is None:
             cwd = self._cwd
         else:
-            cwd = self.get_path(cwd)
+            cwd = self.abs_path(cwd)
 
         if isinstance(commands, str):
             commands = [commands]
@@ -1314,7 +1411,7 @@ class SessionScript(abc.ABC):
         if cwd is None:
             cwd = self._cwd
         else:
-            cwd = self.get_path(cwd)
+            cwd = self.abs_path(cwd)
 
         if isinstance(commands, str):
             commands = [commands]
@@ -1349,7 +1446,7 @@ class SessionScript(abc.ABC):
         if cwd is None:
             cwd = self._cwd
         else:
-            cwd = self.get_path(cwd)
+            cwd = self.abs_path(cwd)
 
         if isinstance(commands, str):
             commands = [commands]
@@ -1385,7 +1482,7 @@ class SessionScript(abc.ABC):
         if cwd is None:
             cwd = self._cwd
         else:
-            cwd = self.get_path(cwd)
+            cwd = self.abs_path(cwd)
 
         if isinstance(commands, str):
             commands = [commands]
@@ -1421,7 +1518,7 @@ class SessionScript(abc.ABC):
         if cwd is None:
             cwd = self._cwd
         else:
-            cwd = self.get_path(cwd)
+            cwd = self.abs_path(cwd)
 
         if isinstance(commands, str):
             commands = [commands]
@@ -1463,7 +1560,7 @@ class SessionScript(abc.ABC):
         if cwd is None:
             cwd = self.cwd()
         else:
-            cwd = self.get_path(cwd)
+            cwd = self.abs_path(cwd)
 
         if isinstance(commands, str):
             commands = [commands]

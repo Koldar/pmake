@@ -33,13 +33,15 @@ class generate_executable(Command):
         # then, generates the executable
         # pyinstaller --hidden-import "colorama"
         # --noconfirm --onefile --name "pmake" --icon "images\icon.ico" "pmake\pmake.py"
-        main_script = os.path.abspath(os.path.join("pmake", "main.py"))
+        main_script = os.path.abspath(os.path.join("pyinstallerMain.py"))
         print(f"generating executable of pmake using main {main_script}...")
         PYINSTALLER = [
             "pyinstaller",
-            "--exclude-module", "tkinter",
-            "--hidden-import", "semver",
-            "--noconfirm", "--onefile",
+            #"--exclude-module", "tkinter",
+            #"--hidden-import", "semver",
+            #"--hidden-import", "psutil",
+            "--noconfirm",
+            "--onefile",
             "--distpath", os.path.join("scripts"),
             "--name", "pmake",
             "--icon", os.path.join("images", "icon.ico"),
@@ -90,8 +92,16 @@ setuptools.setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
+    include_package_data=True,
+    install_requires=[
+        "colorama",
+        "decorator",
+        "semver"
+    ],
     data_files=get_data_files(),
     python_requires='>=3.6',
+    # add for pyinstaller to work
+    entry_points={"console_scripts": ["pyinstaller=reader.main:main"]},
     cmdclass={
         'generate_executable': generate_executable,
         'build': custom_build,

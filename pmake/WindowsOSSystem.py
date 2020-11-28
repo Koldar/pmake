@@ -117,7 +117,7 @@ class WindowsOSSystem(IOSSystem):
                         actual_read_stdout = False
 
                 if log_entry:
-                    log_method = logging.info
+                    log_method = logging.critical
                 else:
                     log_method = logging.debug
                 log_method(f"Executing {actual_command}")

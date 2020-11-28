@@ -56,7 +56,7 @@ def parse_options(args):
          - "model" to gain access to the whole application shared context;
          - the interesting paths by using "interesting_path";
          - the latest interesting paths by using "latest_interesting_path";
-         - the ordered list fo target the user has specified via "targets";
+         - the ordered list fo target the user has specified via "requested_targets";
 
         Return Status
         =============
@@ -88,13 +88,16 @@ def parse_options(args):
     A python module that the script will load. The first argument represents the name that you will use in the PMakefile
     while the second parameter is the python module to import. For instance --python_module "numpy" "np"
     """)
-    parser.add_argument("-v", "--variable", nargs=2, action="append", default=[], help="""
+    parser.add_argument("-v", "--variable", nargs=2, action="append", help="""
     Allows to input external variables in this file. For instance:
     
-    --value "VariableName" "variableValue"
+    --variable "VariableName" "variableValue"
     """)
     parser.add_argument("-V", "--version", action="store_true", help="""
     Show the version of th software and exits
+    """)
+    parser.add_argument("-I", "--info", action="store_true", help="""
+        Show information regarding the given input file 
     """)
     parser.add_argument('targets', metavar="TARGET", nargs="*", type=str, help="""
     An ordered list of pmake targets the user wants to build. For example, target names may be "all", 
@@ -110,34 +113,30 @@ def parse_options(args):
 
 
 def main(args):
-    options = parse_options(args)
-
-    if options.version:
-        print(version.VERSION)
-        sys.exit(0)
-
-    log_level = options.log_level
-    logging.basicConfig(
-        level="INFO",
-        datefmt="%Y-%m-%dT%H:%M:%S",
-        format='%(asctime)s %(funcName)20s@%(lineno)4d[%(levelname)8s] - %(message)s',
-    )
-    logging.debug(f"Logging set to {log_level} (DEBUG={logging.DEBUG}, INFO={logging.INFO}, WARNING={logging.WARN}, ERROR={logging.ERROR}, CRITICAL={logging.CRITICAL})")
-
-    model = PMakeModel()
-    model.input_file = os.path.abspath(options.input_file)
-    model.input_encoding = options.input_encoding
-    model.log_level = options.log_level
-    model.input_string = options.input_string
-    logging.critical(options.variable)
-    model.variable = {x[0]: x[1] for x in options.variable}
-    model.targets = options.targets
-    model.manage_pmakefile()
-
-
-if __name__ == "__main__":
     try:
-        main(sys.argv[1:])
+        options = parse_options(args)
+
+        if options.version:
+            print(version.VERSION)
+            sys.exit(0)
+
+        log_level = options.log_level
+        logging.basicConfig(
+            level="INFO",
+            datefmt="%Y-%m-%dT%H:%M:%S",
+            format='%(asctime)s %(funcName)20s@%(lineno)4d[%(levelname)8s] - %(message)s',
+        )
+        logging.debug(f"Logging set to {log_level} (DEBUG={logging.DEBUG}, INFO={logging.INFO}, WARNING={logging.WARN}, ERROR={logging.ERROR}, CRITICAL={logging.CRITICAL})")
+
+        model = PMakeModel()
+        model.input_file = os.path.abspath(options.input_file)
+        model.input_encoding = options.input_encoding
+        model.log_level = options.log_level
+        model.input_string = options.input_string
+        logging.critical(options.variable)
+        model.variable = {x[0]: x[1] for x in options.variable}
+        model.requested_targets = options.targets
+        model.manage_pmakefile()
     except AssertionPMakeException as e:
         sys.exit(1)
     except InvalidScenarioPMakeException as e:
@@ -146,3 +145,7 @@ if __name__ == "__main__":
         sys.exit(254)
     except Exception as e:
         raise e
+
+
+if __name__ == "__main__":
+    main(sys.argv[1:])

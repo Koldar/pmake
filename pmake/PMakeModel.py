@@ -62,7 +62,11 @@ class PMakeModel(abc.ABC):
         """
         Variables passed by the user from the command line via "--variable" argument
         """
-        self.targets: List[str] = []
+        self.available_targets: List[str] = []
+        """
+        List of available targets the given pmakefile provides
+        """
+        self.requested_targets: List[TargetDescriptor] = []
         """
         List of targets that the user wants to perform. This
         list of targets are mpretty mch like the make one's (e.g., all, clean, install, uninstall)
@@ -131,10 +135,10 @@ class PMakeModel(abc.ABC):
         logging.debug(f"Adding standard variable 'commands'")
         result["commands"] = self.session_script
 
-        if "targets" in result:
-            raise KeyError(f"duplicate key \"targets\". It is already mapped to the value {result['targets']}")
-        logging.debug(f"Adding standard variable 'targets'")
-        result["targets"] = self.targets
+        if "requested_targets" in result:
+            raise KeyError(f"duplicate key \"requested_targets\". It is already mapped to the value {result['targets']}")
+        logging.debug(f"Adding standard variable 'requested_targets'")
+        result["requested_targets"] = self.requested_targets
 
         if "interesting_paths" in result:
             raise KeyError(f"duplicate key \"interesting_paths\". It is already mapped to the value {result['interesting_paths']}")

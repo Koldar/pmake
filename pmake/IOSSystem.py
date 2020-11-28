@@ -27,20 +27,57 @@ class IOSSystem(abc.ABC):
         """
         pass
 
-    def is_process_with_name_running(self, name: str) -> bool:
+    def get_processes(self) -> Iterable[Tuple[str, int]]:
+        """
+        Get all the processes in execution on the system
+
+        :return: an iterable fo pairs. Each pair has 2 items: the first is the process name while the other is the pid
+        """
         for proc in psutil.process_iter():
             try:
+                yield proc.name(), proc.pid
             except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess) as e:
                 logging.debug(f"Ignore process {proc.name()}")
 
-            @.setter
-            def (self, value):
-                pass
+    def is_process_with_name_running(self, name: str) -> bool:
+        """
+        Detects if there exists a process whose name contains the given string
 
-            @.deleter
-            def (self):
-                pass
-        psutil.
+        :param name: the substring to consider
+        :return: True if there exists a process containing such substring, false otherwise
+        """
+        for aname, pid in self.get_processes():
+            if name in aname:
+                return True
+        else:
+            return False
+
+    def kill_process_with_pid(self, pid: int, ignore_if_process_does_not_exists: bool = True):
+        """
+        Kill the process with the given id. If the process does not exist
+
+        :param pid: the pid of the process to kill
+        :param ignore_if_process_does_not_exists: if true and the process does not exist, we do nothing
+        """
+        try:
+            p = psutil.Process(pid)
+            p.terminate()
+        except psutil.NoSuchProcess as e:
+            if not ignore_if_process_does_not_exists:
+                raise e
+
+    def kill_process_with_name(self, name: str, ignore_if_process_does_not_exists: bool = True):
+        """
+        Kill the process with the given name. If the process does not exists, the function can either raises an exception
+        or do nothing
+
+        :param name: the name of the process to kill
+        :param ignore_if_process_does_not_exists: if true and the process does not exist, we do nothing
+        """
+
+        for p in psutil.process_iter():
+            if p.name() == name:
+                self.kill_process_with_pid(p.pid, ignore_if_process_does_not_exists)
 
     def create_temp_directory_with(self, directory_prefix: str) -> Any:
         """

@@ -38,14 +38,16 @@ def build():
     if on_linux():
         echo("building for linux", foreground="blue")
         execute_and_forget([
-            f"source venv/bin/activate",
+            f"source {path('venv', 'bin', 'activate')}",
             f"python setup.py bdist_wheel",
             f"deactivate"
         ])
     elif on_windows():
         echo("building for windows", foreground="blue")
         execute_and_forget([
+            f"{path('venv', 'Scripts', 'activate.bat')}",
             f"python setup.py bdist_wheel",
+            f"{path('venv', 'Scripts', 'deactivate.bat')}",
         ])
     else:
         raise PMakeException()
@@ -99,35 +101,35 @@ def upload_to_test_pypi():
         raise PMakeException()
 
 
-if "clean" in targets:
+if "clean" in requested_targets:
     echo("Cleaning...", foreground="blue")
     clean()
 
-if "uninstall" in targets:
+if "uninstall" in requested_targets:
     echo("Uninstall...", foreground="blue")
     uninstall()
 
-if "update-version" in targets:
+if "update-version" in requested_targets:
     echo("Updating version...", foreground="blue")
     update_version()
 
-if "build" in targets:
+if "build" in requested_targets:
     echo("Building...", foreground="blue")
     build()
 
-if "generate-documentation" in targets:
+if "generate-documentation" in requested_targets:
     echo("Building documentation...", foreground="blue")
     generate_documentation()
 
-if "install" in targets:
+if "install" in requested_targets:
     echo("Installing...", foreground="blue")
     install()
 
-if "upload-to-test-pypi" in targets:
+if "upload-to-test-pypi" in requested_targets:
     echo("Uploading to test pypi...", foreground="blue")
     upload_to_test_pypi()
 
-if "upload-to-pypi" in targets:
+if "upload-to-pypi" in requested_targets:
     echo("Uploading to pypi...", foreground="blue")
     upload_to_pypi()
 

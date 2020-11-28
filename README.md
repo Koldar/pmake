@@ -44,19 +44,25 @@ This section is useful for the contributors.
 You can build the pacakge via:
 
 ```
+sudo pip install pyinstaller wheel setupttols sphinx
 git clone https://github.com/Koldar/pmake
 cd pmake
 virtualenv venv
 source venv/bin/activate
 pip install -r requirements.txt
-python setup.py bdist sdist bdist_wheel
+python setup.py bdist_wheel
 deactivate
 ```
 
 To installing on a system (ensure you are not in `venv`!):
 
 ```
+source venv/bin/activate
+python setup.py bdist_wheel
+deactivate
+# get latest wheel file in dist\
 pip install dist\*.whl
+
 ```
 
 Note that after installation, `pmake.exe` (or `pmake`) will be automatically installed in `%PYTHONPATH%/Scripts` (or available in the `PATH`)
@@ -68,7 +74,7 @@ to show a comprehensive help, with all the commands available to you.
 You can build an executable via
 
 ```
-pyinstaller --hidden-import "colorama" --noconfirm --onefile --name "pmake" --icon "images\icon.ico" "pmake\pmake.py"
+pyinstaller --noconfirm --onefile --name "pmake" --icon "images\icon.ico" "pmake\pmake.py"
 ```
 
 # Using pmake to build pmake
@@ -76,7 +82,7 @@ pyinstaller --hidden-import "colorama" --noconfirm --onefile --name "pmake" --ic
 Assuming you have a version of pmake installed on your system, you can use `pmake` to build `pmake`.
 
 ```
-pmake --variable VERSION_IDENTIFIER NEW_VERSION_NAME --variable NEW_VERSION 1.2.1 update-version build install upload-to-test-pypi
+pmake --variable "VERSION_IDENTIFIER" "NEW_VERSION_NAME" --variable "NEW_VERSION" "1.2.1" update-version build install upload-to-test-pypi
 ```
 
 # Documentation
