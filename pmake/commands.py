@@ -385,7 +385,26 @@ class SessionScript(abc.ABC):
         self._log_command(f"""echo \"{message}\"""")
         print(self._color_str(message, foreground, background))
 
-    def specifies_target(self, target_name: str) -> bool:
+    def is_process_running(self, program_name: str) -> bool:
+        """
+        Check if a program with the given name is currently running
+
+        :param program_name: the program we need to check
+        :return: true if we are running such a program, false otheriwse
+        """
+        return self._platform.is_process_with_name_running(program_name)
+
+    def kill_process_by_name(self, program_name: str, ignore_if_process_does_not_exists: bool = True):
+        """
+        Kill a program
+
+        :param program_name: name fo the program that is running on the system
+        :param ignore_if_process_does_not_exists: if the proces does not exist and thsi parameter is true, this
+            function will **not** throw exception
+        """
+        self._platform.kill_process_with_name(program_name, ignore_if_process_does_not_exists=ignore_if_process_does_not_exists)
+
+    def is_target_requested(self, target_name: str) -> bool:
         """
         Check if the the user has specified the given target
 
@@ -423,7 +442,6 @@ class SessionScript(abc.ABC):
             target_descriptor = list(filter(lambda t: t.name == target, self._model.available_targets))[0]
             self._log_command(f"Executing target \"{target_descriptor.name}\"")
             target_descriptor.function()
-
 
     def require_pmake_version(self, lowerbound: str) -> None:
         """
@@ -1598,7 +1616,7 @@ class SessionScript(abc.ABC):
         if cwd is None:
             cwd = self._cwd
         else:
-            cwd = self.get_path(cwd)
+            cwd = self.abs_path(cwd)
 
         if isinstance(commands, str):
             commands = [commands]
@@ -1639,7 +1657,7 @@ class SessionScript(abc.ABC):
         if cwd is None:
             cwd = self._cwd
         else:
-            cwd = self.get_path(cwd)
+            cwd = self.abs_path(cwd)
 
         if isinstance(commands, str):
             commands = [commands]
@@ -1669,7 +1687,7 @@ class SessionScript(abc.ABC):
         :return:
         """
 
-        p = self.get_path(file)
+        p = self.abs_path(file)
         self._log_command(f"include file content \"{p}\"")
         self._model.execute_file(p)
 

@@ -387,6 +387,33 @@ class MyTestCase(unittest.TestCase):
             """
             self.assertStdoutEquals("hello", lambda: model.manage_pmakefile())
 
+    def test_has_processes(self):
+        if os.name == "nt":
+            model = PMakeModel()
+            model.input_string = """
+                echo(is_process_running("winlogon.exe"))
+                echo(is_process_running("asdrubalini.exe"))
+            """
+            self.assertStdoutEquals("True\nFalse", lambda: model.manage_pmakefile())
+        elif os.name == "posix":
+            model = PMakeModel()
+            model.input_string = """
+                echo(is_process_running("winlogon.exe"))
+                echo(is_process_running("asdrubalini.exe"))
+            """
+            self.assertStdoutEquals("True\nFalse", lambda: model.manage_pmakefile())
+
+    def kill_process(self):
+        if os.name == "nt":
+            model = PMakeModel()
+            model.input_string = """
+                echo(is_process_running("iexplorer.exe"))
+                echo(execute_and_forget("iexplorer.exe"))
+                echo(is_process_running("iexplorer.exe"))
+                echo(kill_process_by_name("iexplorer.exe"))
+            """
+            self.assertStdoutEquals("False\nTrue", lambda: model.manage_pmakefile())
+
     def test_cache_usage(self):
         model = PMakeModel()
         model.input_string = """
