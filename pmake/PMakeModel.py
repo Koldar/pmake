@@ -61,7 +61,7 @@ class PMakeModel(abc.ABC):
         """
 
         self.variable: Dict[str, Any] = {}
-        self.target_network: nx.DiGraph = 
+        self.target_network: nx.DiGraph = nx.DiGraph(name="targets")
         """
         Variables passed by the user from the command line via "--variable" argument
         """
