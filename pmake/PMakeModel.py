@@ -65,7 +65,7 @@ class PMakeModel(abc.ABC):
         """
         Variables passed by the user from the command line via "--variable" argument
         """
-        self.available_targets: List[str] = []
+        self.available_targets: Dict[str, TargetDescriptor] = {}
         """
         List of available targets the given pmakefile provides
         """
