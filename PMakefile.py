@@ -1,4 +1,7 @@
 
+
+require_pmake_version("1.6.0")
+
 global TWINE_USER
 global TWINE_PASSWORD
 global ADMIN_PASSWORD
@@ -9,25 +12,22 @@ ADMIN_PASSWORD = read_file_content("PASSWORD")
 
 
 def clean():
+    echo("Cleaning...", foreground="blue")
     remove_tree("dist")
     remove_tree("build")
     remove_tree("pmake.egg-info")
 
 
 def update_version():
-    ensure_has_variable("VERSION_IDENTIFIER")
+    echo("Updating version...", foreground="blue")
     ensure_has_variable("NEW_VERSION")
 
     version_filepath = os.path.join("pmake", "version.py")
-    remove_last_n_line_from_file(version_filepath, n=1)
-    append_strings_at_end_of_file(version_filepath, content=[
-        f"{variables.VERSION_IDENTIFIER} = \"{variables.NEW_VERSION}\"",
-        f"",
-        f"VERSION = {variables.VERSION_IDENTIFIER}"
-    ])
+    write_file(version_filepath, f"VERSION = \"{variables.NEW_VERSION}\"")
 
 
 def uninstall():
+    echo("Uninstall...", foreground="blue")
     execute_admin_with_password_stdout_on_screen(
         password=ADMIN_PASSWORD,
         commands="pip3 uninstall --yes pmake",
@@ -35,6 +35,7 @@ def uninstall():
 
 
 def build():
+    echo("Building...", foreground="blue")
     if on_linux():
         echo("building for linux", foreground="blue")
         execute_and_forget([
@@ -54,6 +55,7 @@ def build():
 
 
 def generate_documentation():
+    echo("Building documentation...", foreground="blue")
     oldcwd = cd("docs")
     if on_linux():
         execute_stdout_on_screen([
@@ -69,6 +71,7 @@ def generate_documentation():
 
 
 def install():
+    echo("Installing...", foreground="blue")
     ADMIN_PASSWORD = read_file_content("PASSWORD")
     latest_version, file_list = get_latest_version_in_folder("dist", version_fetcher=semantic_version_2_only_core)
     echo(f"file list = {' '.join(file_list)}")
@@ -80,6 +83,7 @@ def install():
 
 
 def upload_to_test_pypi():
+    echo("Uploading to test pypi...", foreground="blue")
     latest_version, file_list = get_latest_version_in_folder("dist", version_fetcher=semantic_version_2_only_core)
     upload_files = ' '.join(map(lambda x: f"\"{x}\"", file_list))
 
@@ -101,37 +105,50 @@ def upload_to_test_pypi():
         raise PMakeException()
 
 
-if "clean" in requested_targets:
-    echo("Cleaning...", foreground="blue")
-    clean()
+declare_file_descriptor(f"""
+    This file allows to build, locally install and potentially upload a new version of pmake.
+""")
+declare_target(
+    target_name="clean",
+    description="Clean all folders that are automatically generated",
+    f=clean,
+    requires=[],
+)
+declare_target(
+    target_name="uninstall",
+    description="Uninstall local version of pmake in the global pip sites",
+    f=uninstall,
+    requires=[],
+)
+declare_target(
+    target_name="update-version",
+    description="Uninstall local version of pmake in the global pip sites",
+    f=update_version,
+    requires=[],
+)
+declare_target(
+    target_name="build",
+    description="Build the application",
+    f=build,
+    requires=[],
+)
+declare_target(
+    target_name="generate-documentation",
+    description="Generate documentation of the application",
+    f=generate_documentation,
+    requires=["build"],
+)
+declare_target(
+    target_name="install",
+    description="Install the application on your system. Uses elevated privileges",
+    f=install,
+    requires=["build"],
+)
+declare_target(
+    target_name="upload-to-test-pypi",
+    description="Upload the latest version of pamek to pypi test",
+    f=upload_to_test_pypi,
+    requires=["build"],
+)
 
-if "uninstall" in requested_targets:
-    echo("Uninstall...", foreground="blue")
-    uninstall()
-
-if "update-version" in requested_targets:
-    echo("Updating version...", foreground="blue")
-    update_version()
-
-if "build" in requested_targets:
-    echo("Building...", foreground="blue")
-    build()
-
-if "generate-documentation" in requested_targets:
-    echo("Building documentation...", foreground="blue")
-    generate_documentation()
-
-if "install" in requested_targets:
-    echo("Installing...", foreground="blue")
-    install()
-
-if "upload-to-test-pypi" in requested_targets:
-    echo("Uploading to test pypi...", foreground="blue")
-    upload_to_test_pypi()
-
-if "upload-to-pypi" in requested_targets:
-    echo("Uploading to pypi...", foreground="blue")
-    upload_to_pypi()
-
-echo("DONE!", foreground="green")
-
+process_targets()

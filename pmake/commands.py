@@ -413,7 +413,16 @@ class SessionScript(abc.ABC):
         """
         return target_name in self._model.requested_targets
 
-    def declare_target(self, target_name: str, description: str, requires: Iterable[str], f: Callable[[], None]):
+    def declare_file_descriptor(self, description: str):
+        """
+        Defines what to write at the beginning of the info string that is displayed whenver the user wants to know
+        what the given Pmakefile does
+
+        :param description: string to show
+        """
+        self._model.info_description = description
+
+    def declare_target(self, target_name: str, f: Callable[[], None], requires: Iterable[str] = None, description: str = ""):
         """
         Declare that the user can declare a pseudo-makefile target.
 
@@ -423,6 +432,8 @@ class SessionScript(abc.ABC):
             exist in pmake envuironment
         :param f: the function to perform when the user requests this target
         """
+        if requires is None:
+            requires = []
         if target_name in self._model.available_targets:
             raise ValueError(f"There already is a target with the name \"{target_name}\"!")
         self._model.target_network.add_node(target_name)
@@ -450,13 +461,18 @@ class SessionScript(abc.ABC):
 
     def process_targets(self):
         """
-        Function used to process in the correct order. If the user requested to show the hel for this file, show it and return
+        Function used to process in the correct order. If the user requested to show the help for this file,
+        the function will show it and return it
 
-        It will call the function delcared in declare_target
+        It will call the function declared in declare_target
         """
 
-        doing = set()
-        already_done = set()
+        def show_target_help():
+            if self._model.info_description is not None:
+                print(self._model.info_description)
+            for i, target_name in enumerate(self._model.available_targets):
+                target_descriptor = self._model.available_targets[target_name]
+                print(f" - {i}. {target_name}: {target_descriptor.description}")
 
         def perform_target(name: str, descriptor: TargetDescriptor):
             if name in already_done:
@@ -480,10 +496,15 @@ class SessionScript(abc.ABC):
             doing.remove(name)
             already_done.add(name)
 
-        for i, target_name in enumerate(self._model.requested_targets):
-            target_descriptor = self._model.available_targets[target_name]
-            self._log_command(f"Executing target \"{target_descriptor.name}\"")
-            perform_target(target_name, target_descriptor)
+        if self._model.should_show_target_help:
+            show_target_help()
+        else:
+            doing = set()
+            already_done = set()
+            for i, target_name in enumerate(self._model.requested_targets):
+                target_descriptor = self._model.available_targets[target_name]
+                self._log_command(f"Executing target \"{target_descriptor.name}\"")
+                perform_target(target_name, target_descriptor)
 
     def require_pmake_version(self, lowerbound: str) -> None:
         """

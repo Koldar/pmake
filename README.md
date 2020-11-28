@@ -82,7 +82,7 @@ pyinstaller --noconfirm --onefile --name "pmake" --icon "images\icon.ico" "pmake
 Assuming you have a version of pmake installed on your system, you can use `pmake` to build `pmake`.
 
 ```
-pmake --variable "VERSION_IDENTIFIER" "NEW_VERSION_NAME" --variable "NEW_VERSION" "1.2.1" update-version build install upload-to-test-pypi
+pmake --variable "NEW_VERSION" "1.2.1" update-version build install upload-to-test-pypi
 ```
 
 # Documentation

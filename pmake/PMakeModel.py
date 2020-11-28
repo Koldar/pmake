@@ -2,7 +2,6 @@ import abc
 import logging
 import os
 import re
-import sys
 import networkx as nx
 import textwrap
 import traceback
@@ -10,6 +9,7 @@ from typing import Any, Dict, Optional, List
 
 import colorama
 
+from pmake.IPMakeCache import IPMakeCache
 from pmake.JsonPMakeCache import JsonPMakeCache
 from pmake.TargetDescriptor import TargetDescriptor
 from pmake.commands import SessionScript
@@ -59,8 +59,14 @@ class PMakeModel(abc.ABC):
         """
         level of the logger. INFO, DEBUG, CRITICAL
         """
-
         self.variable: Dict[str, Any] = {}
+        """
+        Variables that the user can inject from the command line
+        """
+        self.info_description: str = ""
+        """
+        Description to show whenever the user wants to know what a given Pmakefile does
+        """
         self.target_network: nx.DiGraph = nx.DiGraph(name="targets")
         """
         Variables passed by the user from the command line via "--variable" argument

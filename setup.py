@@ -19,46 +19,47 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 
 # creates executable
-class generate_executable(Command):
-
-    def initialize_options(self) -> None:
-        pass
-
-    def finalize_options(self) -> None:
-        pass
-
-    def run(self) -> None:
-        if getattr(self, 'dry_run', False):
-            return
-        # then, generates the executable
-        # pyinstaller --hidden-import "colorama"
-        # --noconfirm --onefile --name "pmake" --icon "images\icon.ico" "pmake\pmake.py"
-        main_script = os.path.abspath(os.path.join("pyinstallerMain.py"))
-        print(f"generating executable of pmake using main {main_script}...")
-        PYINSTALLER = [
-            "pyinstaller",
-            #"--exclude-module", "tkinter",
-            #"--hidden-import", "semver",
-            #"--hidden-import", "psutil",
-            "--noconfirm",
-            "--onefile",
-            "--distpath", os.path.join("scripts"),
-            "--name", "pmake",
-            "--icon", os.path.join("images", "icon.ico"),
-            main_script
-        ]
-        print(f"calling {' '.join(PYINSTALLER)}")
-        subprocess.call(' '.join(PYINSTALLER), shell=True)
-        print(f"Done")
-
-
-class custom_build(build):
-    # plug `build_bootloader` into the `build` command
-    def run(self):
-        print("generate executable step...")
-        self.run_command('generate_executable')
-        print("done generate executable...")
-        build.run(self)
+# class generate_executable(Command):
+#
+#     def initialize_options(self) -> None:
+#         pass
+#
+#     def finalize_options(self) -> None:
+#         pass
+#
+#     def run(self) -> None:
+#         if getattr(self, 'dry_run', False):
+#             return
+#         # then, generates the executable
+#         # pyinstaller --hidden-import "colorama"
+#         # --noconfirm --onefile --name "pmake" --icon "images\icon.ico" "pmake\pmake.py"
+#         main_script = os.path.abspath(os.path.join("pyinstallerMain.py"))
+#         print(f"generating executable of pmake using main {main_script}...")
+#         PYINSTALLER = [
+#             "pyinstaller",
+#             #"--exclude-module", "tkinter",
+#             #"--hidden-import", "semver",
+#             #"--hidden-import", "psutil",
+#             f"""-paths {os.path.join("venv", "Lib", "site-packages")}""",
+#             "--noconfirm",
+#             "--onefile",
+#             "--distpath", os.path.join("scripts"),
+#             "--name", "pmake",
+#             "--icon", os.path.join("images", "icon.ico"),
+#             main_script
+#         ]
+#         print(f"calling {' '.join(PYINSTALLER)}")
+#         subprocess.call(' '.join(PYINSTALLER), shell=True)
+#         print(f"Done")
+#
+#
+# class custom_build(build):
+#     # plug `build_bootloader` into the `build` command
+#     def run(self):
+#         print("generate executable step...")
+#         self.run_command('generate_executable')
+#         print("done generate executable...")
+#         build.run(self)
 
 
 def get_data_files() -> List[Tuple[str, List[str]]]:
@@ -96,14 +97,16 @@ setuptools.setup(
     install_requires=[
         "colorama",
         "decorator",
-        "semver"
+        "semver",
+        "networkx",
+        "psutil",
     ],
     data_files=get_data_files(),
     python_requires='>=3.6',
     # add for pyinstaller to work
-    entry_points={"console_scripts": ["pyinstaller=reader.main:main"]},
-    cmdclass={
-        'generate_executable': generate_executable,
-        'build': custom_build,
-    },
+    entry_points={"console_scripts": ["pmake=pmake.main:main"]},
+    # cmdclass={
+    #     'generate_executable': generate_executable,
+    #     'build': custom_build,
+    # },
 )

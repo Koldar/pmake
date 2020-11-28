@@ -1,3 +1,5 @@
 colorama==0.4.4
 decorator==4.4.2
 semver==2.13.0
+networkx==2.5
+psutil==5.7.3

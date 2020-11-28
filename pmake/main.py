@@ -32,19 +32,27 @@ def parse_options(args):
         So you can write loops, checks all the python juicy stuff in it without worries.
         I have developed this utility for writing batch without worrying about the underlying operating system, 
         hence several utilities are immediately provided to you in order to perform basic stuff.
+
+        If you receive on Pmakefile, you can obtain information about how to use it by performing:
+
+        pmake --info
+
+        The above command implicitly uses the file "PMakefile.py", but if you inject another file we will read information
+        from that file. The above command works only if the PMakefile uses targets. If it does not use it, this mechanism
+        will not work.
         
         Aside from the core functions, you can access these modules:
         
-{core_functions}
+        {core_functions}
 
         You can add more modules using --python_module argument.
         In order to facilitate writing scripts, you can use the additional convenience functions:
 
-{convenience_commands}
+        {convenience_commands}
 
         Alongside such functions, there are some important readonly variables always available:
 
-{core_constants}
+        {core_constants}
 
         You can access the variables passed to "--variable" by calling their name. For instance if you have 
         
@@ -88,7 +96,7 @@ def parse_options(args):
     A python module that the script will load. The first argument represents the name that you will use in the PMakefile
     while the second parameter is the python module to import. For instance --python_module "numpy" "np"
     """)
-    parser.add_argument("-v", "--variable", nargs=2, action="append", help="""
+    parser.add_argument("-v", "--variable", nargs=2, action="append", default=[], help="""
     Allows to input external variables in this file. For instance:
     
     --variable "VariableName" "variableValue"
@@ -97,7 +105,8 @@ def parse_options(args):
     Show the version of th software and exits
     """)
     parser.add_argument("-I", "--info", action="store_true", help="""
-        Show information regarding the given input file 
+        Show information regarding the given input file. The generate string should contains useful information for 
+        using the given file 
     """)
     parser.add_argument('targets', metavar="TARGET", nargs="*", type=str, help="""
     An ordered list of pmake targets the user wants to build. For example, target names may be "all", 
@@ -112,8 +121,10 @@ def parse_options(args):
     return options
 
 
-def main(args):
+def main(args=None):
     try:
+        if args is None:
+            args = sys.argv[1:]
         options = parse_options(args)
 
         if options.version:
@@ -133,9 +144,9 @@ def main(args):
         model.input_encoding = options.input_encoding
         model.log_level = options.log_level
         model.input_string = options.input_string
-        logging.critical(options.variable)
         model.variable = {x[0]: x[1] for x in options.variable}
         model.requested_targets = options.targets
+        model.should_show_target_help = options.info
         model.manage_pmakefile()
     except AssertionPMakeException as e:
         sys.exit(1)
@@ -148,4 +159,4 @@ def main(args):
 
 
 if __name__ == "__main__":
-    main(sys.argv[1:])
+    main()
