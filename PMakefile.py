@@ -49,7 +49,7 @@ def build():
             f"python setup.py bdist_wheel",
         ])
     else:
-        raise PMakeException()
+        raise PdMakeException()
 
 
 def generate_documentation():

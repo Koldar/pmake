@@ -12,11 +12,11 @@ import colorama
 from pmake.IPMakeCache import IPMakeCache
 from pmake.JsonPMakeCache import JsonPMakeCache
 from pmake.TargetDescriptor import TargetDescriptor
-from pmake.commands import SessionScript
+from pmake.SessionScript import SessionScript
 from pmake.commons_types import path
 from pmake.constants import STANDARD_MODULES, STANDARD_VARIABLES
-from pmake.linux_commands import LinuxSessionScript
-from pmake.windows_commands import WindowsSessionScript
+from pmake.LinuxSessionScript import LinuxSessionScript
+from pmake.WindowsSessionScript import WindowsSessionScript
 
 
 class AttrDict(object):
@@ -75,10 +75,14 @@ class PMakeModel(abc.ABC):
         """
         List of available targets the given pmakefile provides
         """
-        self.requested_targets: List[TargetDescriptor] = []
+        self.requested_target_names: List[str] = []
         """
         List of targets that the user wants to perform. This
         list of targets are mpretty mch like the make one's (e.g., all, clean, install, uninstall)
+        """
+        self.should_show_target_help: bool = False
+        """
+        If true, we will print the information on how to use the given PMakefile
         """
         self.starting_cwd: path = os.path.abspath(os.curdir)
         """
@@ -97,6 +101,7 @@ class PMakeModel(abc.ABC):
         self._eval_globals: Optional[Dict[str, Any]] = None
         self._eval_locals: Optional[Dict[str, Any]] = None
 
+        self.session_script: "SessionScript" = None
         if os.name == "nt":
             self.session_script: "SessionScript" = WindowsSessionScript(self)
         elif os.name == "posix":
@@ -129,7 +134,11 @@ class PMakeModel(abc.ABC):
         if "variables" in result:
             raise KeyError(f"duplicate key \"variables\". It is already mapped to the value {result['variables']}")
         logging.debug(f"Adding standard variable 'variable'")
-        result["variables"] = AttrDict(self.variable)
+        attr_dict = {}
+        for k, v in self.variable.items():
+            attr_dict[k] = self.variable[k]
+        self.variable = attr_dict
+        result["variables"] = AttrDict(attr_dict)
         logging.info(f"Variables passed frm CLI:")
         for i, (k, v) in enumerate(self.variable.items()):
             logging.info(f' {i}. {k} = {v}')
@@ -144,10 +153,10 @@ class PMakeModel(abc.ABC):
         logging.debug(f"Adding standard variable 'commands'")
         result["commands"] = self.session_script
 
-        if "requested_targets" in result:
-            raise KeyError(f"duplicate key \"requested_targets\". It is already mapped to the value {result['targets']}")
-        logging.debug(f"Adding standard variable 'requested_targets'")
-        result["requested_targets"] = self.requested_targets
+        if "requested_target_names" in result:
+            raise KeyError(f"duplicate key \"requested_target_names\". It is already mapped to the value {result['targets']}")
+        logging.debug(f"Adding standard variable 'requested_target_names'")
+        result["requested_target_names"] = self.requested_target_names
 
         if "interesting_paths" in result:
             raise KeyError(f"duplicate key \"interesting_paths\". It is already mapped to the value {result['interesting_paths']}")

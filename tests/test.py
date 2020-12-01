@@ -596,6 +596,61 @@ class MyTestCase(unittest.TestCase):
         self.assertStdoutEquals("Port\nType\nBoard Name\nFQBN\nCore\n/dev/ttyACM0\nSerial Port (USB)\nArduino Uno\narduino:avr:uno\narduino:avr",
                                 lambda: model.manage_pmakefile())
 
+    def test_read_registry_key(self):
+        if os.name == 'nt':
+            model = PMakeModel()
+            model.input_string = """
+                        echo(read_registry_local_machine_value(
+                            key=r"SOFTWARE\Microsoft\Clipboard",
+                            item="IsClipboardSignalProducingFeatureAvailable"
+                        ))
+                    """
+            self.assertStdoutEquals("1", lambda: model.manage_pmakefile())
+
+    def test_read_registry_keys(self):
+        if os.name == 'nt':
+            model = PMakeModel()
+            model.input_string = """
+                        echo(len(list(get_registry_local_machine_values(
+                            key=r"SOFTWARE\Microsoft\Clipboard",
+                        ))))
+                    """
+            self.assertStdoutEquals("2", lambda: model.manage_pmakefile())
+
+    def test_has_registry_value(self):
+        if os.name == 'nt':
+            model = PMakeModel()
+            model.input_string = """
+                        echo(has_registry_local_machine_value(
+                            key=r"SOFTWARE\Microsoft\Clipboard",
+                            item="IsClipboardSignalProducingFeatureAvailable"
+                        ))
+                        echo(has_registry_local_machine_value(
+                            key=r"SOFTWARE\Microsoft\Clipboard",
+                            item="ujhsdfgfjkdhfgkldfhgkdfhgkdfgh"
+                        ))
+                    """
+            self.assertStdoutEquals("True\nFalse", lambda: model.manage_pmakefile())
+
+    def test_default_has_registry_local_machine_value(self):
+        if os.name == 'nt':
+            model = PMakeModel()
+            model.input_string = """
+                echo(has_registry_local_machine_value(
+                    key=r"SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\IEXPLORE.EXE",
+                    item=""
+                ))
+            """
+            self.assertStdoutEquals("sfdg", lambda: model.manage_pmakefile())
+
+    def test_default_internet_explorer(self):
+        if os.name == 'nt':
+            model = PMakeModel()
+            model.input_string = """
+                echo(get_latest_path_with_architecture("internet-explorer", 64))
+            """
+            self.assertStdoutEquals(os.path.join("C:\\", "Program Files", "Internet Explorer", "iexplore.exe"), lambda: model.manage_pmakefile())
+
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)

@@ -7,7 +7,6 @@ from typing import Union, List, Tuple, Dict, Any
 
 import semver
 
-from pmake import commands
 from pmake.IOSSystem import IOSSystem
 from pmake.InterestingPath import InterestingPath
 from pmake.commons_types import path
@@ -159,10 +158,12 @@ class WindowsOSSystem(IOSSystem):
                 os.unlink(filepath)
 
     def get_env_variable(self, name: str) -> str:
-        code, stdout, _ = self.execute(
-            command=f"echo %{name}%",
-            use_shell=True,
+        code, stdout, _ = self.execute_command(
+            commands=[f"echo %{name}%"],
+            show_output_on_screen=False,
             capture_stdout=True,
+            execute_as_admin=False,
+            log_entry=True,
         )
 
         stdout = stdout.strip()
@@ -174,7 +175,7 @@ class WindowsOSSystem(IOSSystem):
     def get_home_folder(self) -> path:
         return self.get_env_variable("USERPROFILE")
 
-    def _fetch_interesting_paths(self, script: "commands.SessionScript") -> Dict[str, List[InterestingPath]]:
+    def _fetch_interesting_paths(self, script: "SessionScript.SessionScript") -> Dict[str, List[InterestingPath]]:
 
         # <Regasm32>C:\Windows\Microsoft.NET\Framework\v4.0.30319\RegAsm.exe</Regasm32>
         # <Regasm64>C:\Windows\Microsoft.NET\Framework64\v4.0.30319\RegAsm.exe</Regasm64>
@@ -194,7 +195,7 @@ class WindowsOSSystem(IOSSystem):
             # subfolder ris something like v1.2.3
             for subfolder in script.ls_only_directories(folder32):
                 interesting_paths["regasm"].append(InterestingPath(
-                    architecture=architecture,
+                    architecture=32,
                     path=script.abs_wrt_cwd(folder32, subfolder, "RegAsm.exe"),
                     version=self._get_semantic_version(subfolder[1:])
                 ))
@@ -203,10 +204,23 @@ class WindowsOSSystem(IOSSystem):
             # subfolder ris something like v1.2.3
             for subfolder in script.ls_only_directories(folder64):
                 interesting_paths["regasm"].append(InterestingPath(
-                    architecture=architecture,
+                    architecture=64,
                     path=script.abs_wrt_cwd(folder64, subfolder, "RegAsm.exe"),
                     version=self._get_semantic_version(subfolder[1:])
                 ))
+
+        # INTERNET EXPLORER AND OTHER COMMON PROGRAMS ON WINDOWS
+
+        # iexplorer_path = script.read_registry_local_machine_value("Computer\HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\IEXPLORE.EXE", "")
+        iexplorer_path = os.path.abspath(os.path.join("C:\\", "Program Files", "Internet Explorer", "iexplore.exe"))
+        interesting_paths["internet-explorer"] = []
+        interesting_paths["internet-explorer"].append(InterestingPath(
+            architecture=script.get_architecture(),
+            path=iexplorer_path,
+            version=semver.VersionInfo.parse("1.0.0")
+        ))
+
+        # Computer\HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\IEXPLORE.EXE
 
         return interesting_paths
 

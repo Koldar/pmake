@@ -1,5 +1,4 @@
 import abc
-import inspect
 import logging
 import os
 import re
@@ -17,10 +16,11 @@ import semver
 
 import configparser
 
-from pmake import LinuxOSSystem, version
+from pmake import version
 from pmake import PMakeModel
-from pmake import WindowsOSSystem
+from pmake.LinuxOSSystem import LinuxOSSystem
 from pmake.TargetDescriptor import TargetDescriptor
+from pmake.WindowsOSSystem import WindowsOSSystem
 from pmake.commons_types import path
 from pmake.exceptions.PMakeException import AssertionPMakeException, PMakeException, InvalidScenarioPMakeException
 from pmake import show_on_help
@@ -31,7 +31,7 @@ class SessionScript(abc.ABC):
     Contains all the commands available for the user in a PMakefile.py file
     """
 
-    def __init__(self, model: "PMakeModel"):
+    def __init__(self, model: "PMakeModel.PMakeModel"):
         self._model = model
         self._cwd = os.path.abspath(os.curdir)
         self._locals = {}
@@ -55,9 +55,9 @@ class SessionScript(abc.ABC):
         }
         self._disable_log_command: bool = False
         if self.on_windows():
-            self._platform = WindowsOSSystem.WindowsOSSystem()
+            self._platform = WindowsOSSystem()
         elif self.on_linux():
-            self._platform = LinuxOSSystem.LinuxOSSystem()
+            self._platform = LinuxOSSystem(model)
         else:
             raise PMakeException(f"Cannot identify platform!")
 
@@ -349,11 +349,31 @@ class SessionScript(abc.ABC):
         return self._model.starting_cwd
 
     @show_on_help.add_command('paths')
+    def path_wrt_starting_cwd(self, *folder: str) -> path:
+        """
+        Compute path relative to the starting cwd
+
+        :param folder: other sections of the path
+        :return: path relative to the absolute path of where you have called pmake
+        """
+        return os.path.abspath(os.path.join(self._model.starting_cwd, *folder))
+
+    @show_on_help.add_command('paths')
     def get_pmakefile_path(self) -> path:
         """
         :return: absolute path of the main PMakefile path
         """
         return self._model.input_file
+
+    @show_on_help.add_command('paths')
+    def path_wrt_pmakefile(self, *folder: str) -> path:
+        """
+        Compute path relative to the file where PMakefile is lcoated
+
+        :param folder: other sections of the path
+        :return: path relative to the absolute path of where PMakefile is located
+        """
+        return os.path.abspath(os.path.join(self._model.input_file, *folder))
 
     @show_on_help.add_command('paths')
     def get_home_folder(self) -> path:
@@ -428,7 +448,7 @@ class SessionScript(abc.ABC):
         :param target_name: the name of the target that we need to check
         :return: true if the target has been declard by the user, false otherwise
         """
-        return target_name in self._model.requested_targets
+        return target_name in self._model.requested_target_names
 
     @show_on_help.add_command('targets')
     def declare_file_descriptor(self, description: str):
@@ -522,10 +542,12 @@ class SessionScript(abc.ABC):
         else:
             doing = set()
             already_done = set()
-            for i, target_name in enumerate(self._model.requested_targets):
+
+            logging.info(f"Available targets are {', '.join(self._model.available_targets.keys())}")
+            for i, target_name in enumerate(self._model.requested_target_names):
                 target_descriptor = self._model.available_targets[target_name]
                 self._log_command(f"Executing target \"{target_descriptor.name}\"")
-                perform_target(target_name, target_descriptor)
+                perform_target(target_descriptor.name, target_descriptor)
 
     @show_on_help.add_command('core')
     def require_pmake_version(self, lowerbound: str) -> None:
@@ -1090,16 +1112,17 @@ class SessionScript(abc.ABC):
         self.remove_tree(src)
 
     @show_on_help.add_command('files')
-    def remove_tree(self, src: path, ignore_if_not_exists: bool = True) -> None:
+    def remove_tree(self, *folder: path, ignore_if_not_exists: bool = True) -> None:
         """
         Remove a dirctory tree
 
-        :param src: the directory to remove
+        :param folder: path to the directory to remove
         :param ignore_if_not_exists: if the directory does not exists, we do nothing if htis field is true
         """
-        self._log_command(f"""Recursively remove files from \"{src}\"""")
+        p = self.abs_path(*folder)
+        self._log_command(f"""Recursively remove files from \"{p}\"""")
         try:
-            shutil.rmtree(src)
+            shutil.rmtree(p)
         except Exception as e:
             if not ignore_if_not_exists:
                 raise e
@@ -1980,3 +2003,30 @@ class SessionScript(abc.ABC):
         self._log_command(f"include file content \"{p}\"")
         self._model.execute_file(p)
 
+    @show_on_help.add_command('utils')
+    def as_bool(self, v: Any) -> bool:
+        """
+        Convert a value into a boolean
+
+        :param v: value to convert as a boolean
+        :return: true of false
+        """
+        if isinstance(v, bool):
+            return v
+        elif isinstance(v, str):
+            v = v.lower()
+            d = {
+                "true": True,
+                "false": False,
+                "ok": True,
+                "ko": False,
+                "yes": True,
+                "no": False,
+                "1": True,
+                "0": False
+            }
+            return d[v]
+        elif isinstance(v, int):
+            return v != 0
+        else:
+            raise TypeError(f"Cannot convert {v} (type {type(v)}) into a bool")

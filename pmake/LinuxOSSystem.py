@@ -11,6 +11,9 @@ from pmake.exceptions.PMakeException import PMakeException
 
 class LinuxOSSystem(IOSSystem):
 
+    def __init__(self, model: "PMakeModel.PMakeMode"):
+        super().__init__(model)
+
     def execute_command(self, commands: List[Union[str, List[str]]], show_output_on_screen: bool, capture_stdout: bool,
                         cwd: str = None, env: Dict[str, Any] = None, check_exit_code: bool = True, timeout: int = None,
                         execute_as_admin: bool = False, admin_password: str = None,

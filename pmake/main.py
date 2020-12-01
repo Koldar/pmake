@@ -8,7 +8,7 @@ from typing import Tuple, Iterable, Any, Dict
 
 from pmake import version, show_on_help
 from pmake.PMakeModel import PMakeModel
-from pmake.commands import SessionScript
+from pmake.SessionScript import SessionScript
 from pmake.constants import STANDARD_MODULES, STANDARD_VARIABLES
 from pmake.exceptions.PMakeException import AssertionPMakeException, InvalidScenarioPMakeException, PMakeException
 
@@ -58,10 +58,12 @@ def parse_options(args):
 
     convenience_commands = []
     for group_name, group_commands in build_dict_of_commands().items():
+        convenience_commands.append('#' * 50)
         convenience_commands.append(f"{'#'*20} {group_name.upper()} {'#'*20}")
         convenience_commands.append('#' * 50)
+        convenience_commands.append('')
         for command_signature, command_doc in group_commands:
-            convenience_commands.append(f" * {command_signature}\n{textwrap.dedent(command_doc)}")
+            convenience_commands.append(f" * {command_signature}\n{textwrap.dedent(str(command_doc))}")
 
     convenience_commands = '\n'.join(convenience_commands)
 
@@ -107,7 +109,7 @@ def parse_options(args):
          - "model" to gain access to the whole application shared context;
          - the interesting paths by using "interesting_path";
          - the latest interesting paths by using "latest_interesting_path";
-         - the ordered list fo target the user has specified via "requested_targets";
+         - the ordered list fo target the user has specified via "requested_target_names";
 
         Return Status
         =============
@@ -188,7 +190,7 @@ def main(args=None):
         model.log_level = options.log_level
         model.input_string = options.input_string
         model.variable = {x[0]: x[1] for x in options.variable}
-        model.requested_targets = options.targets
+        model.requested_target_names = options.targets
         model.should_show_target_help = options.info
         model.manage_pmakefile()
     except AssertionPMakeException as e:
