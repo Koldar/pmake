@@ -163,6 +163,34 @@ class WindowsSessionScript(SessionScript):
         )
 
     @show_on_help.add_command('windows')
+    def remove_from_regasm(self, dll: path, architecture: int, regasm_exe: path = None, use_codebase: bool = True,
+                      use_tlb: bool = True):
+        """
+        Remove a dll into a regasm (either 32 or 64 bit)
+        :param regasm_exe: executable of regasm.
+        :param dll: the dll to include in the regasm
+        :param architecture: number of bits the processor has. either 32 or 64
+        :param use_codebase: if set we will add /codebase
+        :param use_tlb: if set, we will add /tlb
+        """
+        cmds = []
+
+        if regasm_exe is None:
+            regasm_exe = self.get_latest_path_with_architecture("regasm", architecture)
+
+        cmds.append(regasm_exe)
+        cmds.append(dll)
+        if use_codebase:
+            cmds.append("/codebase")
+        if use_tlb:
+            cmds.append("/tlb")
+        cmds.append("/unregister")
+        self.execute_admin_stdout_on_screen(
+            commands=[' '.join(cmds)],
+            cwd=os.path.dirname(dll)
+        )
+
+    @show_on_help.add_command('windows')
     def publish_dotnet_project(self, cwd: path, runtime: str, configuration: str, solution_directory: path) -> None:
         """
         publish a dotnet project.

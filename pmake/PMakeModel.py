@@ -139,7 +139,7 @@ class PMakeModel(abc.ABC):
             attr_dict[k] = self.variable[k]
         self.variable = attr_dict
         result["variables"] = AttrDict(attr_dict)
-        logging.info(f"Variables passed frm CLI:")
+        logging.info(f"VARIABLES PASSED FROM CLI")
         for i, (k, v) in enumerate(self.variable.items()):
             logging.info(f' {i}. {k} = {v}')
 
@@ -176,6 +176,10 @@ class PMakeModel(abc.ABC):
         logging.info(f"LATEST INTERESTING PATHS")
         for i, (k, v) in enumerate(self.session_script._latest_interesting_path.items()):
             logging.info(f" - {i+1}. {k}: {v}")
+
+        logging.info(f"USER REQUESTED TARGETS")
+        for i, t in enumerate(self.requested_target_names):
+            logging.info(f" - {i+1}. {t}")
 
         return result
 

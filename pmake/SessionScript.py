@@ -1012,6 +1012,7 @@ class SessionScript(abc.ABC):
             shutil.copytree(
                 asrc,
                 adst,
+                dirs_exist_ok=True,
             )
         elif os.path.isfile(asrc):
             shutil.copyfile(
