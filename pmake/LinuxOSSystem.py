@@ -1,7 +1,7 @@
 import logging
 import os
 import subprocess
-from typing import Union, List, Tuple, Dict, Any
+from typing import Union, List, Tuple, Dict, Any, Optional, Iterable
 
 from pmake.IOSSystem import IOSSystem
 from pmake.InterestingPath import InterestingPath
@@ -13,6 +13,16 @@ class LinuxOSSystem(IOSSystem):
 
     def __init__(self, model: "PMakeModel.PMakeMode"):
         super().__init__(model)
+
+    def get_program_path(self) -> Iterable[path]:
+        return os.environ["PATH"].split(os.pathsep)
+
+    def find_executable_in_program_directories(self, program_name: str, script: "SessionScript.SessionScript") -> Optional[path]:
+        for root in list(self.get_program_path()) + [r"/opt"]:
+            for f in script.find_file(root_folder=root, filename=program_name):
+                return f
+        else:
+            return None
 
     def execute_command(self, commands: List[Union[str, List[str]]], show_output_on_screen: bool, capture_stdout: bool,
                         cwd: str = None, env: Dict[str, Any] = None, check_exit_code: bool = True, timeout: int = None,

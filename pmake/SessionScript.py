@@ -10,7 +10,7 @@ import tempfile
 import colorama
 
 import urllib.request
-from typing import List, Union, Iterable, Tuple, Any, Callable, Dict
+from typing import List, Union, Iterable, Tuple, Any, Callable, Dict, Optional
 
 import semver
 
@@ -341,6 +341,19 @@ class SessionScript(abc.ABC):
         self._log_command(f"Setting {name}={new_value} in cache")
         self._model.pmake_cache.set_variable_in_cache(name, new_value)
 
+    @show_on_help.add_command('core')
+    def get_variable_or(self, name: str, otherwise: Any) -> None:
+        """
+        Ensure the user has passed a variable.
+        If not,  the default variable is stored in the variable sety
+
+        :param name: the variable name to check
+        :param otherwise: the value the varible with name will have if the such a variable is not present
+
+        """
+        if name not in self._model.variable:
+            self._model.variable[name] = otherwise
+
     @show_on_help.add_command('paths')
     def get_starting_cwd(self) -> path:
         """
@@ -559,8 +572,8 @@ class SessionScript(abc.ABC):
         """
         system_version = semver.VersionInfo.parse(version.VERSION)
         script_version = semver.VersionInfo.parse(lowerbound)
-        self._log_command(f"Checking if script minimum pmake version ({script_version}) is compliant with pmake version ({system_version})")
-        if lowerbound > version.VERSION:
+        self._log_command(f"Checking if script minimum pmake version {script_version} > {system_version}")
+        if script_version > system_version:
             raise PMakeException(f"The script requires at least version {script_version} to be installed. Current version is {system_version}")
 
     @show_on_help.add_command('core')
@@ -751,12 +764,170 @@ class SessionScript(abc.ABC):
     @show_on_help.add_command('operating system')
     def is_program_installed(self, program_name: str) -> bool:
         """
-        Check if a program is reachable via commandline
+        Check if a program is reachable via commandline. We will look **only** in the PATH environment variable.
+        If you want to look in other parts as well, conside rusing
 
         :param program_name: the name of the program (e.g., dot)
         :return: true if there is a program accessible to the PATH with the given name, false otherwise
         """
+        self._log_command(f"""Checking if the executable \"{program_name}\" is in PATH""")
         return self._platform.is_program_installed(program_name)
+
+    @show_on_help.add_command('files')
+    def find_executable_in_program_directories(self, program_name: str) -> Optional[path]:
+        """
+        Find a program ouside the path as well. Paths is still considered
+
+        :param program_name: name of the program to look for
+        :return: first absolute path of the program found. None if we did not find the progrma
+        """
+        self._log_command(f"""Find the executable \"{program_name}\" in the place where the operating system usually puts installed programs...""")
+        return self._platform.find_executable_in_program_directories(
+            program_name=program_name,
+            script=self
+        )
+
+    @show_on_help.add_command('operating system')
+    def get_program_path(self) -> Iterable[path]:
+        """
+        List of paths in PATH environment variable
+
+        :return: collections of path
+        """
+        return self._platform.get_program_path()
+
+    @show_on_help.add_command('files')
+    def find_file(self, root_folder: path, filename: str) -> Iterable[str]:
+        """
+        Find all the files with the given filename (extension included)
+
+        :param root_folder: fodler where we need to look int
+        :param filename: filename we need to fetch
+        :return: list of files with thwe given filename
+        """
+
+        def match(root: path, f: str, whole_path: path) -> bool:
+            return f == filename
+
+        self._log_command(f"""Finding file with filename {filename} in directory {root_folder}""")
+        yield from self.find_file_st(root_folder, match)
+
+    @show_on_help.add_command('files')
+    def find_directory(self, root_folder: path, folder: str) -> Iterable[str]:
+        """
+        Find all the directories with the given name
+
+        :param root_folder: fodler where we need to look int
+        :param folder: name of the folder we need to fetch
+        :return: list of files with thwe given filename
+        """
+
+        def match(root: path, f: str, whole_path: path) -> bool:
+            return f == folder
+
+        self._log_command(f"""Finding directory named {folder} in directory {root_folder}""")
+        yield from self.find_folder_st(root_folder, match)
+
+    @show_on_help.add_command('files')
+    def find_file_with_filename_compliant_with_regex(self, root_folder: path, filename_regex: str) -> Iterable[str]:
+        """
+        Find all the files containign (search) the given regex
+
+        :param root_folder: folder where we need to look int
+        :param filename_regex: the regex any filename should be compliant
+        :return: list of files with thwe given filename
+        """
+
+        def match(root: path, f: str, whole_path: path) -> bool:
+            return re.search(pattern=filename_regex, string=f) is not None
+
+        self._log_command(f"""Finding file whose filename is compliant with regex {filename_regex} in directory {root_folder}""")
+        yield from self.find_file_st(root_folder, match)
+
+    @show_on_help.add_command('files')
+    def find_directory_with_filename_compliant_with_regex(self, root_folder: path, folder_regex: str) -> Iterable[str]:
+        """
+        Find all the directories with the given name
+
+        :param root_folder: fodler where we need to look int
+        :param folder_regex: regex the folder name should be compliant with
+        :return: list of files with thwe given filename
+        """
+
+        def match(root: path, f: str, whole_path: path) -> bool:
+            return re.search(pattern=folder_regex, string=f) is not None
+
+        self._log_command(
+            f"""Finding folder whose name is compliant with regex {folder_regex} in directory {root_folder}""")
+        yield from self.find_folder_st(root_folder, match)
+
+    @show_on_help.add_command('files')
+    def find_file_with_fullpath_compliant_with_regex(self, root_folder: path, filename_regex: str) -> Iterable[str]:
+        """
+        Find all the files containing (search) the given regex
+
+        :param root_folder: folder where we need to look int
+        :param filename_regex: the regex any filename should be compliant
+        :return: list of files with the given filename
+        """
+
+        def match(root: path, f: str, whole_path: path) -> bool:
+            return re.search(pattern=filename_regex, string=whole_path) is not None
+
+        self._log_command(f"""Finding file whose full absolute path is compliant with regex {filename_regex} in directory {root_folder}""")
+        yield from self.find_file_st(root_folder, match)
+
+    @show_on_help.add_command('files')
+    def find_directory_with_fullpath_compliant_with_regex(self, root_folder: path, folder_regex: str) -> Iterable[str]:
+        """
+        Find all the directories with the given name
+
+        :param root_folder: folder where we need to look int
+        :param folder_regex: regex the folder name should be compliant with
+        :return: list of files with thwe given filename
+        """
+
+        def match(root: path, f: str, whole_path: path) -> bool:
+            return re.search(pattern=folder_regex, string=whole_path) is not None
+
+        self._log_command(f"""Finding directory whose absolute path is compliant with regex {folder_regex} in directory {root_folder}""")
+        yield from self.find_folder_st(root_folder, match)
+
+    @show_on_help.add_command('files')
+    def find_file_st(self, root_folder: path, match: Callable[[path, str, path], bool]) -> Iterable[str]:
+        """
+        Find all the files matchign the given function
+
+        :param root_folder: folder where we need to look int
+        :param match: a function that defines if you want to include the file into the output. The first parameter
+            is the folder containing the given file. The second parameter is the involved file. The third is the
+            absolute path of the involved path
+        :return: list of files compliant with the given function
+        """
+
+        for root, dirs, files in os.walk(root_folder):
+            for f in files:
+                whole_path =os.path.join(root, f)
+                if match(root, f, whole_path):
+                    yield whole_path
+
+    @show_on_help.add_command('files')
+    def find_folder_st(self, root_folder: path, match: Callable[[path, str, path], bool]) -> Iterable[str]:
+        """
+        Find all the folder matching a given function
+
+        :param root_folder: folder where we need to look int
+        :param match: a function that defines if you want to include the folder into the output. The first parameter
+            is the folder containing the given folder. The second parameter is the involved folder. The third is the
+            absolute path of the involved path
+        :return: list of folders compliant with the given function
+        """
+
+        for root, dirs, files in os.walk(root_folder):
+            for f in dirs:
+                whole_path = os.path.join(root, f)
+                if match(root, f, whole_path):
+                    yield whole_path
 
     @show_on_help.add_command('files')
     def create_empty_directory(self, name: path):
@@ -1519,6 +1690,18 @@ class SessionScript(abc.ABC):
         :return: the user currently logged
         """
         return self._platform.get_current_username()
+
+    @show_on_help.add_command('paths')
+    def get_file_without_extension(self, *p: path) -> path:
+        """
+        Compute the filename without its last extension
+
+        /path/to/some/file.txt.zip.asc --> /path/to/some/file.txt.zip
+
+        :param p: path to consider
+        :return: same absolute path, without extension
+        """
+        return os.path.splitext(self.abs_wrt_cwd(p))[0]
 
     @show_on_help.add_command('paths')
     def abs_wrt_cwd(self, *paths) -> path:

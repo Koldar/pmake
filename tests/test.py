@@ -485,6 +485,31 @@ class MyTestCase(unittest.TestCase):
             """
             self.assertStdoutEquals("True\nFalse", lambda: model.manage_pmakefile())
 
+    def test_get_program_path(self):
+        if os.name == "nt":
+            model = PMakeModel()
+            model.input_string = """
+                echo("C:\\Windows" in get_program_path())
+                echo(len(get_program_path()) > 5)
+            """
+            self.assertStdoutEquals("True\nTrue", lambda: model.manage_pmakefile())
+        elif os.name == "posix":
+            model = PMakeModel()
+            model.input_string = """
+                            echo("/usr/local/bin" in get_program_path())
+                            echo(len(get_program_path()) > 5)
+                        """
+            self.assertStdoutEquals("True\nTrue", lambda: model.manage_pmakefile())
+
+    def test_find_executable_in_program_directories(self):
+        if os.name == "nt":
+            model = PMakeModel()
+            model.input_string = """
+                echo(find_executable_in_program_directories("hsdghsdklghdf"))
+                echo(find_executable_in_program_directories("iexplore.exe"))
+            """
+            self.assertStdoutEquals("None\nC:\\Program Files\\Internet Explorer\\iexplore.exe", lambda: model.manage_pmakefile())
+
     def test_replace_regex_in_string(self):
         model = PMakeModel()
         model.input_string = r"""

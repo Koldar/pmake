@@ -3,7 +3,7 @@ import os
 import subprocess
 import tempfile
 import time
-from typing import Union, List, Tuple, Dict, Any
+from typing import Union, List, Tuple, Dict, Any, Optional, Iterable
 
 import semver
 
@@ -14,6 +14,17 @@ from pmake.exceptions.PMakeException import PMakeException
 
 
 class WindowsOSSystem(IOSSystem):
+
+    def get_program_path(self) -> Iterable[path]:
+        return os.environ["PATH"].split(os.pathsep)
+
+    def find_executable_in_program_directories(self, program_name: str, script: "SessionScript.SessionScript") -> Optional[path]:
+        # we first search in program files and only then fallbacks to path.
+        for root in [r"C:\Program Files", r"C:\Program Files (x86)"] + list(self.get_program_path()):
+            for f in script.find_file(root_folder=root, filename=program_name):
+                return f
+        else:
+            return None
 
     def set_global_environment_variable(self, group_name: str, name: str, value: Any):
         self.execute_command(commands=[

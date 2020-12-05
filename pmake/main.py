@@ -134,7 +134,7 @@ def parse_options(args):
     parser.add_argument("-e", "--input_encoding", type=str, required=False, default="utf-8", help="""
     Encoding of the input file
     """)
-    parser.add_argument("-l", "--log_level", type=str, required=False, default="INFO", help="""
+    parser.add_argument("-l", "--log_level", type=str, required=False, default="CRITICAL", help="""
     Log level of the application. Allowed values are "INFO", "DEBUG", "INFO"
     """)
     parser.add_argument("-m", "--python_module", nargs=2, action="append", default=None, help="""
@@ -178,7 +178,7 @@ def main(args=None):
 
         log_level = options.log_level
         logging.basicConfig(
-            level="INFO",
+            level=log_level,
             datefmt="%Y-%m-%dT%H:%M:%S",
             format='%(asctime)s %(funcName)20s@%(lineno)4d[%(levelname)8s] - %(message)s',
         )

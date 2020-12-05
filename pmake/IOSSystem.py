@@ -4,7 +4,7 @@ import logging
 import os
 import stat
 import tempfile
-from typing import Union, List, Tuple, Dict, Any, Iterable
+from typing import Union, List, Tuple, Dict, Any, Iterable, Optional
 
 import psutil as psutil
 import semver
@@ -14,6 +14,23 @@ from pmake.commons_types import path
 
 
 class IOSSystem(abc.ABC):
+
+    @abc.abstractmethod
+    def get_program_path(self) -> Iterable[path]:
+        """
+        Fetch the list of paths in the PATH environment variable
+        """
+        pass
+
+    @abc.abstractmethod
+    def find_executable_in_program_directories(self, program_name: str, script: "SessionScript") -> Optional[path]:
+        """
+        Find an executable in the system. We will look only in the places where the operating system usually store the
+        programs. For instance on windows we might look into "Program Files" while in linux we may look uinto "/opt or /usr/local/bin"
+
+        :param program_name: name of the program we need to look
+        """
+        pass
 
     @abc.abstractmethod
     def _fetch_interesting_paths(self, script: "SessionScript") -> Dict[str, List[InterestingPath]]:
