@@ -325,7 +325,7 @@ class SessionScript(abc.ABC):
             return default
 
     @show_on_help.add_command('cache')
-    def add_or_update_variable(self, name: str, supplier: Callable[[], Any], mapper: Callable[[Any], Any]):
+    def add_or_update_variable_in_cache(self, name: str, supplier: Callable[[], Any], mapper: Callable[[Any], Any]):
         """
         Add a new variable in the cache
 
@@ -354,6 +354,16 @@ class SessionScript(abc.ABC):
         if name not in self._model.variable:
             self._model.variable[name] = otherwise
 
+    def set_variable(self, name: str, value: Any) -> None:
+        """
+        Set the variable in the current model. If the variable did not exist, we create one one.
+        Otheriwse, the value is overridden
+
+        :param name: name of the variable to programmatically set
+        :param value: value to set
+        """
+        self._model.variable[name] = value
+
     @show_on_help.add_command('paths')
     def get_starting_cwd(self) -> path:
         """
@@ -379,14 +389,23 @@ class SessionScript(abc.ABC):
         return self._model.input_file
 
     @show_on_help.add_command('paths')
+    def get_pmakefile_dir(self) -> path:
+        """
+        The directory where the analyzed pmakefile is located
+
+        :return: absolute ptha of the directory of the path under analysis
+        """
+        return os.path.dirname(self._model.input_file)
+
+    @show_on_help.add_command('paths')
     def path_wrt_pmakefile(self, *folder: str) -> path:
         """
-        Compute path relative to the file where PMakefile is lcoated
+        Compute path relative to the file where PMakefile is located
 
         :param folder: other sections of the path
         :return: path relative to the absolute path of where PMakefile is located
         """
-        return os.path.abspath(os.path.join(self._model.input_file, *folder))
+        return os.path.abspath(os.path.join(os.path.dirname(self._model.input_file), *folder))
 
     @show_on_help.add_command('paths')
     def get_home_folder(self) -> path:
@@ -558,6 +577,9 @@ class SessionScript(abc.ABC):
 
             logging.info(f"Available targets are {', '.join(self._model.available_targets.keys())}")
             for i, target_name in enumerate(self._model.requested_target_names):
+                if target_name not in self._model.available_targets:
+                    raise PMakeException(f"Invalid target {target_name}. Available targets are {', '.join(self._model.available_targets.keys())}")
+
                 target_descriptor = self._model.available_targets[target_name]
                 self._log_command(f"Executing target \"{target_descriptor.name}\"")
                 perform_target(target_descriptor.name, target_descriptor)
@@ -774,18 +796,32 @@ class SessionScript(abc.ABC):
         return self._platform.is_program_installed(program_name)
 
     @show_on_help.add_command('files')
-    def find_executable_in_program_directories(self, program_name: str) -> Optional[path]:
+    def find_executable_in_program_directories(self, program_name: str, fail_if_program_is_not_found: bool = False) -> Optional[path]:
         """
         Find a program ouside the path as well. Paths is still considered
 
         :param program_name: name of the program to look for
-        :return: first absolute path of the program found. None if we did not find the progrma
+        :param fail_if_program_is_not_found: if true, we will raise an exception if the program is not found
+        :return: first absolute path of the program found. None if we did not find the program
         """
         self._log_command(f"""Find the executable \"{program_name}\" in the place where the operating system usually puts installed programs...""")
-        return self._platform.find_executable_in_program_directories(
+        result = self._platform.find_executable_in_program_directories(
             program_name=program_name,
             script=self
         )
+        if result is None and fail_if_program_is_not_found:
+            raise PMakeException(f"We could not find the program \"{program_name}\" on the system!")
+        return result
+
+    def get_git_commit(self, *folder) -> str:
+        """
+        Call from the given directory "git status" in order to retrieve the current commit. If the path is relative, it is relative to the cwd
+
+        :param folder: the folder we need to call "git status" in
+        :return: the commit hash
+        """
+        p = self.abs_wrt_cwd(*folder)
+        self._platform.get_git_commit(p)
 
     @show_on_help.add_command('operating system')
     def get_program_path(self) -> Iterable[path]:

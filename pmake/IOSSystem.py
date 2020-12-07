@@ -23,6 +23,36 @@ class IOSSystem(abc.ABC):
         pass
 
     @abc.abstractmethod
+    def get_git_commit(self, p: path) -> str:
+        """
+        get the current git hash commit
+
+        :param p: path in a git repository
+        :return: git hash commit
+        """
+        pass
+
+    @abc.abstractmethod
+    def get_git_branch(self, p: path) -> str:
+        """
+        get the current git branch name
+
+        :param p: path in a git repository
+        :return: git branch name
+        """
+        pass
+
+    @abc.abstractmethod
+    def is_repo_clean(self, p: path) -> str:
+        """
+        True if the git repo in the given path has no changes
+
+        :param p: path in a git repository
+        :return: True if there are no changes, False otherwise
+        """
+        pass
+
+    @abc.abstractmethod
     def find_executable_in_program_directories(self, program_name: str, script: "SessionScript") -> Optional[path]:
         """
         Find an executable in the system. We will look only in the places where the operating system usually store the

@@ -3,6 +3,8 @@ import itertools
 import math
 import os
 
+import typing
+
 from pmake import version
 
 STANDARD_MODULES = [
@@ -10,6 +12,7 @@ STANDARD_MODULES = [
     ("datetime", datetime),
     ("itertools", itertools),
     ("os", os),
+    ("typing", typing)
 ]
 
 STANDARD_VARIABLES = [

@@ -14,6 +14,24 @@ class LinuxOSSystem(IOSSystem):
     def __init__(self, model: "PMakeModel.PMakeMode"):
         super().__init__(model)
 
+    def get_git_commit(self, p: path) -> str:
+        result, stdout, stderr = self.execute_command(
+            commands=[["git", "rev-parse", "HEAD"]],
+            show_output_on_screen=False,
+            capture_stdout=True,
+            cwd=p,
+        )
+        return stdout
+
+    def get_git_branch(self, p: path) -> str:
+        result, stdout, stderr = self.execute_command(
+            commands=[["git", "branch", "--show-current"]],
+            show_output_on_screen=False,
+            capture_stdout=True,
+            cwd=p,
+        )
+        return stdout
+
     def get_program_path(self) -> Iterable[path]:
         return os.environ["PATH"].split(os.pathsep)
 

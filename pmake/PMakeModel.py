@@ -99,7 +99,6 @@ class PMakeModel(abc.ABC):
         This list acts as a stack
         """
         self._eval_globals: Optional[Dict[str, Any]] = None
-        self._eval_locals: Optional[Dict[str, Any]] = None
 
         self.session_script: "SessionScript" = None
         if os.name == "nt":
@@ -183,11 +182,6 @@ class PMakeModel(abc.ABC):
 
         return result
 
-    def _get_eval_locals(self) -> Dict[str, Any]:
-        return {
-
-        }
-
     def manage_pmakefile(self):
         """
         Main function used to programmatically call the application
@@ -243,8 +237,6 @@ class PMakeModel(abc.ABC):
             string = textwrap.dedent(string)
             logging.debug("input string:")
             logging.debug(string)
-            if self._eval_locals is None:
-                self._eval_locals = self._get_eval_locals()
             if self._eval_globals is None:
                 self._eval_globals = self._get_eval_global()
             if self.pmake_cache is None:
@@ -252,7 +244,7 @@ class PMakeModel(abc.ABC):
             exec(
                 string,
                 self._eval_globals,
-                self._eval_locals
+                self._eval_globals
             )
         except Exception as e:
             print(f"{colorama.Fore.RED}Exception occured:{colorama.Style.RESET_ALL}")
