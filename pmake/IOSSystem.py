@@ -43,7 +43,7 @@ class IOSSystem(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def is_repo_clean(self, p: path) -> str:
+    def is_repo_clean(self, p: path) -> bool:
         """
         True if the git repo in the given path has no changes
 

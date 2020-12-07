@@ -33,14 +33,14 @@ class WindowsOSSystem(IOSSystem):
         )
         return stdout
 
-    def is_repo_clean(self, p: path) -> str:
+    def is_repo_clean(self, p: path) -> bool:
         result, stdout, stderr = self.execute_command(
-            commands=[["git", "branch", "--show-current"]],
+            commands=[["git", "status"]],
             show_output_on_screen=False,
             capture_stdout=True,
             cwd=p,
         )
-        return stdout
+        return "nothing to commit, working tree clean" in stdout
 
     def get_program_path(self) -> Iterable[path]:
         return os.environ["PATH"].split(os.pathsep)
