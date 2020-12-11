@@ -821,7 +821,42 @@ class SessionScript(abc.ABC):
         :return: the commit hash
         """
         p = self.abs_wrt_cwd(*folder)
-        self._platform.get_git_commit(p)
+        return self._platform.get_git_commit(p)
+
+    @show_on_help.add_command('git')
+    def get_git_commit(self, *folder) -> str:
+        """
+        Call from the given directory "git status" in order to retrieve the current commit. If the path is relative, it is relative to the cwd
+
+        :param folder: the folder we need to call "git status" in
+        :return: the commit hash
+        """
+        p = self.abs_wrt_cwd(*folder)
+        return self._platform.get_git_commit(p)
+
+    @show_on_help.add_command('git')
+    def get_git_branch(self, *folder) -> str:
+        """
+        Call from the given directory "git" in order to retrieve the current branch.
+        If the path is relative, it is relative to the cwd
+
+        :param folder: the folder we need to call "git status" in
+        :return: the current branch name
+        """
+        p = self.abs_wrt_cwd(*folder)
+        return self._platform.get_git_branch(p)
+
+    @show_on_help.add_command('git')
+    def is_git_repo_clean(self, *folder) -> bool:
+        """
+        Call from the given directory "git" in order to retrieve if the associated git repo has no changes.
+        If the path is relative, it is relative to the cwd
+
+        :param folder: the folder we need to call "git status" in
+        :return: True if the repo has no changes to be made, false otherwise
+        """
+        p = self.abs_wrt_cwd(*folder)
+        return self._platform.is_repo_clean(p)
 
     @show_on_help.add_command('operating system')
     def get_program_path(self) -> Iterable[path]:
@@ -1697,6 +1732,7 @@ class SessionScript(abc.ABC):
             if k in self._model.variable:
                 logging.warning(f"Ignoring variable \"{k}\" from file {p}, since it alrady exist within the ambient")
                 continue
+            self._log_command(f"Adding variable \"{k}\" to {v}")
             self._model.variable[k] = v
 
     @show_on_help.add_command('paths')
@@ -2212,14 +2248,14 @@ class SessionScript(abc.ABC):
         self._model.execute_string(string)
 
     @show_on_help.add_command('core')
-    def include_file(self, file: path) -> None:
+    def include_file(self, *file: path) -> None:
         """
         Replace the include directive with the content fo the included file. Fails if there is no such path
 
         :param file: the external file to include in the script
         """
 
-        p = self.abs_path(file)
+        p = self.abs_path(*file)
         self._log_command(f"include file content \"{p}\"")
         self._model.execute_file(p)
 
