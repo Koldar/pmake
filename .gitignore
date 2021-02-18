@@ -10,3 +10,6 @@ __pycache__/
 
 *PASSWORD*
 **/pmakeup-cache.json
+
+# file in tests
+tests/temp.txt
