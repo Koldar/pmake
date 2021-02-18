@@ -594,7 +594,7 @@ class SessionScript(abc.ABC):
         """
         system_version = semver.VersionInfo.parse(version.VERSION)
         script_version = semver.VersionInfo.parse(lowerbound)
-        self._log_command(f"Checking if script minimum pmake version {script_version} > {system_version}")
+        self._log_command(f"Checking if script minimum pmake version {script_version} >= {system_version}")
         if script_version > system_version:
             raise PMakeException(f"The script requires at least version {script_version} to be installed. Current version is {system_version}")
 
@@ -1773,7 +1773,46 @@ class SessionScript(abc.ABC):
         :param p: path to consider
         :return: same absolute path, without extension
         """
-        return os.path.splitext(self.abs_wrt_cwd(p))[0]
+        return os.path.splitext(self.abs_wrt_cwd(*p))[0]
+
+    @show_on_help.add_command('paths')
+    def get_basename(self, *p) -> path:
+        """
+        Compute the base name of the path
+
+        /path/to/file.txt.zp.asc -> file.txt.zp.asc
+
+        :param p: path to consider
+        :return: basename
+        """
+        return os.path.basename(self.abs_wrt_cwd(*p))
+
+    @show_on_help.add_command('paths')
+    def get_basename_with_no_extension(self, *p) -> path:
+        """
+        Compute the basename of the path and remove its extension as well
+
+        /path/to/file.txt.zp.asc -> file.txt.zp
+
+        :param p: path to consider
+        :return: basename
+        """
+        return os.path.splitext(self.get_basename(*p))[0]
+
+    @show_on_help.add_command('paths')
+    def change_filename_extension(self, new_extension: str, *p) -> path:
+        """
+        Change the extension of the given path
+
+        new extensions: dat
+        /path/to/file.txt.zp.asc -> /path/to/file.txt.zp.dat
+
+        :param new_extension: extension that will be set
+        :param p: path to chan
+        :return: p, but with the updated extensions
+        """
+        s = self.abs_wrt_cwd(*p)
+        return self.abs_wrt_cwd(os.path.splitext(s)[0] + "." + new_extension)
 
     @show_on_help.add_command('paths')
     def abs_wrt_cwd(self, *paths) -> path:
