@@ -31,7 +31,7 @@ class SessionScript(abc.ABC):
     Contains all the commands available for the user in a PMakeupfile.py file
     """
 
-    def __init__(self, model: "PMakeupModel.PMakeModel"):
+    def __init__(self, model: "PMakeupModel.PMakeupModel"):
         self._model = model
         self._cwd = os.path.abspath(os.curdir)
         self._locals = {}
@@ -59,7 +59,7 @@ class SessionScript(abc.ABC):
         elif self.on_linux():
             self._platform = LinuxOSSystem(model)
         else:
-            raise PMakeException(f"Cannot identify platform!")
+            raise PMakeupException(f"Cannot identify platform!")
 
         # fetches the interesting paths
         self._interesting_paths = self._platform._fetch_interesting_paths(self)
@@ -116,7 +116,7 @@ class SessionScript(abc.ABC):
         """
 
         if not condition():
-            raise AssertionPMakeException(f"pmakeup needs to generate a custom exception: {message}")
+            raise AssertionPMakeupException(f"pmakeup needs to generate a custom exception: {message}")
 
     @show_on_help.add_command('assertions')
     def ensure_has_variable(self, name: str) -> None:
@@ -142,7 +142,7 @@ class SessionScript(abc.ABC):
         m = re.search(regex, b)
         logging.debug(f"checking if \"{filename}\" satisfies \"{regex}\"")
         if m is None:
-            raise PMakeException(f"Cannot find the regex {regex} within file \"{b}\"!")
+            raise PMakeupException(f"Cannot find the regex {regex} within file \"{b}\"!")
         logging.debug(f"yes: \"{m.group(0)}\"")
         return semver.VersionInfo.parse(m.group(0))
 
@@ -159,7 +159,7 @@ class SessionScript(abc.ABC):
         b = os.path.basename(filename)
         m = re.search(regex, b)
         if m is None:
-            raise PMakeException(f"Cannot find the regex {regex} within file \"{b}\"!")
+            raise PMakeupException(f"Cannot find the regex {regex} within file \"{b}\"!")
         result = m.group(0)
         if len(result.split(".")) == 2:
             result += ".0"
@@ -578,7 +578,7 @@ class SessionScript(abc.ABC):
             logging.info(f"Available targets are {', '.join(self._model.available_targets.keys())}")
             for i, target_name in enumerate(self._model.requested_target_names):
                 if target_name not in self._model.available_targets:
-                    raise PMakeException(f"Invalid target {target_name}. Available targets are {', '.join(self._model.available_targets.keys())}")
+                    raise PMakeupException(f"Invalid target {target_name}. Available targets are {', '.join(self._model.available_targets.keys())}")
 
                 target_descriptor = self._model.available_targets[target_name]
                 self._log_command(f"Executing target \"{target_descriptor.name}\"")
@@ -596,7 +596,7 @@ class SessionScript(abc.ABC):
         script_version = semver.VersionInfo.parse(lowerbound)
         self._log_command(f"Checking if script minimum pmakeup version {script_version} >= {system_version}")
         if script_version > system_version:
-            raise PMakeException(f"The script requires at least version {script_version} to be installed. Current version is {system_version}")
+            raise PMakeupException(f"The script requires at least version {script_version} to be installed. Current version is {system_version}")
 
     @show_on_help.add_command('core')
     def get_command_line_string(self) -> str:
@@ -672,7 +672,7 @@ class SessionScript(abc.ABC):
                 column_index = index
                 break
         if column_index is None:
-            raise PMakeException(f"Cannot find column named '{column_name}' in header: {', '.join(header)}")
+            raise PMakeupException(f"Cannot find column named '{column_name}' in header: {', '.join(header)}")
 
         return self.get_column_of_table(table, column_index)
 
@@ -810,7 +810,7 @@ class SessionScript(abc.ABC):
             script=self
         )
         if result is None and fail_if_program_is_not_found:
-            raise PMakeException(f"We could not find the program \"{program_name}\" on the system!")
+            raise PMakeupException(f"We could not find the program \"{program_name}\" on the system!")
         return result
 
     def get_git_commit(self, *folder) -> str:
@@ -1262,7 +1262,7 @@ class SessionScript(abc.ABC):
                 adst
             )
         else:
-            raise InvalidScenarioPMakeException(f"Cannot determine if {asrc} is a file or a directory!")
+            raise InvalidScenarioPMakeupException(f"Cannot determine if {asrc} is a file or a directory!")
 
     @show_on_help.add_command('files')
     def copy_folder_content(self, folder: path, destination: path):
@@ -1860,7 +1860,7 @@ class SessionScript(abc.ABC):
             for subfolder in self.ls_only_directories(p):
                 if not subfolder.startswith(prefix):
                     if error_if_mismatch:
-                        raise PMakeException(f"subfolder \"{subfolder}\" in \"{p}\" does not start with \"{prefix}\"")
+                        raise PMakeupException(f"subfolder \"{subfolder}\" in \"{p}\" does not start with \"{prefix}\"")
                     else:
                         continue
 
@@ -1871,7 +1871,7 @@ class SessionScript(abc.ABC):
                     elif folder_format == "number":
                         folders[int(subfolder_id)] = subfolder
                     else:
-                        raise InvalidScenarioPMakeException(f"invalid folder_format \"{folder_format}\"")
+                        raise InvalidScenarioPMakeupException(f"invalid folder_format \"{folder_format}\"")
                 except Exception as e:
                     if error_if_mismatch:
                         raise e

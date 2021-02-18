@@ -110,7 +110,7 @@ def upload_to_test_pypi():
             #"venv/Scripts/deactivate.bat"
         ])
     else:
-        raise PMakeException()
+        raise PMakeupException()
 
 
 def upload_to_pypi():
@@ -130,7 +130,7 @@ def upload_to_pypi():
             f"twine upload --verbose --username \"{TWINE_PYPI_USER}\" --password \"{TWINE_PYPI_PASSWORD}\" {upload_files}",
         ])
     else:
-        raise PMakeException()
+        raise PMakeupException()
 
 
 declare_file_descriptor(f"""

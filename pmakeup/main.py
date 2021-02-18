@@ -7,10 +7,10 @@ import textwrap
 from typing import Tuple, Iterable, Any, Dict
 
 from pmakeup import version, show_on_help
-from pmakeup.PMakeupModel import PMakeModel
+from pmakeup.PMakeupModel import PMakeupModel
 from pmakeup.SessionScript import SessionScript
 from pmakeup.constants import STANDARD_MODULES, STANDARD_VARIABLES
-from pmakeup.exceptions.PMakeException import AssertionPMakeException, InvalidScenarioPMakeException, PMakeException
+from pmakeup.exceptions.PMakeupException import AssertionPMakeupException, InvalidScenarioPMakeupException, PMakeupException
 
 
 def list_commands() -> Iterable[Tuple[str, str, str]]:
@@ -184,7 +184,7 @@ def main(args=None):
         )
         logging.debug(f"Logging set to {log_level} (DEBUG={logging.DEBUG}, INFO={logging.INFO}, WARNING={logging.WARN}, ERROR={logging.ERROR}, CRITICAL={logging.CRITICAL})")
 
-        model = PMakeModel()
+        model = PMakeupModel()
         model.input_file = os.path.abspath(options.input_file)
         model.input_encoding = options.input_encoding
         model.log_level = options.log_level
@@ -193,11 +193,11 @@ def main(args=None):
         model.requested_target_names = options.targets
         model.should_show_target_help = options.info
         model.manage_pmakefile()
-    except AssertionPMakeException as e:
+    except AssertionPMakeupException as e:
         sys.exit(1)
-    except InvalidScenarioPMakeException as e:
+    except InvalidScenarioPMakeupException as e:
         sys.exit(2)
-    except PMakeException as e:
+    except PMakeupException as e:
         sys.exit(254)
     except Exception as e:
         raise e
