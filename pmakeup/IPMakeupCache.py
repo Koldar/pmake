@@ -2,7 +2,7 @@ import abc
 from typing import Any, Iterable
 
 
-class IPMakeCache(abc.ABC):
+class IPMakeupCache(abc.ABC):
 
     @abc.abstractmethod
     def reset(self):

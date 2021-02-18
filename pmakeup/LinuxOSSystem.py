@@ -3,15 +3,15 @@ import os
 import subprocess
 from typing import Union, List, Tuple, Dict, Any, Optional, Iterable
 
-from pmake.IOSSystem import IOSSystem
-from pmake.InterestingPath import InterestingPath
-from pmake.commons_types import path
-from pmake.exceptions.PMakeException import PMakeException
+from pmakeup.IOSSystem import IOSSystem
+from pmakeup.InterestingPath import InterestingPath
+from pmakeup.commons_types import path
+from pmakeup.exceptions.PMakeupException import PMakeupException
 
 
 class LinuxOSSystem(IOSSystem):
 
-    def __init__(self, model: "PMakeModel.PMakeMode"):
+    def __init__(self, model: "PMakeupModel.PMakeupMode"):
         super().__init__(model)
 
     def get_git_commit(self, p: path) -> str:
@@ -64,7 +64,7 @@ class LinuxOSSystem(IOSSystem):
             actual_env[k] = v
 
         # create tempfile
-        with self.create_temp_directory_with("pmake-command-") as absolute_temp_dir:
+        with self.create_temp_directory_with("pmakeup-command-") as absolute_temp_dir:
             filepath = self.create_temp_file(directory=absolute_temp_dir, file_prefix="cmd_", file_suffix=".bash", executable_for_owner=True)
             with open(filepath, "w") as f:
                 # put the commands in the temp file
@@ -168,7 +168,7 @@ class LinuxOSSystem(IOSSystem):
             )
 
             if check_exit_code and result.returncode != 0:
-                raise PMakeException(f"cwd=\"{cwd}\" command=\"{actual_command}\" exit=\"{result.returncode}\"")
+                raise PMakeupException(f"cwd=\"{cwd}\" command=\"{actual_command}\" exit=\"{result.returncode}\"")
 
             if actual_capture_output:
                 stdout = self._convert_stdout(result.stdout)
@@ -192,7 +192,7 @@ class LinuxOSSystem(IOSSystem):
             check_exit_code=False,
         )
         if exit_code != 0:
-            raise PMakeException(f"Cannot find the environment variable \"{name}\" for user \"{self.get_current_username()}\"")
+            raise PMakeupException(f"Cannot find the environment variable \"{name}\" for user \"{self.get_current_username()}\"")
 
         return stdout.strip()
 

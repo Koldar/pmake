@@ -1,5 +1,5 @@
-from pmake import PMakeModel
-from pmake.SessionScript import SessionScript
+from pmakeup import PMakeupModel
+from pmakeup.SessionScript import SessionScript
 
 
 class LinuxSessionScript(SessionScript):

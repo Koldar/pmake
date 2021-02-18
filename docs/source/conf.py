@@ -13,13 +13,13 @@
 # see https://medium.com/@richdayandnight/a-simple-tutorial-on-how-to-document-your-python-project-using-sphinx-and-rinohtype-177c22a15b5b
 import os
 import sys
-sys.path.insert(0, os.path.abspath('../../pmake'))
+sys.path.insert(0, os.path.abspath('../../pmakeup'))
 sys.setrecursionlimit(1500)
 
 
 # -- Project information -----------------------------------------------------
 
-project = 'pmake'
+project = 'pmakeup'
 copyright = '2020, Massimo Bono'
 author = 'Massimo Bono'
 

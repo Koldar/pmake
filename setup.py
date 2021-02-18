@@ -2,8 +2,8 @@ import os
 from typing import List, Tuple
 
 import setuptools
-from pmake import version
-from pmake.exceptions.PMakeException import InvalidScenarioPMakeException
+from pmakeup import version
+from pmakeup.exceptions.PMakeupException import InvalidScenarioPMakeupException
 
 with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
@@ -13,19 +13,19 @@ def get_data_files() -> List[Tuple[str, List[str]]]:
     if os.name == "nt":
         return [
             # put exe into C:\Python38\Scripts
-            ("Scripts", [os.path.join("scripts", "pmake.exe")])
+            ("Scripts", [os.path.join("scripts", "pmakeup.exe")])
         ]
     elif os.name == "posix":
         return [
             # /usr/local/bin
-            ("bin", [os.path.join("scripts", "pmake")])
+            ("bin", [os.path.join("scripts", "pmakeup")])
         ]
     else:
-        raise InvalidScenarioPMakeException(f"invalid os name {os.name}")
+        raise InvalidScenarioPMakeupException(f"invalid os name {os.name}")
 
 
 setuptools.setup(
-    name="pmake",  # Replace with your own username
+    name="pmakeup",  # Replace with your own username
     version=version.VERSION,
     author="Massimo Bono",
     author_email="massimobono1@gmail.com",
@@ -33,7 +33,7 @@ setuptools.setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     # license=license_value,
-    url="https://github.com/Koldar/pmake.git",
+    url="https://github.com/Koldar/pmakeup.git",
     packages=setuptools.find_packages(),
     classifiers=[
         "Programming Language :: Python :: 3",
@@ -48,10 +48,10 @@ setuptools.setup(
         "networkx",
         "psutil",
     ],
-    data_files=get_data_files(),
+    # data_files=get_data_files(),
     python_requires='>=3.6',
     # add for pyinstaller to work
-    entry_points={"console_scripts": ["pmake=pmake.main:main"]},
+    entry_points={"console_scripts": ["pmakeup=pmakeup.main:main"]},
     # cmdclass={
     #     'generate_executable': generate_executable,
     #     'build': custom_build,

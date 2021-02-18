@@ -4,7 +4,7 @@ import shutil
 import unittest
 from typing import Callable
 
-from pmake.PMakeModel import PMakeModel
+from pmakeup.PMakeupModel import PMakeupModel
 from io import StringIO
 from unittest.mock import patch
 
@@ -32,28 +32,28 @@ class MyTestCase(unittest.TestCase):
             self.assertEqual(fake_err.getvalue().strip(), expected)
 
     def test_onWindows(self):
-        model = PMakeModel()
+        model = PMakeupModel()
         model.input_string = """
         echo(on_windows())
         """
         self.assertStdoutEquals("True" if os.name == "nt" else "False", lambda : model.manage_pmakefile())
 
     def test_onLinux(self):
-        model = PMakeModel()
+        model = PMakeupModel()
         model.input_string = """
         echo(on_windows())
         """
         self.assertStdoutEquals("False" if os.name == "posix" else "True", lambda : model.manage_pmakefile())
 
     def test_echo_01(self):
-        model = PMakeModel()
+        model = PMakeupModel()
         model.input_string = """
         echo("Hello world!")
         """
         self.assertStdoutEquals("Hello world!", lambda : model.manage_pmakefile())
 
     def test_echo_02(self):
-        model = PMakeModel()
+        model = PMakeupModel()
         model.input_string = """
         x = 3
         echo(f"Hello {x}!")
@@ -61,7 +61,7 @@ class MyTestCase(unittest.TestCase):
         self.assertStdoutEquals("Hello 3!", lambda : model.manage_pmakefile())
 
     def test_create_empty_file(self):
-        model = PMakeModel()
+        model = PMakeupModel()
         model.input_string = """
         create_empty_file(f"Hello")
         """
@@ -70,7 +70,7 @@ class MyTestCase(unittest.TestCase):
         os.unlink("Hello")
 
     def test_is_file_exists_01(self):
-        model = PMakeModel()
+        model = PMakeupModel()
         model.input_string = """
                 create_empty_file(f"Hello")
                 echo(is_file_exists("Hello"))
@@ -79,14 +79,14 @@ class MyTestCase(unittest.TestCase):
         os.unlink("Hello")
 
     def test_is_file_exists_02(self):
-        model = PMakeModel()
+        model = PMakeupModel()
         model.input_string = """
                 echo(is_file_exists("Hellosdfgdhfg"))
                 """
         self.assertStdoutEquals("False", lambda : model.manage_pmakefile())
 
     def test_is_file_empty(self):
-        model = PMakeModel()
+        model = PMakeupModel()
         model.input_string = """
             create_empty_file(f"Hello")
             echo(is_file_empty("Hello"))
@@ -95,7 +95,7 @@ class MyTestCase(unittest.TestCase):
         os.unlink("Hello")
 
     def test_write_file(self):
-        model = PMakeModel()
+        model = PMakeupModel()
         model.input_string = """
             write_file(f"Hello", "5")
             echo(read_file_content("Hello"))
@@ -104,7 +104,7 @@ class MyTestCase(unittest.TestCase):
         os.unlink("Hello")
 
     def test_read_lines(self):
-        model = PMakeModel()
+        model = PMakeupModel()
         model.input_string = """
             write_lines(f"Hello", ["5", "6", "7"])
             echo(', '.join(read_lines("Hello")))
@@ -113,7 +113,7 @@ class MyTestCase(unittest.TestCase):
         os.unlink("Hello")
 
     def test_append_string_at_end_of_file(self):
-        model = PMakeModel()
+        model = PMakeupModel()
         model.input_string = """
             remove_file("Hello")
             append_string_at_end_of_file("Hello", 5)
@@ -125,7 +125,7 @@ class MyTestCase(unittest.TestCase):
         os.unlink("Hello")
 
     def test_copy_file(self):
-        model = PMakeModel()
+        model = PMakeupModel()
         model.input_string = """
             write_file("Hello", "test")
             copy_file("Hello", "Hello2")
@@ -136,7 +136,7 @@ class MyTestCase(unittest.TestCase):
         os.unlink("Hello2")
 
     def test_download_url(self):
-        model = PMakeModel()
+        model = PMakeupModel()
         model.input_string = """
             download_url("https://www.google.com", "Hello.html")
             echo(is_file_non_empty("Hello.html"))
@@ -145,7 +145,7 @@ class MyTestCase(unittest.TestCase):
         os.unlink("Hello.html")
 
     def test_remove_tree(self):
-        model = PMakeModel()
+        model = PMakeupModel()
         model.input_string = """
             make_directories("temp/foo/bar")
             make_directories("temp/foo2/bar")
@@ -159,7 +159,7 @@ class MyTestCase(unittest.TestCase):
         self.assertStdoutEquals("False", lambda: model.manage_pmakefile())
 
     def test_remove_files_that_basename(self):
-        model = PMakeModel()
+        model = PMakeupModel()
         model.input_string = """
             make_directories("temp/foo/bar")
             make_directories("temp/foo2/bar")
@@ -174,7 +174,7 @@ class MyTestCase(unittest.TestCase):
         shutil.rmtree("temp", ignore_errors=True)
 
     def test_copy_files_that_basename(self):
-        model = PMakeModel()
+        model = PMakeupModel()
         model.input_string = """
             make_directories("temp/foo/bar")
             make_directories("temp/foo2/bar")
@@ -191,7 +191,7 @@ class MyTestCase(unittest.TestCase):
         shutil.rmtree("temp2", ignore_errors=True)
 
     def test_move_file(self):
-        model = PMakeModel()
+        model = PMakeupModel()
         model.input_string = """
                 create_empty_file("empty.txt")
                 move_file("empty.txt", "foo.txt")
@@ -202,7 +202,7 @@ class MyTestCase(unittest.TestCase):
         os.unlink("foo.txt")
 
     def test_cd(self):
-        model = PMakeModel()
+        model = PMakeupModel()
         model.input_string = """
             create_empty_directory("temp")
             old_pwd = cwd()
@@ -216,7 +216,7 @@ class MyTestCase(unittest.TestCase):
 
     def test_fire_and_forget_windows(self):
         if os.name == "nt":
-            model = PMakeModel()
+            model = PMakeupModel()
             model.input_string = """
                 echo(execute_and_forget("echo hello > temp.txt"))
             """
@@ -224,7 +224,7 @@ class MyTestCase(unittest.TestCase):
 
     def test_admin_fire_and_forget_windows(self):
         if os.name == "nt":
-            model = PMakeModel()
+            model = PMakeupModel()
             model.input_string = """
                 echo(execute_admin_and_forget("echo hello > temp.txt"))
             """
@@ -232,7 +232,7 @@ class MyTestCase(unittest.TestCase):
 
     def test_execute_stdout_on_screen_windows(self):
         if os.name == "nt":
-            model = PMakeModel()
+            model = PMakeupModel()
             model.input_string = """
                 execute_stdout_on_screen("echo hello > temp.txt")
                 echo(read_file_content("temp.txt"))
@@ -242,7 +242,7 @@ class MyTestCase(unittest.TestCase):
 
     def test_admin_execute_stdout_on_screen_windows(self):
         if os.name == "nt":
-            model = PMakeModel()
+            model = PMakeupModel()
             model.input_string = """
                temp_file = get_temp_filepath()
                execute_admin_stdout_on_screen(f"echo hello > {temp_file}")
@@ -253,7 +253,7 @@ class MyTestCase(unittest.TestCase):
 
     def test_execute_return_stdout_windows(self):
         if os.name == "nt":
-            model = PMakeModel()
+            model = PMakeupModel()
             model.input_string = """
                 exit_core, v, _ = execute_return_stdout("echo hello")
                 echo(v)
@@ -262,7 +262,7 @@ class MyTestCase(unittest.TestCase):
 
     def test_admin_execute_return_stdout_windows(self):
         if os.name == "nt":
-            model = PMakeModel()
+            model = PMakeupModel()
             model.input_string = """
                 exit_code, v, _ = execute_admin_return_stdout("echo hello")
                 echo(v)
@@ -270,14 +270,14 @@ class MyTestCase(unittest.TestCase):
             self.assertStdoutEquals("hello", lambda: model.manage_pmakefile())
 
     def test_whoami(self):
-        model = PMakeModel()
+        model = PMakeupModel()
         model.input_string = """
             echo(current_user())
         """
         self.assertStdout(lambda stdout: len(stdout) > 0, lambda: model.manage_pmakefile())
 
     def test_copy_folder_content(self):
-        model = PMakeModel()
+        model = PMakeupModel()
         model.variable = {"foo": "bar"}
         model.input_string = """
             create_empty_directory("temp_copy")
@@ -303,7 +303,7 @@ class MyTestCase(unittest.TestCase):
         shutil.rmtree("temp2_copy")
 
     def test_variables_01(self):
-        model = PMakeModel()
+        model = PMakeupModel()
         model.variable = {"foo": "bar"}
         model.input_string = """
             echo(variables['foo'])
@@ -311,7 +311,7 @@ class MyTestCase(unittest.TestCase):
         self.assertStdoutEquals("bar", lambda: model.manage_pmakefile())
 
     def test_variables_02(self):
-        model = PMakeModel()
+        model = PMakeupModel()
         model.variable = {"foo": "bar"}
         model.input_string = """
             echo(variables.foo)
@@ -319,7 +319,7 @@ class MyTestCase(unittest.TestCase):
         self.assertStdoutEquals("bar", lambda: model.manage_pmakefile())
 
     def test_include(self):
-        model = PMakeModel()
+        model = PMakeupModel()
         model.input_string = """
             write_file("test-temp.py", "echo(\\"Hello\\")")
             include_file("test-temp.py")
@@ -328,14 +328,14 @@ class MyTestCase(unittest.TestCase):
         self.assertStdoutEquals("Hello", lambda: model.manage_pmakefile())
 
     def test_commands(self):
-        model = PMakeModel()
+        model = PMakeupModel()
         model.input_string = """
             commands.echo("Hello world")
         """
         self.assertStdoutEquals("Hello world", lambda: model.manage_pmakefile())
 
     def test_execute_and_forget(self):
-        model = PMakeModel()
+        model = PMakeupModel()
         model.input_string = """
             echo(execute_and_forget("echo hello"))
         """
@@ -343,7 +343,7 @@ class MyTestCase(unittest.TestCase):
 
     def test_execute_stdout_on_screen(self):
         if os.name == "posix":
-            model = PMakeModel()
+            model = PMakeupModel()
             model.input_string = """
                 execute_stdout_on_screen(["echo hello > temp.txt"], cwd=cwd())
                 echo(read_file_content("/tmp/temp.txt"))
@@ -352,7 +352,7 @@ class MyTestCase(unittest.TestCase):
             self.assertStdoutEquals("hello", lambda: model.manage_pmakefile())
 
     def test_execute_return_stdout(self):
-        model = PMakeModel()
+        model = PMakeupModel()
         model.input_string = """
             echo(execute_return_stdout("echo hello")[1])
         """
@@ -360,7 +360,7 @@ class MyTestCase(unittest.TestCase):
 
     def test_admin_execute_and_forget(self):
         if os.name == "posix":
-            model = PMakeModel()
+            model = PMakeupModel()
             model.input_string = """
                 password = read_file_content("../PASSWORD")
                 echo(execute_admin_with_password_fire_and_forget(["echo hello"], password))
@@ -369,7 +369,7 @@ class MyTestCase(unittest.TestCase):
 
     def test_admin_execute_stdout_on_screen(self):
         if os.name == "posix":
-            model = PMakeModel()
+            model = PMakeupModel()
             model.input_string = """
                 password = read_file_content("../PASSWORD")
                 execute_admin_with_password_stdout_on_screen(commands=["echo hello > /tmp/temp.txt"], password=password)
@@ -380,7 +380,7 @@ class MyTestCase(unittest.TestCase):
 
     def test_execute_admin_with_password_return_stdout(self):
         if os.name == "posix":
-            model = PMakeModel()
+            model = PMakeupModel()
             model.input_string = """
                 password = read_file_content("../PASSWORD")
                 echo(execute_admin_with_password_return_stdout(["echo hello"], password)[1])
@@ -389,14 +389,14 @@ class MyTestCase(unittest.TestCase):
 
     def test_has_processes(self):
         if os.name == "nt":
-            model = PMakeModel()
+            model = PMakeupModel()
             model.input_string = """
                 echo(is_process_running("winlogon.exe"))
                 echo(is_process_running("asdrubalini.exe"))
             """
             self.assertStdoutEquals("True\nFalse", lambda: model.manage_pmakefile())
         elif os.name == "posix":
-            model = PMakeModel()
+            model = PMakeupModel()
             model.input_string = """
                 echo(is_process_running("winlogon.exe"))
                 echo(is_process_running("asdrubalini.exe"))
@@ -405,7 +405,7 @@ class MyTestCase(unittest.TestCase):
 
     def kill_process(self):
         if os.name == "nt":
-            model = PMakeModel()
+            model = PMakeupModel()
             model.input_string = """
                 echo(is_process_running("iexplorer.exe"))
                 echo(execute_and_forget("iexplorer.exe"))
@@ -415,7 +415,7 @@ class MyTestCase(unittest.TestCase):
             self.assertStdoutEquals("False\nTrue", lambda: model.manage_pmakefile())
 
     def test_cache_usage(self):
-        model = PMakeModel()
+        model = PMakeupModel()
         model.input_string = """
             if has_variable_in_cache("foo"):
                 echo(get_variable_in_cache("foo"))
@@ -426,10 +426,10 @@ class MyTestCase(unittest.TestCase):
         self.assertStdoutEquals("not found", lambda: model.manage_pmakefile())
         self.assertStdoutEquals("bar", lambda: model.manage_pmakefile())
 
-        os.unlink("pmake-cache.json")
+        os.unlink("pmakeup-cache.json")
 
     def test_get_latest_version_in_folder_01(self):
-        model = PMakeModel()
+        model = PMakeupModel()
         model.input_string = """
             make_directories("temp")
             oldcwd = cd("temp")
@@ -447,7 +447,7 @@ class MyTestCase(unittest.TestCase):
         self.assertStdoutEquals("2.0.1\n1\nawesome-2.0.1", lambda: model.manage_pmakefile())
 
     def test_get_latest_version_in_folder_02(self):
-        model = PMakeModel()
+        model = PMakeupModel()
         model.input_string = """
             make_directories("temp")
             oldcwd = cd("temp")
@@ -469,7 +469,7 @@ class MyTestCase(unittest.TestCase):
 
     def test_is_program_installed_linux(self):
         if os.name == "posix":
-            model = PMakeModel()
+            model = PMakeupModel()
             model.input_string = """
                 echo(is_program_installed("echo"))
                 echo(is_program_installed("opasdfhiovsefuhawzxcvsdvbjkfawfhsd"))
@@ -478,7 +478,7 @@ class MyTestCase(unittest.TestCase):
 
     def test_is_program_installed_windows(self):
         if os.name == "nt":
-            model = PMakeModel()
+            model = PMakeupModel()
             model.input_string = """
                 echo(is_program_installed("cmd.exe"))
                 echo(is_program_installed("opasdfhiovsefuhawzxcvsdvbjkfawfhsd"))
@@ -487,14 +487,14 @@ class MyTestCase(unittest.TestCase):
 
     def test_get_program_path(self):
         if os.name == "nt":
-            model = PMakeModel()
+            model = PMakeupModel()
             model.input_string = """
                 echo("C:\\Windows" in get_program_path())
                 echo(len(get_program_path()) > 5)
             """
             self.assertStdoutEquals("True\nTrue", lambda: model.manage_pmakefile())
         elif os.name == "posix":
-            model = PMakeModel()
+            model = PMakeupModel()
             model.input_string = """
                             echo("/usr/local/bin" in get_program_path())
                             echo(len(get_program_path()) > 5)
@@ -503,7 +503,7 @@ class MyTestCase(unittest.TestCase):
 
     def test_find_executable_in_program_directories(self):
         if os.name == "nt":
-            model = PMakeModel()
+            model = PMakeupModel()
             model.input_string = """
                 echo(find_executable_in_program_directories("hsdghsdklghdf"))
                 echo(find_executable_in_program_directories("iexplore.exe"))
@@ -511,7 +511,7 @@ class MyTestCase(unittest.TestCase):
             self.assertStdoutEquals("None\nC:\\Program Files\\Internet Explorer\\iexplore.exe", lambda: model.manage_pmakefile())
 
     def test_replace_regex_in_string(self):
-        model = PMakeModel()
+        model = PMakeupModel()
         model.input_string = r"""
             echo(replace_regex_in_string(
                 string="3435spring9437",
@@ -522,7 +522,7 @@ class MyTestCase(unittest.TestCase):
         self.assertStdoutEquals("3435springaa9437", lambda: model.manage_pmakefile())
 
     def replace_substring_in_string(self):
-        model = PMakeModel()
+        model = PMakeupModel()
         model.input_string = """
             echo(replace_substring_in_string(
                 string="3435spring9437",
@@ -533,7 +533,7 @@ class MyTestCase(unittest.TestCase):
         self.assertStdoutEquals("3435sparinga9437", lambda: model.manage_pmakefile())
 
     def test_convert_table_01(self):
-        model = PMakeModel()
+        model = PMakeupModel()
 
         table = "" \
             + "NAME    SURNAME" + "\\n" \
@@ -555,7 +555,7 @@ class MyTestCase(unittest.TestCase):
         self.assertStdoutEquals("NAME\nSURNAME\nMario\nRossi\nPaolo\nBianchi\nCarlo\nVerdi", lambda: model.manage_pmakefile())
 
     def test_convert_table_02(self):
-        model = PMakeModel()
+        model = PMakeupModel()
 
         table = "" \
             + "NAME    SURNAME" + "\\n" \
@@ -577,7 +577,7 @@ class MyTestCase(unittest.TestCase):
         self.assertStdoutEquals("NAME\nSURNAME\nMa io\nRossi\nPaolo\nBian hi\nC rlo\nVerdi", lambda: model.manage_pmakefile())
 
     def test_convert_table_03(self):
-        model = PMakeModel()
+        model = PMakeupModel()
 
         table = "" \
             + "NAME    SURNAME" + "\\n" \
@@ -599,7 +599,7 @@ class MyTestCase(unittest.TestCase):
         self.assertStdoutEquals("NAME\nSURNAME\nMa ioli\nRossi\nPaolo\nBian hi\nC rlo\nVerdi", lambda: model.manage_pmakefile())
 
     def test_convert_table_04(self):
-        model = PMakeModel()
+        model = PMakeupModel()
 
         table = "" \
             + 'Port         Type              Board Name  FQBN            Core       ' + "\\n" \
@@ -623,7 +623,7 @@ class MyTestCase(unittest.TestCase):
 
     def test_read_registry_key(self):
         if os.name == 'nt':
-            model = PMakeModel()
+            model = PMakeupModel()
             model.input_string = """
                         echo(read_registry_local_machine_value(
                             key=r"SOFTWARE\Microsoft\Clipboard",
@@ -634,7 +634,7 @@ class MyTestCase(unittest.TestCase):
 
     def test_read_registry_keys(self):
         if os.name == 'nt':
-            model = PMakeModel()
+            model = PMakeupModel()
             model.input_string = """
                         echo(len(list(get_registry_local_machine_values(
                             key=r"SOFTWARE\Microsoft\Clipboard",
@@ -644,7 +644,7 @@ class MyTestCase(unittest.TestCase):
 
     def test_has_registry_value(self):
         if os.name == 'nt':
-            model = PMakeModel()
+            model = PMakeupModel()
             model.input_string = """
                         echo(has_registry_local_machine_value(
                             key=r"SOFTWARE\Microsoft\Clipboard",
@@ -659,18 +659,18 @@ class MyTestCase(unittest.TestCase):
 
     def test_default_has_registry_local_machine_value(self):
         if os.name == 'nt':
-            model = PMakeModel()
+            model = PMakeupModel()
             model.input_string = """
                 echo(has_registry_local_machine_value(
                     key=r"SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\IEXPLORE.EXE",
                     item=""
                 ))
             """
-            self.assertStdoutEquals("sfdg", lambda: model.manage_pmakefile())
+            self.assertStdoutEquals("True", lambda: model.manage_pmakefile())
 
     def test_default_internet_explorer(self):
         if os.name == 'nt':
-            model = PMakeModel()
+            model = PMakeupModel()
             model.input_string = """
                 echo(get_latest_path_with_architecture("internet-explorer", 64))
             """

@@ -9,14 +9,14 @@ from typing import Any, Dict, Optional, List
 
 import colorama
 
-from pmake.IPMakeCache import IPMakeCache
-from pmake.JsonPMakeCache import JsonPMakeCache
-from pmake.TargetDescriptor import TargetDescriptor
-from pmake.SessionScript import SessionScript
-from pmake.commons_types import path
-from pmake.constants import STANDARD_MODULES, STANDARD_VARIABLES
-from pmake.LinuxSessionScript import LinuxSessionScript
-from pmake.WindowsSessionScript import WindowsSessionScript
+from pmakeup.IPMakeupCache import IPMakeupCache
+from pmakeup.JsonPMakeupCache import JsonPMakeupCache
+from pmakeup.TargetDescriptor import TargetDescriptor
+from pmakeup.SessionScript import SessionScript
+from pmakeup.commons_types import path
+from pmakeup.constants import STANDARD_MODULES, STANDARD_VARIABLES
+from pmakeup.LinuxSessionScript import LinuxSessionScript
+from pmakeup.WindowsSessionScript import WindowsSessionScript
 
 
 class AttrDict(object):
@@ -37,15 +37,15 @@ class AttrDict(object):
         return item in self
 
 
-class PMakeModel(abc.ABC):
+class PMakeupModel(abc.ABC):
     """
-    The application model of pmake progam
+    The application model of pmakeup progam
     """
 
     def __init__(self):
         self.input_file: Optional[str] = None
         """
-        File representing the "Makefile" of pmake
+        File representing the "Makefile" of pmakeup
         """
         self.input_string: Optional[str] = None
         """
@@ -65,7 +65,7 @@ class PMakeModel(abc.ABC):
         """
         self.info_description: str = ""
         """
-        Description to show whenever the user wants to know what a given Pmakefile does
+        Description to show whenever the user wants to know what a given Pmakeupfile does
         """
         self.target_network: nx.DiGraph = nx.DiGraph(name="targets")
         """
@@ -73,7 +73,7 @@ class PMakeModel(abc.ABC):
         """
         self.available_targets: Dict[str, TargetDescriptor] = {}
         """
-        List of available targets the given pmakefile provides
+        List of available targets the given pmakeupfile provides
         """
         self.requested_target_names: List[str] = []
         """
@@ -88,7 +88,7 @@ class PMakeModel(abc.ABC):
         """
         current working directory when pamke was executed
         """
-        self.pmake_cache: Optional["IPMakeCache"] = None
+        self.pmake_cache: Optional["IPMakeupCache"] = None
         """
         Cache containing data that the user wants t persist between different pmake runs
         """
@@ -240,7 +240,7 @@ class PMakeModel(abc.ABC):
             if self._eval_globals is None:
                 self._eval_globals = self._get_eval_global()
             if self.pmake_cache is None:
-                self.pmake_cache = JsonPMakeCache("pmake-cache.json")
+                self.pmake_cache = JsonPMakeupCache("pmakeup-cache.json")
             exec(
                 string,
                 self._eval_globals,
@@ -251,7 +251,7 @@ class PMakeModel(abc.ABC):
             trace = traceback.format_exc()
             # Example of "trace"
             # Traceback (most recent call last):
-            #   File "pmake/PMakeModel.py", line 197, in execute_string
+            #   File "pmake/PMakeupModel.py", line 197, in execute_string
             #   File "<string>", line 43, in <module>
             #   File "<string>", line 43, in <lambda>
             # NameError: name 'ARDUINO_LIBRARY_LOCATION' is not defined

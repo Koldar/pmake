@@ -2,11 +2,11 @@ import json
 import os
 from typing import Any, Dict, Iterable
 
-from pmake.IPMakeCache import IPMakeCache
-from pmake.commons_types import path
+from pmakeup.IPMakeupCache import IPMakeupCache
+from pmakeup.commons_types import path
 
 
-class JsonPMakeCache(IPMakeCache):
+class JsonPMakeupCache(IPMakeupCache):
 
     def __init__(self, file_path: path):
         self.file_path: path = file_path

@@ -9,8 +9,8 @@ from typing import Union, List, Tuple, Dict, Any, Iterable, Optional
 import psutil as psutil
 import semver
 
-from pmake.InterestingPath import InterestingPath
-from pmake.commons_types import path
+from pmakeup.InterestingPath import InterestingPath
+from pmakeup.commons_types import path
 
 
 class IOSSystem(abc.ABC):

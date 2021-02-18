@@ -16,22 +16,22 @@ import semver
 
 import configparser
 
-from pmake import version
-from pmake import PMakeModel
-from pmake.LinuxOSSystem import LinuxOSSystem
-from pmake.TargetDescriptor import TargetDescriptor
-from pmake.WindowsOSSystem import WindowsOSSystem
-from pmake.commons_types import path
-from pmake.exceptions.PMakeException import AssertionPMakeException, PMakeException, InvalidScenarioPMakeException
-from pmake import show_on_help
+from pmakeup import version
+from pmakeup import PMakeupModel
+from pmakeup.LinuxOSSystem import LinuxOSSystem
+from pmakeup.TargetDescriptor import TargetDescriptor
+from pmakeup.WindowsOSSystem import WindowsOSSystem
+from pmakeup.commons_types import path
+from pmakeup.exceptions.PMakeupException import AssertionPMakeupException, PMakeupException, InvalidScenarioPMakeupException
+from pmakeup import show_on_help
 
 
 class SessionScript(abc.ABC):
     """
-    Contains all the commands available for the user in a PMakefile.py file
+    Contains all the commands available for the user in a PMakeupfile.py file
     """
 
-    def __init__(self, model: "PMakeModel.PMakeModel"):
+    def __init__(self, model: "PMakeupModel.PMakeModel"):
         self._model = model
         self._cwd = os.path.abspath(os.curdir)
         self._locals = {}
@@ -116,7 +116,7 @@ class SessionScript(abc.ABC):
         """
 
         if not condition():
-            raise AssertionPMakeException(f"pmake needs to generate a custom exception: {message}")
+            raise AssertionPMakeException(f"pmakeup needs to generate a custom exception: {message}")
 
     @show_on_help.add_command('assertions')
     def ensure_has_variable(self, name: str) -> None:
@@ -262,17 +262,17 @@ class SessionScript(abc.ABC):
     @show_on_help.add_command('cache')
     def clear_cache(self):
         """
-        Clear the cache of pmake
+        Clear the cache of pmakeup
         """
         self._model.pmake_cache.reset()
 
     @show_on_help.add_command('cache')
     def set_variable_in_cache(self, name: str, value: Any, overwrite_if_exists: bool = True):
         """
-        Set a variable inside the program cache. Setting variable in cache allows pmake to
-        store information between several runs of pmake.
+        Set a variable inside the program cache. Setting variable in cache allows pmakeup to
+        store information between several runs of pmakeup.
 
-        How pmake stores the information is implementation dependent and it should not be relied upon
+        How pmakeup stores the information is implementation dependent and it should not be relied upon
 
         :param name: name of the variable to store
         :param value: object to store
@@ -289,7 +289,7 @@ class SessionScript(abc.ABC):
     @show_on_help.add_command('cache')
     def has_variable_in_cache(self, name: str) -> bool:
         """
-        Check if a variable is in the pmake cache
+        Check if a variable is in the pmakeup cache
 
         :param name: name of the variable to check
         :return: true if a varaible with such a name is present in the cache, false otherwise
@@ -367,7 +367,7 @@ class SessionScript(abc.ABC):
     @show_on_help.add_command('paths')
     def get_starting_cwd(self) -> path:
         """
-        :return: absolute path of where you have called pmake
+        :return: absolute path of where you have called pmakeup
         """
         return self._model.starting_cwd
 
@@ -377,7 +377,7 @@ class SessionScript(abc.ABC):
         Compute path relative to the starting cwd
 
         :param folder: other sections of the path
-        :return: path relative to the absolute path of where you have called pmake
+        :return: path relative to the absolute path of where you have called pmakeup
         """
         return os.path.abspath(os.path.join(self._model.starting_cwd, *folder))
 
@@ -500,7 +500,7 @@ class SessionScript(abc.ABC):
         :param target_name: name of the target to declare
         :param description: a description that is shown when listing all available targets
         :param requires: list fo target names this target requires in order to be executed. They must already
-            exist in pmake environment
+            exist in pmakeup environment
         :param f: the function to perform when the user requests this target
         """
         if requires is None:
@@ -521,7 +521,7 @@ class SessionScript(abc.ABC):
     @show_on_help.add_command('targets')
     def get_target_descriptor(self, target_name: str) -> TargetDescriptor:
         """
-        Get a descriptor for a given pmake target. Raises exception if target is not declared
+        Get a descriptor for a given pmakeup target. Raises exception if target is not declared
 
         :param target_name: name of the target
         :return: descriptor for the target
@@ -587,14 +587,14 @@ class SessionScript(abc.ABC):
     @show_on_help.add_command('core')
     def require_pmake_version(self, lowerbound: str) -> None:
         """
-        Check if the current version of pmake is greater or equal than the given one.
-        If the current version of pmake is not compliant with this constraint, an error is generated
+        Check if the current version of pmakeup is greater or equal than the given one.
+        If the current version of pmakeup is not compliant with this constraint, an error is generated
 
         :param lowerbound: the minimum version this script is compliant with
         """
         system_version = semver.VersionInfo.parse(version.VERSION)
         script_version = semver.VersionInfo.parse(lowerbound)
-        self._log_command(f"Checking if script minimum pmake version {script_version} >= {system_version}")
+        self._log_command(f"Checking if script minimum pmakeup version {script_version} >= {system_version}")
         if script_version > system_version:
             raise PMakeException(f"The script requires at least version {script_version} to be installed. Current version is {system_version}")
 
@@ -1975,7 +1975,7 @@ class SessionScript(abc.ABC):
     def execute_stdout_on_screen(self, commands: Union[str, List[Union[str, List[str]]]], cwd: path = None,
                                  env: Dict[str, Any] = None, check_exit_code: bool = True, timeout: int = None) -> int:
         """
-        Execute a command. We won't capture the stdout but we will show it on pmake console
+        Execute a command. We won't capture the stdout but we will show it on pmakeup console
 
         :param commands: the command to execute. They will be exeucte in the same context
         :param cwd: current working directory where the command is executed
@@ -2011,7 +2011,7 @@ class SessionScript(abc.ABC):
                               env: Dict[str, Any] = None,
                               check_exit_code: bool = True, timeout: int = None) -> Tuple[int, str, str]:
         """
-        Execute a command. We won't show the stdout on pmake console but we will capture it and returned it
+        Execute a command. We won't show the stdout on pmakeup console but we will capture it and returned it
 
         :param commands: the command to execute. They will be exeucte in the same context
         :param cwd: current working directory where the command is executed
@@ -2083,7 +2083,7 @@ class SessionScript(abc.ABC):
                                        env: Dict[str, Any] = None,
                                        check_exit_code: bool = True, timeout: int = None) -> int:
         """
-        Execute a command as an admin. We won't capture the stdout but we will show it on pmake console
+        Execute a command as an admin. We won't capture the stdout but we will show it on pmakeup console
 
         :param commands: the command to execute. They will be execute in the same context
         :param cwd: current working directory where the command is executed
@@ -2120,7 +2120,7 @@ class SessionScript(abc.ABC):
                                     env: Dict[str, Any] = None,
                                     check_exit_code: bool = True, timeout: int = None) -> Tuple[int, str, str]:
         """
-        Execute a command as an admin. We won't show the stdout on pmake console but we will capture it and returned it
+        Execute a command as an admin. We won't show the stdout on pmakeup console but we will capture it and returned it
 
         :param commands: the command to execute. They will be execute in the same context
         :param cwd: current working directory where the command is executed
@@ -2198,7 +2198,7 @@ class SessionScript(abc.ABC):
     @show_on_help.add_command('operating system')
     def execute_admin_with_password_stdout_on_screen(self, commands: Union[str, List[Union[str, List[str]]]], password: str, cwd: path = None, env: Dict[str, Any] = None, check_exit_code: bool = True, timeout: int = None) -> int:
         """
-        Execute a command as an admin. We won't capture the stdout but we will show it on pmake console
+        Execute a command as an admin. We won't capture the stdout but we will show it on pmakeup console
 
         :param commands: the command to execute. They will be execute in the same context
         :param password: **[UNSAFE!!!!]** If you **really** need, you might want to run a command as an admin
@@ -2240,7 +2240,7 @@ class SessionScript(abc.ABC):
                                                   check_exit_code: bool = True,
                                                   timeout: int = None) -> Tuple[int, str, str]:
         """
-        Execute a command as an admin. We won't show the stdout on pmake console but we will capture it and returned it
+        Execute a command as an admin. We won't show the stdout on pmakeup console but we will capture it and returned it
 
         :param commands: the command to execute. They will be execute in the same context
         :param password: **[UNSAFE!!!!]** If you **really** need, you might want to run a command as an admin

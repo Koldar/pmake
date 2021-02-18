@@ -9,4 +9,4 @@ __pycache__/
 *.spec
 
 *PASSWORD*
-**/pmake-cache.json
+**/pmakeup-cache.json

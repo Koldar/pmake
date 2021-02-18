@@ -6,13 +6,13 @@ import os
 import winreg
 from typing import Any, Tuple, Iterable
 
-from pmake import show_on_help
-from pmake.SessionScript import SessionScript, path
+from pmakeup import show_on_help
+from pmakeup.SessionScript import SessionScript, path
 
 
 class WindowsSessionScript(SessionScript):
 
-    def __init__(self, model: "PMakeModel.PMakeMode"):
+    def __init__(self, model: "PMakeupModel.PMakeupMode"):
         super().__init__(model)
 
     @show_on_help.add_command('windows')

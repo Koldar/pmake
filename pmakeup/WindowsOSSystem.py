@@ -7,10 +7,10 @@ from typing import Union, List, Tuple, Dict, Any, Optional, Iterable
 
 import semver
 
-from pmake.IOSSystem import IOSSystem
-from pmake.InterestingPath import InterestingPath
-from pmake.commons_types import path
-from pmake.exceptions.PMakeException import PMakeException
+from pmakeup.IOSSystem import IOSSystem
+from pmakeup.InterestingPath import InterestingPath
+from pmakeup.commons_types import path
+from pmakeup.exceptions.PMakeupException import PMakeupException
 
 
 class WindowsOSSystem(IOSSystem):
@@ -75,7 +75,7 @@ class WindowsOSSystem(IOSSystem):
                 actual_env[k] = v
 
         # create tempfile
-        with self.create_temp_directory_with("pmake-command-") as absolute_temp_dir:
+        with self.create_temp_directory_with("pmakeup-command-") as absolute_temp_dir:
             try:
                 filepath = self.create_temp_file(directory=absolute_temp_dir, file_prefix="cmd_", file_suffix=".cmd",
                                                  executable_for_owner=True)
@@ -177,7 +177,7 @@ class WindowsOSSystem(IOSSystem):
                 )
 
                 if check_exit_code and result.returncode != 0:
-                    raise PMakeException(f"cwd=\"{cwd}\" command=\"{actual_command}\" exit=\"{result.returncode}\"")
+                    raise PMakeupException(f"cwd=\"{cwd}\" command=\"{actual_command}\" exit=\"{result.returncode}\"")
 
                 if actual_capture_output:
                     stdout = self._convert_stdout(result.stdout)
@@ -206,7 +206,7 @@ class WindowsOSSystem(IOSSystem):
 
         stdout = stdout.strip()
         if len(stdout) == 0:
-            raise PMakeException(f"Cannot find the environment variable \"{name}\" for user \"{self.get_current_username()}\"")
+            raise PMakeupException(f"Cannot find the environment variable \"{name}\" for user \"{self.get_current_username()}\"")
 
         return stdout
 
@@ -289,7 +289,7 @@ class WindowsOSSystem(IOSSystem):
         else:
             raise TypeError(f"invalid command type {type(command)}")
 
-        with tempfile.TemporaryDirectory(prefix="pmake_") as temp_dir:
+        with tempfile.TemporaryDirectory(prefix="pmakeup_") as temp_dir:
             with tempfile.NamedTemporaryFile(delete=False, prefix="cmd_", suffix=".bat", dir=temp_dir, mode="w") as temp_bat:
                 temp_bat.write(f"{command_name} {args}")
                 if capture_stdout:

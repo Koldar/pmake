@@ -5,7 +5,7 @@ import os
 
 import typing
 
-from pmake import version
+from pmakeup import version
 
 STANDARD_MODULES = [
     ("math", math),

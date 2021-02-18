@@ -6,11 +6,11 @@ import sys
 import textwrap
 from typing import Tuple, Iterable, Any, Dict
 
-from pmake import version, show_on_help
-from pmake.PMakeModel import PMakeModel
-from pmake.SessionScript import SessionScript
-from pmake.constants import STANDARD_MODULES, STANDARD_VARIABLES
-from pmake.exceptions.PMakeException import AssertionPMakeException, InvalidScenarioPMakeException, PMakeException
+from pmakeup import version, show_on_help
+from pmakeup.PMakeupModel import PMakeModel
+from pmakeup.SessionScript import SessionScript
+from pmakeup.constants import STANDARD_MODULES, STANDARD_VARIABLES
+from pmakeup.exceptions.PMakeException import AssertionPMakeException, InvalidScenarioPMakeException, PMakeException
 
 
 def list_commands() -> Iterable[Tuple[str, str, str]]:
@@ -68,7 +68,7 @@ def parse_options(args):
     convenience_commands = '\n'.join(convenience_commands)
 
     parser = argparse.ArgumentParser(
-        prog="pmake",
+        prog="pmakeup",
         description=f"""
         A program like make, but platform independent. Requires python3
         
@@ -80,9 +80,9 @@ def parse_options(args):
 
         If you receive on Pmakefile, you can obtain information about how to use it by performing:
 
-        pmake --info
+        pmakeup --info
 
-        The above command implicitly uses the file "PMakefile.py", but if you inject another file we will read information
+        The above command implicitly uses the file "PMakeupfile.py", but if you inject another file we will read information
         from that file. The above command works only if the PMakefile uses targets. If it does not use it, this mechanism
         will not work.
         
@@ -117,14 +117,14 @@ def parse_options(args):
          - 0: no error detected
          - 1: an assertion failed
          - 2: a variable allowing to discern between mutually exclusive scenarios is invalid
-         - 254: a generic error that is explicitly thrown by pmake
-         - 255: a serious error while executing pmake.
+         - 254: a generic error that is explicitly thrown by pmakeup
+         - 255: a serious error while executing pmakeup.
         
         """,
         epilog=f"Massimo Bono 2020, Version {version.VERSION}",
         formatter_class=argparse.RawTextHelpFormatter,
     )
-    parser.add_argument("-f", "--input_file", type=str, required=False, default="PMakefile.py", help="""
+    parser.add_argument("-f", "--input_file", type=str, required=False, default="PMakeupfile.py", help="""
     The file in input. If not present it will be "PMakefile" on the CWD
     """)
     parser.add_argument("-s", "--input_string", type=str, required=False, default=None, help="""
@@ -154,7 +154,7 @@ def parse_options(args):
         using the given file 
     """)
     parser.add_argument('targets', metavar="TARGET", nargs="*", type=str, help="""
-    An ordered list of pmake targets the user wants to build. For example, target names may be "all", 
+    An ordered list of pmakeup targets the user wants to build. For example, target names may be "all", 
     "clean", "install", "uninstall".
     
     Targets are available via `targets` variable. You can check if a target has been requested by the user 
