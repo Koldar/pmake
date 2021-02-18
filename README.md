@@ -7,6 +7,15 @@ Pmakeup tries to provide a pythonic environment (which is much easier to work wi
 To help the devloper in commons tasks, Pmakeup provides several built-in commands
 to perform common tasks (like copying files, read content and execute system commands).
 
+# An important Security disclaimer
+
+I want to empathize this: `pamkeup` is **not a build system you can use to puppeteer remove systems**: 
+its use is intended to build software locally, or to setup your workstation. In no means `pmakeup` project
+provides adequate level of security to support remote puppeteering. In order to avoid being in you way, you can
+actually call script by injecting you password as plain text. This is by design, since on **your** worksation, it is
+assumed you have full control (as a developer anyway). However, transmitting password in plain text is a **huge**
+security hole. Hence this project shoudl not be used for that objective.
+
 # For the user
 
 You can install the software via:
@@ -21,7 +30,7 @@ Admin privileges may be required. To show all the options you can exploit, use
 pmakeup --help
 ```
 
-As a simple, ultra minimalistic example, create a file caleld `PMakeupfile.py` and past the following:
+As a simple, ultra minimalistic example, create a file called `PMakeupfile.py` and past the following:
 
 ```
 echo("Hello world!", foreground="blue")
@@ -111,8 +120,10 @@ to show a comprehensive help, with all the commands available to you.
 Assuming you have a version of pmakeup installed on your system, you can use `pmakeup` to build `pmakeup`.
 
 ```
-pmakeup --variable "NEW_VERSION" "1.2.1" update-version build install upload-to-test-pypi
+pmakeup --variable "NEW_VERSION" "1.2.1" update-version build install upload-to-pypi
 ```
+
+You will need to create `TWINE_PYPI_PASSWORD` containig your twine password to upload 
 
 # Documentation
 
