@@ -7,7 +7,7 @@ class IPMakeupCache(abc.ABC):
     @abc.abstractmethod
     def reset(self):
         """
-        Completely empty the pmake file. After the operation, the cache is present, but it is empty.
+        Completely empty the pmakeupfile. After the operation, the cache is present, but it is empty.
         It is required to persistently update the cache in this method
         """
         pass
@@ -32,7 +32,7 @@ class IPMakeupCache(abc.ABC):
     @abc.abstractmethod
     def is_cache_present(self) -> bool:
         """
-        Check if the pmake cache is present
+        Check if the pmakeup cache is present
         """
         pass
 

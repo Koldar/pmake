@@ -26,7 +26,7 @@ def update_version():
     echo(f"Updating version to {variables.NEW_VERSION} in {cwd()}...", foreground="blue")
     ensure_has_variable("NEW_VERSION")
 
-    version_filepath = os.path.join("pmake", "version.py")
+    version_filepath = os.path.join("pmakeup", "version.py")
     write_file(version_filepath, f"VERSION = \"{variables.NEW_VERSION}\"", overwrite=True)
 
 
@@ -122,12 +122,12 @@ def upload_to_pypi():
     if on_linux():
         echo("Uploading for linux", foreground="blue")
         execute_stdout_on_screen([
-            f"twine upload --verbose --username \"{TWINE_PYPI_USER}\" --password \"{TWINE_PYPI_PASSWORD}\" {upload_files}",
+            f"twine upload --verbose --non-interactive --username \"{TWINE_PYPI_USER}\" --password \"{TWINE_PYPI_PASSWORD}\" {upload_files}",
         ])
     elif on_windows():
         echo("Uploading for windows", foreground="blue")
         execute_stdout_on_screen([
-            f"twine upload --verbose --username \"{TWINE_PYPI_USER}\" --password \"{TWINE_PYPI_PASSWORD}\" {upload_files}",
+            f"twine upload --verbose --non-interactive --username \"{TWINE_PYPI_USER}\" --password \"{TWINE_PYPI_PASSWORD}\" {upload_files}",
         ])
     else:
         raise PMakeupException()

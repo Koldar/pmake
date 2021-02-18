@@ -294,9 +294,11 @@ class SessionScript(abc.ABC):
         :param name: name of the variable to check
         :return: true if a varaible with such a name is present in the cache, false otherwise
         """
-        return self._model.pmake_cache.has_variable_in_cache(
+        result = self._model.pmake_cache.has_variable_in_cache(
             name=name
         )
+        self._log_command(f"Checking if \"{name}\" is present in the pamkeup cache. It is {'present' if result else 'absent'}")
+        return result
 
     @show_on_help.add_command('core')
     def get_variable_in_cache(self, name: str) -> Any:

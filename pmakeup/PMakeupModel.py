@@ -90,11 +90,11 @@ class PMakeupModel(abc.ABC):
         """
         self.pmake_cache: Optional["IPMakeupCache"] = None
         """
-        Cache containing data that the user wants t persist between different pmake runs
+        Cache containing data that the user wants t persist between different pmakeup runs
         """
         self._pmakefiles_include_stack: List[path] = []
         """
-        Represents the PMakefile pmake is handling. Each time we include something, the code within it is executed.
+        Represents the PMakefile pmakeup is handling. Each time we include something, the code within it is executed.
         If an error occurs, we must know where the error is. Hence this variable is pretty useful to detect that.
         This list acts as a stack
         """
