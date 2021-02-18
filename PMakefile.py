@@ -2,12 +2,16 @@
 
 require_pmake_version("1.6.0")
 
-global TWINE_USER
-global TWINE_PASSWORD
+global TWINE_TEST_PYPI_USER
+global TWINE_TEST_PYPI_PASSWORD
 global ADMIN_PASSWORD
 
-TWINE_USER = "Koldar"
-TWINE_PASSWORD = read_file_content("TWINE_PASSWORD")
+TWINE_TEST_PYPI_USER = "Koldar"
+TWINE_TEST_PYPI_PASSWORD = read_file_content("TWINE_TEST_PYPI_PASSWORD")
+
+TWINE_PYPI_USER = "Koldar"
+TWINE_PYPI_PASSWORD = read_file_content("TWINE_PYPI_PASSWORD")
+
 ADMIN_PASSWORD = read_file_content("PASSWORD")
 
 
@@ -95,15 +99,35 @@ def upload_to_test_pypi():
         echo("Uploading for linux", foreground="blue")
         execute_stdout_on_screen([
             #"source venv/bin/activate",
-            f"twine upload --verbose --repository testpypi --username \"{TWINE_USER}\" --password \"{TWINE_PASSWORD}\" {upload_files}",
+            f"twine upload --verbose --repository testpypi --username \"{TWINE_TEST_PYPI_USER}\" --password \"{TWINE_TEST_PYPI_PASSWORD}\" {upload_files}",
             #"deactivate"
         ])
     elif on_windows():
         echo("Uploading for windows", foreground="blue")
         execute_stdout_on_screen([
             #"venv/Scripts/activate.bat",
-            f"twine upload --verbose --repository testpypi --username \"{TWINE_USER}\" --password \"{TWINE_PASSWORD}\" {upload_files}",
+            f"twine upload --verbose --repository testpypi --username \"{TWINE_TEST_PYPI_USER}\" --password \"{TWINE_TEST_PYPI_PASSWORD}\" {upload_files}",
             #"venv/Scripts/deactivate.bat"
+        ])
+    else:
+        raise PMakeException()
+
+
+def upload_to_pypi():
+    echo("Uploading to pypi ...", foreground="blue")
+    latest_version, file_list = get_latest_version_in_folder("dist", version_fetcher=semantic_version_2_only_core)
+    upload_files = ' '.join(map(lambda x: f"\"{x}\"", file_list))
+    echo(f"File to upload is {upload_files}...", foreground="blue")
+
+    if on_linux():
+        echo("Uploading for linux", foreground="blue")
+        execute_stdout_on_screen([
+            f"twine upload --verbose --username \"{TWINE_PYPI_USER}\" --password \"{TWINE_PYPI_PASSWORD}\" {upload_files}",
+        ])
+    elif on_windows():
+        echo("Uploading for windows", foreground="blue")
+        execute_stdout_on_screen([
+            f"twine upload --verbose --username \"{TWINE_PYPI_USER}\" --password \"{TWINE_PYPI_PASSWORD}\" {upload_files}",
         ])
     else:
         raise PMakeException()
@@ -150,8 +174,14 @@ declare_target(
 )
 declare_target(
     target_name="upload-to-test-pypi",
-    description="Upload the latest version of pamek to pypi test",
+    description="Upload the latest version of pmake to pypi test",
     f=upload_to_test_pypi,
+    requires=["build"],
+)
+declare_target(
+    target_name="upload-to-pypi",
+    description="Upload the latest version of pmake to pypi",
+    f=upload_to_pypi,
     requires=["build"],
 )
 
