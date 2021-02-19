@@ -1,5 +1,5 @@
 # from pmakeup import version
-# from pmakeup.PMakeModel import PMakeModel
+# from pmakeup.PMakeupModel import PMakeupModel
 # from pmakeup.commands import SessionScript
 # from pmakeup.InterestingPath import InterestingPath
 # from pmakeup.IOSSystem import IOSSystem

@@ -587,7 +587,7 @@ class SessionScript(abc.ABC):
                 perform_target(target_descriptor.name, target_descriptor)
 
     @show_on_help.add_command('core')
-    def require_pmake_version(self, lowerbound: str) -> None:
+    def require_pmakeup_version(self, lowerbound: str) -> None:
         """
         Check if the current version of pmakeup is greater or equal than the given one.
         If the current version of pmakeup is not compliant with this constraint, an error is generated
@@ -1937,6 +1937,30 @@ class SessionScript(abc.ABC):
             readable_for_all=readable_for_all,
             executable_for_owner=executable_for_owner,
             executable_for_all=executable_for_all
+        )
+
+    @show_on_help.add_command("files")
+    def zip_files(self, files: Iterable[path], zip_name: path, zip_format: str, create_folder_in_zip_file: bool = False, folder_name_in_zip_file: str = None):
+        """
+        Zip the files into a single zip file
+
+        :param files: the files to zip
+        :param zip_name: name of the zip file
+        :param zip_format: values accepted by shutil make_achive (i.e., zip,tar, gztar, bztar, xztar)
+        :param create_folder_in_zip_file: if true, we will create a temp directory where all the files are copied. Then, we will zip that directory
+        :param folder_name_in_zip_file: if create_folder_in_zip_file is specified, the name of temp folder to create
+        """
+
+        #TODO continue
+        zip_basename = self.get_basename_with_no_extension(zip_name)
+
+        with self.create_temp_directory_with("zip_files") as folder:
+            pass
+
+        shutil.make_archive(
+            base_name=zip_basename,
+            format=zip_format,
+            root_dir=folder_name_in_zip_file if create_folder_in_zip_file else None,
         )
 
     @show_on_help.add_command('operating system')
