@@ -6,11 +6,12 @@ import shutil
 import stat
 import sys
 import tempfile
+from zipfile import PyZipFile, ZipFile
 
 import colorama
 
 import urllib.request
-from typing import List, Union, Iterable, Tuple, Any, Callable, Dict, Optional
+from typing import List, Union, Iterable, Tuple, Any, Callable, Dict, Optional, AnyStr
 
 import semver
 
@@ -384,28 +385,28 @@ class SessionScript(abc.ABC):
         return os.path.abspath(os.path.join(self._model.starting_cwd, *folder))
 
     @show_on_help.add_command('paths')
-    def get_pmakefile_path(self) -> path:
+    def get_pmakeupfile_path(self) -> path:
         """
-        :return: absolute path of the main PMakefile path
+        :return: absolute path of the main PMakeupfile path
         """
         return self._model.input_file
 
     @show_on_help.add_command('paths')
-    def get_pmakefile_dir(self) -> path:
+    def get_pmakeupfile_dir(self) -> path:
         """
-        The directory where the analyzed pmakefile is located
+        The directory where the analyzed pmakeupfile is located
 
         :return: absolute ptha of the directory of the path under analysis
         """
         return os.path.dirname(self._model.input_file)
 
     @show_on_help.add_command('paths')
-    def path_wrt_pmakefile(self, *folder: str) -> path:
+    def path_wrt_pmakeupfile(self, *folder: str) -> path:
         """
-        Compute path relative to the file where PMakefile is located
+        Compute path relative to the file where PMakeupfile is located
 
         :param folder: other sections of the path
-        :return: path relative to the absolute path of where PMakefile is located
+        :return: path relative to the absolute path of where PMakeupfile is located
         """
         return os.path.abspath(os.path.join(os.path.dirname(self._model.input_file), *folder))
 
@@ -417,9 +418,9 @@ class SessionScript(abc.ABC):
         return self._platform.get_home_folder()
 
     @show_on_help.add_command('paths')
-    def get_pmakefile_dirpath(self) -> path:
+    def get_pmakeupfile_dirpath(self) -> path:
         """
-        :return: absolute path of the folder containing the main PMakefile path
+        :return: absolute path of the folder containing the main PMakeupfile path
         """
         return os.path.dirname(self._model.input_file)
 
@@ -488,7 +489,7 @@ class SessionScript(abc.ABC):
     def declare_file_descriptor(self, description: str):
         """
         Defines what to write at the beginning of the info string that is displayed whenver the user wants to know
-        what the given Pmakefile does
+        what the given Pmakeupfile does
 
         :param description: string to show
         """
@@ -1003,14 +1004,17 @@ class SessionScript(abc.ABC):
                     yield whole_path
 
     @show_on_help.add_command('files')
-    def create_empty_directory(self, name: path):
+    def create_empty_directory(self, name: path) -> path:
         """
         Create an empty directory in the CWD (if the path is relative)
 
         :param name:the name of the driectory to create
+        :return: the full path of the directory just created
         """
         p = self.abs_path(name)
+        self._log_command(f"Creating folder {p}")
         os.makedirs(name=p, exist_ok=True)
+        return p
 
     @show_on_help.add_command('files')
     def is_file_exists(self, name: path) -> bool:
@@ -1068,19 +1072,18 @@ class SessionScript(abc.ABC):
         return False
 
     @show_on_help.add_command('files')
-    def is_file_non_empty(self, name: path) -> bool:
+    def is_file_non_empty(self, *name: path) -> bool:
         """
         Checks if a file exists. If exists, check if it is not empty as well.
 
         :param name: file to check
         :return: true if the file exists **and** has at least one byte; false otherwise
         """
-        p = self.abs_path(name)
+        p = self.abs_path(*name)
         self._log_command(f"Checking if the file {p} exists and is empty")
         if not os.path.exists(p):
             return False
-        with open(p, "r") as f:
-            return f.read(1) != ""
+        return self.get_file_size(p) > 0
 
     @show_on_help.add_command('files')
     def write_file(self, name: path, content: Any, encoding: str = "utf-8", overwrite: bool = False, add_newline: bool = True):
@@ -1229,26 +1232,39 @@ class SessionScript(abc.ABC):
                 f.write(str(x) + "\n")
 
     @show_on_help.add_command('files')
-    def copy_file(self, src: path, dst: path):
+    def copy_file(self, src: path, dst: path, create_dirs: bool = True):
         """
-        Copy a single file from a position to another one
+        Copy a single file from a position to another one.
+        If the destination folder hierarchy does not exist, we will create it
 
         :param src: file to copy
-        :param dst: destination where the file will be copied to
+        :param dst: destination where the file will be copied to. If a file, we will copy the src file into another
+            file with different name. If a directory, we will copy the specified file into the dirctory dst (without
+            altering the filename)
+        :param create_dirs: if true, we will create the directories of dst if non existent
         """
         asrc = self.abs_path(src)
         adst = self.abs_path(dst)
+
+        if self.is_directory(adst):
+            adst = os.path.join(adst, self.get_basename(asrc))
+
+        if not self.is_directory_exists(self.get_parent_directory(adst)) and create_dirs:
+            self.make_directories(self.get_parent_directory(adst))
+
         self._log_command(f"""copy file from \"{asrc}\" to \"{adst}\"""")
         shutil.copyfile(asrc, adst)
 
     @show_on_help.add_command('files')
     def copy_tree(self, src: path, dst: path):
         """
-        Copy a whole directory tree or a single file
+        Copy a whole directory tree or a single file.
+        If you specifies a file rather than a directory, the function behaves like :see copy_file
 
         :param src: the folder or the file to copy.
         :param dst: the destination where the copied folder will be positioned
         """
+
         asrc = self.abs_path(src)
         adst = self.abs_path(dst)
         self._log_command(f"""Recursively copy files from \"{asrc}\" to \"{adst}\"""")
@@ -1259,10 +1275,7 @@ class SessionScript(abc.ABC):
                 dirs_exist_ok=True,
             )
         elif os.path.isfile(asrc):
-            shutil.copyfile(
-                asrc,
-                adst
-            )
+            self.copy_file(asrc, adst)
         else:
             raise InvalidScenarioPMakeupException(f"Cannot determine if {asrc} is a file or a directory!")
 
@@ -1442,8 +1455,7 @@ class SessionScript(abc.ABC):
         :param encoding: encoding used for reading the file
         """
         p = self.abs_path(name)
-        self._log_command(
-            f"Remove substring \"{substring}\" in file {p} (up to {count} occurences)")
+        self._log_command(f"Remove substring \"{substring}\" in file {p} (up to {count} occurences)")
         with open(p, mode="r", encoding=encoding) as f:
             content = f.read()
 
@@ -1476,6 +1488,11 @@ class SessionScript(abc.ABC):
         replace_regex_in_string('3435spring9437', r'(?P<word>[a-z]+)', r'\1aa')
         'spring' will be replaced with 'springaa'
 
+        It may not work, so you can use the following syntax to achieve the same:
+        replace_regex_in_file(file_path, '(?P<word>\w+)', r'\g<word>aa')
+        'spring' will be replaced with 'springaa'
+
+
         :param string: string that will be involved in the replacements
         :param regex: regex to replace
         :param replacement: string that will replace *substring*
@@ -1496,6 +1513,27 @@ class SessionScript(abc.ABC):
         return content
 
     @show_on_help.add_command('files')
+    def find_regex_match_in_file(self, pattern: str, *p: path, encoding: str = "utf8", flags: Union[int, re.RegexFlag] = 0) -> Optional[re.Match]:
+        """
+        FInd the first regex pattern in the file
+
+        If you used named capturing in the pattern, you can gain access via result.group("name")
+
+        :param pattern: regex pattern to consider
+        :param p: file to consider
+        :param encoding: encoding of the file to search. Defaults to utf8
+        :param flags: flags of the regex to build. Passed as-is
+        :return a regex match representing the first occurence. If None we could not find anything
+        """
+
+        fn = self.abs_wrt_cwd(*p)
+        self._log_command(f"""Looking for pattern {pattern} in file {fn}.""")
+        with open(fn, mode="r", encoding=encoding) as f:
+            content = f.read()
+
+        return re.search(pattern, content, flags=flags)
+
+    @show_on_help.add_command('files')
     def replace_string_in_file(self, name: path, substring: str, replacement: str, count: int = -1,
                                encoding: str = "utf-8"):
         """
@@ -1508,8 +1546,7 @@ class SessionScript(abc.ABC):
         :param encoding: encoding used for reading the file
         """
         p = self.abs_path(name)
-        self._log_command(
-            f"Replace substring \"{substring}\" in \"{replacement}\" in file {p} (up to {count} occurences)")
+        self._log_command(f"Replace substring \"{substring}\" in \"{replacement}\" in file {p} (up to {count} occurences)")
         with open(p, mode="r", encoding=encoding) as f:
             content = f.read()
 
@@ -1527,6 +1564,11 @@ class SessionScript(abc.ABC):
 
         replace_regex_in_file(file_path, '(?P<word>\w+)', '(?P=word)aa')
         'spring' will be replaced with 'springaa'
+
+        It may not work, so you can use the following syntax to achieve the same:
+        replace_regex_in_file(file_path, '(?P<word>\w+)', r'\g<word>aa')
+        'spring' will be replaced with 'springaa'
+
 
         :param name: path of the file to handle
         :param regex: regex to replace
@@ -1550,6 +1592,7 @@ class SessionScript(abc.ABC):
                 string=content,
                 count=count,
             )
+            self._log_command(f"Replace pattern \"{pattern}\" into \"{replacement}\" in file {p} (up to {count} occurences)")
             f.write(content)
 
     @show_on_help.add_command('paths')
@@ -1790,6 +1833,17 @@ class SessionScript(abc.ABC):
         return os.path.basename(self.abs_wrt_cwd(*p))
 
     @show_on_help.add_command('paths')
+    def get_extension(self, *p) -> path:
+        """
+        Compute the extension of a file
+
+        :param p: the file to consider
+        :return the fiel extension
+        """
+        f = self.abs_wrt_cwd(*p)
+        return os.path.splitext(f)[1].lstrip('.')
+
+    @show_on_help.add_command('paths')
     def get_basename_with_no_extension(self, *p) -> path:
         """
         Compute the basename of the path and remove its extension as well
@@ -1827,13 +1881,18 @@ class SessionScript(abc.ABC):
         return os.path.abspath(os.path.join(self._cwd, *paths))
 
     @show_on_help.add_command('files')
-    def make_directories(self, folder: path) -> None:
+    def make_directories(self, *folder: path) -> None:
         """
-        Create all the needed directories for the given path
+        Create all the needed directories for the given path.
+        Note that if you inject the path `temp/foo/hello.txt` (you can see hello.txt shoudl be a file)
+        the function will generate hello.txt as a **directory**!
+
         :param folder: folders to create
         """
-        self._log_command(f"""Recursively create directories \"{self.abs_path(folder)}\"""")
-        os.makedirs(self.abs_path(folder), exist_ok=True)
+        f = self.abs_wrt_cwd(*folder)
+        self._log_command(f"""Recursively create directories \"{f}\"""")
+
+        os.makedirs(self.abs_path(f), exist_ok=True)
 
     @show_on_help.add_command('paths')
     def cd_into_directories(self, folder: path, prefix: str, folder_format: str, error_if_mismatch: bool = True):
@@ -1887,6 +1946,62 @@ class SessionScript(abc.ABC):
             self._disable_log_command = False
 
     @show_on_help.add_command('files')
+    def get_parent_directory(self, *p) -> path:
+        """
+        Retrieve the absolute path of the parent directory of the specified path.
+
+        /foo/tbar/tmp.txt -> /foo/tbar
+
+        :param p: path to consider
+        :return: parent directory of path
+        """
+
+        return self.abs_wrt_cwd(self.abs_wrt_cwd(*p), os.pardir)
+
+    @show_on_help.add_command('files')
+    def is_file(self, *p: path) -> bool:
+        """
+        Check if the given path represents a file or a directory
+
+        :param p: paths to check
+        return: true if the concatenated version of p is a file. False otherwise
+        """
+
+        to_check = self.abs_wrt_cwd(*p)
+        return os.path.isfile(to_check)
+
+    @show_on_help.add_command('files')
+    def is_directory(self, *p: path) -> bool:
+        """
+        Check if the given path is a directory
+
+        :param p: paths to check
+        return: true if the concatenated version of p is a directory. False otherwise
+        """
+
+        to_check = self.abs_wrt_cwd(*p)
+        return os.path.isdir(to_check)
+
+    @show_on_help.add_command('files')
+    def get_file_size(self, *f: path) -> int:
+        """
+        Get the filesize of a given file. If the file is a directory, return the cumulative size of all the files in it
+
+        :param f: the path of the file to consider
+        :return number of bytes
+        """
+
+        to_check = self.abs_wrt_cwd(*f)
+        if self.is_file(to_check):
+            return os.path.getsize(to_check)
+        elif self.is_directory(to_check):
+            # see https://stackoverflow.com/a/1392549/1887602
+            nbytes = sum(d.stat().st_size for d in os.scandir('.') if d.is_file())
+            return nbytes
+        else:
+            raise ValueError(f"file {to_check} is neither a file nor a directory! What is this?")
+
+    @show_on_help.add_command('files')
     def get_temp_filepath(self, prefix: str = None, suffix: str = None) -> path:
         """
         Get the filename of a temp file. You need to manually create such a temp file
@@ -1906,8 +2021,8 @@ class SessionScript(abc.ABC):
         Create a temporary directory on the file system where to put temporary files
 
         :param directory_prefix: a prefix to be put before the temporary folder
-        :return: a value which can be the input of a "with" statement. The folder will be automatically removed at the
-        end of the with. You can access the directory filename via the result field "name"
+        :return: the absolute path of the temporary folder created. The function can be used an input of a "with" statement.
+        The folder will be automatically removed at the end of the with.
         """
         return self._platform.create_temp_directory_with(directory_prefix)
 
@@ -1940,28 +2055,41 @@ class SessionScript(abc.ABC):
         )
 
     @show_on_help.add_command("files")
-    def zip_files(self, files: Iterable[path], zip_name: path, zip_format: str, create_folder_in_zip_file: bool = False, folder_name_in_zip_file: str = None):
+    def zip_files(self, files: Iterable[path], zip_name: path, zip_format: str, base_dir: str = None, create_folder_in_zip_file: bool = False, folder_name_in_zip_file: str = None) -> path:
         """
         Zip the files into a single zip file
 
-        :param files: the files to zip
+        :param files: the files to zip. Accepts folders as well. In this case the whole tree will be archived
+        :param base_dir: when the files you want to copy are all inside a commons directory (either directed or undirected), you may want to save such files inside
+        a directory hierarchy (e.g., you want to archive a/b/foo/c.txt and a/b/foo/d.txt by creating subfolder foo, but not folders a/b.
+        To do so, set this parameter (in the example as a/b/foo)
         :param zip_name: name of the zip file
         :param zip_format: values accepted by shutil make_achive (i.e., zip,tar, gztar, bztar, xztar)
         :param create_folder_in_zip_file: if true, we will create a temp directory where all the files are copied. Then, we will zip that directory
         :param folder_name_in_zip_file: if create_folder_in_zip_file is specified, the name of temp folder to create
         """
 
-        #TODO continue
         zip_basename = self.get_basename_with_no_extension(zip_name)
+        base_dir = base_dir or self.cwd()
 
-        with self.create_temp_directory_with("zip_files") as folder:
-            pass
+        with self.create_temp_directory_with("zip_files") as folder_abspath:
+            if create_folder_in_zip_file:
+                copy_into = self.create_empty_directory(self.abs_path(folder_abspath, folder_name_in_zip_file))
+            else:
+                copy_into = folder_abspath
+            zip_root = folder_abspath
+            for f in files:
+                abs_f = self.abs_path(f)
+                dst = os.path.join(copy_into, self.get_relative_path_wrt(abs_f, reference=self.abs_path(base_dir)))
+                self.copy_tree(abs_f, dst)
 
-        shutil.make_archive(
-            base_name=zip_basename,
-            format=zip_format,
-            root_dir=folder_name_in_zip_file if create_folder_in_zip_file else None,
-        )
+            result = shutil.make_archive(
+                base_name=zip_basename,
+                format=zip_format,
+                root_dir=zip_root
+            )
+
+            return result
 
     @show_on_help.add_command('operating system')
     def execute_and_forget(self, commands: Union[str, List[Union[str, List[str]]]], cwd: path = None, env: Dict[str, str] = None, check_exit_code: bool = True, timeout: int = None) -> int:

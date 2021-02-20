@@ -2,19 +2,22 @@
 
 This package tries to provide a solution for build softwares in a platform independent manner.
 It tries to loosely mimick the objective of Makefile, but with a python syntax.
-Makefiles are known to have complex syntax a several pitfalls. They are also clunky to work with,
-Pmakeup tries to provide a pythonic environment (which is much easier to work with).
-To help the devloper in commons tasks, Pmakeup provides several built-in commands
+Makefiles are known to have complex syntax as well as several pitfalls. They are also clunky to work with,
+Pmakeup aims to provide a pythonic environment (which is much easier to work with) in order to perform 
+operation on the local system, usually for compiling stuff or for setupping your system.
+The project aims to give you the ability of executing commands without giving you too many troubles.
+  
+To help the developer in commons tasks, Pmakeup provides several built-in commands
 to perform common tasks (like copying files, read content and execute system commands).
 
 # An important Security disclaimer
 
-I want to empathize this: `pamkeup` is **not a build system you can use to puppeteer remove systems**: 
+I want to empathize this: `pmakeup` is **not a build system you can use to puppeteer remote systems**: 
 its use is intended to build software locally, or to setup your workstation. In no means `pmakeup` project
 provides adequate level of security to support remote puppeteering. In order to avoid being in you way, you can
-actually call script by injecting you password as plain text. This is by design, since on **your** worksation, it is
+actually call script by injecting your root password as plain text. This is by design, since on **your** worksation, it is
 assumed you have full control (as a developer anyway). However, transmitting password in plain text is a **huge**
-security hole. Hence this project shoudl not be used for that objective.
+security hole. Hence this project should not be used for puppetteering.
 
 # For the user
 
@@ -38,7 +41,7 @@ echo("Hello world!", foreground="blue")
 
 The `PMakeupfile` is actually just a python script, so you can do anything in it!
 This is by design, since in several build systems (`make`, `cmake`, `jenkins`) a lot of time you are
-constrained by the declarative syntax or by the huge pitfalls the build system provides.
+constrained by the declarative syntax of the framework or by the huge pitfalls the build system provides.
 `pmakeup` tries not to be in your way: it gives you freedom.
 
 You can use targets, pretty much as in the Makefile, albeit the syntax is quite different:

@@ -1,16 +1,14 @@
 
 
-require_pmake_version("1.6.0")
+require_pmakeup_version("1.6.0")
 
 global TWINE_TEST_PYPI_USER
 global TWINE_TEST_PYPI_PASSWORD
 global ADMIN_PASSWORD
 
 TWINE_TEST_PYPI_USER = "Koldar"
-TWINE_TEST_PYPI_PASSWORD = read_file_content("TWINE_TEST_PYPI_PASSWORD")
 
 TWINE_PYPI_USER = "Koldar"
-TWINE_PYPI_PASSWORD = read_file_content("TWINE_PYPI_PASSWORD")
 
 ADMIN_PASSWORD = read_file_content("PASSWORD")
 
@@ -91,6 +89,7 @@ def install():
 
 
 def upload_to_test_pypi():
+    TWINE_TEST_PYPI_PASSWORD = read_file_content("TWINE_TEST_PYPI_PASSWORD")
     echo("Uploading to test pypi...", foreground="blue")
     latest_version, file_list = get_latest_version_in_folder("dist", version_fetcher=semantic_version_2_only_core)
     upload_files = ' '.join(map(lambda x: f"\"{x}\"", file_list))
@@ -114,6 +113,7 @@ def upload_to_test_pypi():
 
 
 def upload_to_pypi():
+    TWINE_PYPI_PASSWORD = read_file_content("TWINE_PYPI_PASSWORD")
     echo("Uploading to pypi ...", foreground="blue")
     latest_version, file_list = get_latest_version_in_folder("dist", version_fetcher=semantic_version_2_only_core)
     upload_files = ' '.join(map(lambda x: f"\"{x}\"", file_list))

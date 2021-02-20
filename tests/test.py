@@ -201,6 +201,56 @@ class MyTestCase(unittest.TestCase):
         self.assertStdoutEquals("True\nTrue", lambda: model.manage_pmakefile())
         os.unlink("foo.txt")
 
+    def test_archive(self):
+        model = PMakeupModel()
+        model.input_string = """
+            make_directories("temp/foo/bar")
+            make_directories("temp/foo2/bar")
+            make_directories("temp/foo2/baz")
+            create_empty_file("temp/foo/bar/empty.txt")
+            create_empty_file("temp/foo2/bar/empty1.dat")
+            create_empty_file("temp/foo2/bar/empty2.txt")
+            zip_files(
+                files=["temp/foo/bar/empty.txt", "temp/foo2/bar/empty1.dat", "temp/foo2/bar/empty2.txt"],
+                base_dir="temp/",
+                zip_name="text.zip",
+                zip_format="zip",
+                create_folder_in_zip_file=False,
+            )
+            
+            echo(is_file_exists("text.zip"))
+            echo(is_file_non_empty("text.zip"))
+            
+            remove_tree("temp")
+            remove_file("text.zip")
+        """
+        self.assertStdoutEquals("True\nTrue", lambda: model.manage_pmakefile())
+
+    def test_archive_02(self):
+        model = PMakeupModel()
+        model.input_string = """
+            make_directories("temp/foo/bar")
+            make_directories("temp/foo2/bar")
+            make_directories("temp/foo2/baz")
+            create_empty_file("temp/foo/bar/empty.txt")
+            create_empty_file("temp/foo2/bar/empty1.dat")
+            create_empty_file("temp/foo2/bar/empty2.txt")
+            zip_files(
+                files=["temp/foo/bar/empty.txt", "temp/foo2/bar/empty1.dat", "temp/foo2/bar/empty2.txt"],
+                zip_name="text.zip",
+                zip_format="zip",
+                create_folder_in_zip_file=True,
+                folder_name_in_zip_file="qwerty",
+            )
+
+            echo(is_file_exists("text.zip"))
+            echo(is_file_non_empty("text.zip"))
+
+            remove_tree("temp")
+            remove_file("text.zip")
+        """
+        self.assertStdoutEquals("True\nTrue", lambda: model.manage_pmakefile())
+
     def test_cd(self):
         model = PMakeupModel()
         model.input_string = """
