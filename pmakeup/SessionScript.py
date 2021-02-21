@@ -981,9 +981,88 @@ class SessionScript(abc.ABC):
 
         for root, dirs, files in os.walk(root_folder):
             for f in files:
-                whole_path =os.path.join(root, f)
+                whole_path = os.path.join(root, f)
                 if match(root, f, whole_path):
                     yield whole_path
+
+    @show_on_help.add_command('files')
+    def find_first_file_st(self, root_folder: path, match: Callable[[path, str, path], bool]) -> Optional[str]:
+        """
+        Find the first file matching the given function
+
+        :param root_folder: folder where we need to look int
+        :param match: a function that defines if you want to include the file into the output. The first parameter
+            is the folder containing the given file. The second parameter is the involved file. The third is the
+            absolute path of the involved path
+        :return: file compliant with the given function or None
+        """
+        for f in self.find_file_st(root_folder, match):
+            return f
+
+        return None
+
+    @show_on_help.add_command('files')
+    def find_first_file_st_or_fail(self, root_folder: path, match: Callable[[path, str, path], bool]) -> str:
+        """
+        Find the first file matching the given function. If no such file exists, generates an exception
+
+        :param root_folder: folder where we need to look int
+        :param match: a function that defines if you want to include the file into the output. The first parameter
+            is the folder containing the given file. The second parameter is the involved file. The third is the
+            absolute path of the involved path
+        :return: file compliant with the given function or None
+        """
+        result = self.find_first_file_st(root_folder, match)
+        if result is None:
+            raise ValueError(f"Could not find file satysfing the given criterion from the root {root_folder}!")
+        return result
+
+    @show_on_help.add_command('files')
+    def find_file_in_roots_st(self, root_folders: path, match: Callable[[path, str, path], bool]) -> Iterable[str]:
+        """
+        Find all the files matchign the given function
+
+        :param root_folders: folders where we need to look int
+        :param match: a function that defines if you want to include the file into the output. The first parameter
+            is the folder containing the given file. The second parameter is the involved file. The third is the
+            absolute path of the involved path
+        :return: list of files compliant with the given function
+        """
+
+        for root_folder in root_folders:
+            yield from self.find_file_st(root_folder, match)
+
+    @show_on_help.add_command('files')
+    def find_first_file_in_roots_st(self, root_folders: path, match: Callable[[path, str, path], bool]) -> Optional[str]:
+        """
+        Find the first file matching the given function
+
+        :param root_folders: folders where we need to look int
+        :param match: a function that defines if you want to include the file into the output. The first parameter
+            is the folder containing the given file. The second parameter is the involved file. The third is the
+            absolute path of the involved path
+        :return: file compliant with the given function or None
+        """
+        for f in self.find_file_in_roots_st(root_folders, match):
+            return f
+
+        return None
+
+    @show_on_help.add_command('files')
+    def find_first_file_in_roots_st_or_fail(self, root_folders: path, match: Callable[[path, str, path], bool]) -> str:
+        """
+        Find the first file matching the given function. If no such file exists, generates an exception
+
+        :param root_folders: folders where we need to look int
+        :param match: a function that defines if you want to include the file into the output. The first parameter
+            is the folder containing the given file. The second parameter is the involved file. The third is the
+            absolute path of the involved path
+        :return: file compliant with the given function or None
+        """
+        result = self.find_first_file_in_roots_st(root_folders, match)
+        if result is None:
+            raise ValueError(f"Could not find file satisfying the given criterion from the root {root_folders}!")
+        return result
 
     @show_on_help.add_command('files')
     def find_folder_st(self, root_folder: path, match: Callable[[path, str, path], bool]) -> Iterable[str]:
@@ -1551,8 +1630,12 @@ class SessionScript(abc.ABC):
             content = f.read()
 
         with open(p, mode="w", encoding=encoding) as f:
-            content = content.replace(substring, replacement, count)
-            f.write(content)
+            try:
+                # the sub operation may throw exception. In this case the file is reset. This is obviously very wrong,
+                # hence we added the try except in order to at least leave the file instact
+                content = content.replace(substring, replacement, count)
+            finally:
+                f.write(content)
 
     @show_on_help.add_command('files')
     def replace_regex_in_file(self, name: path, regex: str, replacement: str, count: int = -1,
@@ -1586,14 +1669,18 @@ class SessionScript(abc.ABC):
             content = f.read()
 
         with open(p, mode="w", encoding=encoding) as f:
-            content = re.sub(
-                pattern=pattern,
-                repl=replacement,
-                string=content,
-                count=count,
-            )
-            self._log_command(f"Replace pattern \"{pattern}\" into \"{replacement}\" in file {p} (up to {count} occurences)")
-            f.write(content)
+            try:
+                # the sub operation may throw exception. In this case the file is reset. This is obviously very wrong,
+                # hence we added the try except in order to at least leave the file instact
+                self._log_command(f"Replace pattern \"{pattern}\" into \"{replacement}\" in file {p} (up to {count} occurences)")
+                content = re.sub(
+                    pattern=pattern,
+                    repl=replacement,
+                    string=content,
+                    count=count,
+                )
+            finally:
+                f.write(content)
 
     @show_on_help.add_command('paths')
     def cwd(self) -> path:
