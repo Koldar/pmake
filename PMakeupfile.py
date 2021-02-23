@@ -1,4 +1,7 @@
+import os
 
+import semantic_version
+from semantic_version import Version
 
 require_pmakeup_version("1.6.0")
 
@@ -20,12 +23,38 @@ def clean():
     remove_tree("pmake.egg-info")
 
 
-def update_version():
-    echo(f"Updating version to {variables.NEW_VERSION} in {cwd()}...", foreground="blue")
-    ensure_has_variable("NEW_VERSION")
-
+def _read_version() -> Version:
     version_filepath = os.path.join("pmakeup", "version.py")
-    write_file(version_filepath, f"VERSION = \"{variables.NEW_VERSION}\"", overwrite=True)
+    with open(version_filepath, "r") as f:
+        version = f.read().split("=")[1].strip("\" \t\n")
+    return Version(version)
+
+
+def update_version_major():
+    version = _read_version()
+    new_version = version.next_major()
+    version_filepath = os.path.join("pmakeup", "version.py")
+
+    echo(f"Updating version from {version} to {new_version} in {cwd()}...", foreground="blue")
+    write_file(version_filepath, f"VERSION = \"{new_version}\"", overwrite=True)
+
+
+def update_version_minor():
+    version = _read_version()
+    new_version = version.next_minor()
+    version_filepath = os.path.join("pmakeup", "version.py")
+
+    echo(f"Updating version from {version} to {new_version} in {cwd()}...", foreground="blue")
+    write_file(version_filepath, f"VERSION = \"{new_version}\"", overwrite=True)
+
+
+def update_version_patch():
+    version = _read_version()
+    new_version = version.next_patch()
+    version_filepath = os.path.join("pmakeup", "version.py")
+
+    echo(f"Updating version from {version} to {new_version} in {cwd()}...", foreground="blue")
+    write_file(version_filepath, f"VERSION = \"{new_version}\"", overwrite=True)
 
 
 def uninstall():
@@ -149,9 +178,21 @@ declare_target(
     requires=[],
 )
 declare_target(
-    target_name="update-version",
+    target_name="update-version-patch",
     description="Uninstall local version of pmake in the global pip sites",
-    f=update_version,
+    f=update_version_patch,
+    requires=[],
+)
+declare_target(
+    target_name="update-version-minor",
+    description="Uninstall local version of pmake in the global pip sites",
+    f=update_version_minor,
+    requires=[],
+)
+declare_target(
+    target_name="update-version-major",
+    description="Uninstall local version of pmake in the global pip sites",
+    f=update_version_major,
     requires=[],
 )
 declare_target(

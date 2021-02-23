@@ -314,6 +314,19 @@ class SessionScript(abc.ABC):
         )
 
     @show_on_help.add_command('cache')
+    def get_variable_in_cache_or_fail(self, name: str) -> Any:
+        """
+        Get the variable value from the cache or raise an error if it does not exist
+
+        :param name: name of the variable to fetch
+        :return: the variable value
+        """
+        if self._model.pmake_cache.has_variable_in_cache(name):
+            return self._model.pmake_cache.get_variable_in_cache(name)
+        else:
+            raise ValueError(f"Cannot find variable \"{name}\" in pmakeup cache!")
+
+    @show_on_help.add_command('cache')
     def get_variable_in_cache_or(self, name: str, default: Any) -> Any:
         """
         Get the variable value from the cache or get a default value if it does not exist
@@ -860,6 +873,91 @@ class SessionScript(abc.ABC):
         """
         p = self.abs_wrt_cwd(*folder)
         return self._platform.is_repo_clean(p)
+
+    @show_on_help.add_command('git')
+    def git_config(self, name: str, value: Any, cwd: path):
+        """
+        Call "git config" program
+
+        :param name: name fo the property to set (e.g., user.name)
+        :param value: value of the property to set
+        :param cwd: directory where to execute the commit (needs to be a git repository)
+        """
+        result, stdout, stderr = self.execute_and_forget(
+            commands=[["git", "config", name, f"\"{value}\""]],
+            show_output_on_screen=False,
+            capture_stdout=False,
+            cwd=cwd,
+        )
+
+    @show_on_help.add_command('git')
+    def git_commit(self, message: str, cwd: path):
+        """
+        Perform a commit in the given git repository
+
+        :param message: message used to commit
+        :param cwd: directory where to execute the commit (needs to be a git repository)
+        """
+        result, stdout, stderr = self.execute_and_forget(
+            commands=[["git", "commit", "-m", f"\"{message}\""]],
+            show_output_on_screen=False,
+            capture_stdout=False,
+            cwd=cwd,
+        )
+
+    @show_on_help.add_command('git')
+    def git_push(self, remote: str, cwd: path, push_tags_as_well: bool = True):
+        """
+        Perform a git push command
+
+        :param remote: the remote where you want to push
+        :param cwd: directory where to execute the commit (needs to be a git repository)
+        :param push_tags_as_well: if true, we will push tags as well
+        """
+        push_cmd = ["git", "push", remote]
+        if push_tags_as_well:
+            push_cmd.append("--tags")
+        result, stdout, stderr = self.execute_and_forget(
+            commands=[push_cmd],
+            show_output_on_screen=False,
+            capture_stdout=False,
+            cwd=cwd,
+        )
+
+    @show_on_help.add_command('git')
+    def git_add_remote(self, remote_name: str, remote_url: str, cwd: path):
+        """
+        Perform a "git remote add", used to add a remote on the current cworking directory
+
+        :param remote_name: name of the remote to add
+        :param remote_url: url of the remote to add
+        :param cwd: directory where to execute the commit (needs to be a git repository)
+        """
+
+        result, stdout, stderr = self.execute_and_forget(
+            commands=[["git", "remote", "add", remote_name, f"\"{remote_url}\""]],
+            show_output_on_screen=False,
+            capture_stdout=False,
+            cwd=cwd,
+        )
+
+    @show_on_help.add_command('git')
+    def git_create_tag(self, tag_name: str, description: str, cwd: path):
+        """
+        Perform a "git remote add", used to add a remote on the current cworking directory
+
+        :param tag_name: name of the tag.
+        :param description: description of the tag
+        :param cwd: directory where to execute the commit (needs to be a git repository)
+        """
+
+        result, stdout, stderr = self.execute_and_forget(
+            commands=[["git", "tag", "-a", tag_name, "-m", f"\"{description}\""]],
+            show_output_on_screen=False,
+            capture_stdout=False,
+            cwd=cwd,
+        )
+
 
     @show_on_help.add_command('operating system')
     def get_program_path(self) -> Iterable[path]:

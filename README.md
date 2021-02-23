@@ -123,7 +123,7 @@ to show a comprehensive help, with all the commands available to you.
 Assuming you have a version of pmakeup installed on your system, you can use `pmakeup` to build `pmakeup`.
 
 ```
-pmakeup --variable "NEW_VERSION" "1.2.1" update-version build install upload-to-pypi
+pmakeup update-version-minor build install upload-to-pypi
 ```
 
 You will need to create `TWINE_PYPI_PASSWORD` containig your twine password to upload 
