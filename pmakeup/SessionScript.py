@@ -358,7 +358,7 @@ class SessionScript(abc.ABC):
         self._model.pmake_cache.set_variable_in_cache(name, new_value)
 
     @show_on_help.add_command('core')
-    def get_variable_or(self, name: str, otherwise: Any) -> None:
+    def get_variable_or(self, name: str, otherwise: Any) -> Any:
         """
         Ensure the user has passed a variable.
         If not,  the default variable is stored in the variable sety
@@ -369,6 +369,7 @@ class SessionScript(abc.ABC):
         """
         if name not in self._model.variable:
             self._model.variable[name] = otherwise
+        return self._model.variable[name]
 
     def set_variable(self, name: str, value: Any) -> None:
         """
@@ -883,10 +884,8 @@ class SessionScript(abc.ABC):
         :param value: value of the property to set
         :param cwd: directory where to execute the commit (needs to be a git repository)
         """
-        result, stdout, stderr = self.execute_and_forget(
+        self.execute_and_forget(
             commands=[["git", "config", name, f"\"{value}\""]],
-            show_output_on_screen=False,
-            capture_stdout=False,
             cwd=cwd,
         )
 
@@ -898,10 +897,8 @@ class SessionScript(abc.ABC):
         :param message: message used to commit
         :param cwd: directory where to execute the commit (needs to be a git repository)
         """
-        result, stdout, stderr = self.execute_and_forget(
+        self.execute_and_forget(
             commands=[["git", "commit", "-m", f"\"{message}\""]],
-            show_output_on_screen=False,
-            capture_stdout=False,
             cwd=cwd,
         )
 
@@ -917,10 +914,8 @@ class SessionScript(abc.ABC):
         push_cmd = ["git", "push", remote]
         if push_tags_as_well:
             push_cmd.append("--tags")
-        result, stdout, stderr = self.execute_and_forget(
+        self.execute_and_forget(
             commands=[push_cmd],
-            show_output_on_screen=False,
-            capture_stdout=False,
             cwd=cwd,
         )
 
@@ -934,10 +929,8 @@ class SessionScript(abc.ABC):
         :param cwd: directory where to execute the commit (needs to be a git repository)
         """
 
-        result, stdout, stderr = self.execute_and_forget(
+        self.execute_and_forget(
             commands=[["git", "remote", "add", remote_name, f"\"{remote_url}\""]],
-            show_output_on_screen=False,
-            capture_stdout=False,
             cwd=cwd,
         )
 
@@ -951,11 +944,9 @@ class SessionScript(abc.ABC):
         :param cwd: directory where to execute the commit (needs to be a git repository)
         """
 
-        result, stdout, stderr = self.execute_and_forget(
-            commands=[["git", "tag", "-a", tag_name, "-m", f"\"{description}\""]],
-            show_output_on_screen=False,
-            capture_stdout=False,
-            cwd=cwd,
+        self.execute_and_forget(
+            commands=[["git", "tag", "-a", f"\"{tag_name}\"", "-m", f"\"{description}\""]],
+            cwd=cwd
         )
 
 
