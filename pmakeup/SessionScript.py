@@ -884,10 +884,44 @@ class SessionScript(abc.ABC):
         :param value: value of the property to set
         :param cwd: directory where to execute the commit (needs to be a git repository)
         """
-        self.execute_and_forget(
+        self.execute_return_stdout(
             commands=[["git", "config", name, f"\"{value}\""]],
             cwd=cwd,
         )
+
+    @show_on_help.add_command('git')
+    def git_get_local_latest_tag(self, cwd: path) -> str:
+        """
+        Get the latest tag present in the local repository. If tag is present, raise an exception
+
+        :param cwd: path inside a git repository
+        :return: latest tag name
+        """
+        exit_code, stdout, stderr = self.execute_return_stdout(
+            commands=[["git", "describe"]],
+            cwd=cwd,
+        )
+        return stdout.strip()
+
+
+    @show_on_help.add_command('git')
+    def git_log(self, cwd: path, start_commit: str, end_commit: str) -> Iterable[Tuple[str, str, str]]:
+        """
+        generate the log entry
+
+        :param cwd: git repository to manage
+        :param start_commit: initial commit to filter the log. Either a commit hash, HEAD pattern or a tag name.
+        :param start_commit: end commit to filter the log. Either a commit hash, HEAD pattern or a tag name.
+        """
+        exit_code, stdout, stderr = self.execute_return_stdout(
+            commands=[["git", "log", "--pretty=fuller", f"{start_commit}..{end_commit}" ]],
+            cwd=cwd,
+        )
+
+        for
+
+        return stdout.strip()
+
 
     @show_on_help.add_command('git')
     def git_commit(self, message: str, cwd: path):
