@@ -44,7 +44,7 @@ setuptools.setup(
     install_requires=[
         "colorama",
         "decorator",
-        "semver",
+        "semantic-version",
         "networkx",
         "psutil",
     ],

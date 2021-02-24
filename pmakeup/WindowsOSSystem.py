@@ -5,7 +5,7 @@ import tempfile
 import time
 from typing import Union, List, Tuple, Dict, Any, Optional, Iterable
 
-import semver
+from semantic_version import Version
 
 from pmakeup.IOSSystem import IOSSystem
 from pmakeup.InterestingPath import InterestingPath
@@ -255,7 +255,7 @@ class WindowsOSSystem(IOSSystem):
         interesting_paths["internet-explorer"].append(InterestingPath(
             architecture=script.get_architecture(),
             path=iexplorer_path,
-            version=semver.VersionInfo.parse("1.0.0")
+            version=Version("1.0.0")
         ))
 
         # Computer\HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\IEXPLORE.EXE

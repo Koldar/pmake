@@ -7,7 +7,7 @@ import tempfile
 from typing import Union, List, Tuple, Dict, Any, Iterable, Optional
 
 import psutil as psutil
-import semver
+from semantic_version import Version
 
 from pmakeup.InterestingPath import InterestingPath
 from pmakeup.commons_types import path
@@ -334,13 +334,13 @@ class IOSSystem(abc.ABC):
                 else:
                     yield f
 
-    def _get_semantic_version(self, s: str) -> semver.VersionInfo:
+    def _get_semantic_version(self, s: str) -> Version:
         if len(s.split(".")) == 1:
-            return semver.VersionInfo.parse(f"{s}.0.0")
+            return Version(f"{s}.0.0")
         elif len(s.split(".")) == 2:
-            return semver.VersionInfo.parse(f"{s}.0")
+            return Version(f"{s}.0")
         else:
-            return semver.VersionInfo.parse(s)
+            return Version(s)
 
     def _fetch_latest_paths(self, script: "SessionScript", interesting_paths: Dict[str, List[InterestingPath]]) -> Dict[str, InterestingPath]:
         """

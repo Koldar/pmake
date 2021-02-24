@@ -13,7 +13,7 @@ import colorama
 import urllib.request
 from typing import List, Union, Iterable, Tuple, Any, Callable, Dict, Optional, AnyStr
 
-import semver
+from semantic_version import Version
 
 import configparser
 
@@ -131,7 +131,7 @@ class SessionScript(abc.ABC):
         return self.ensure_condition(lambda: name in self._model.variable, message=f"""No variable passed with "--variable" named "{name}".""")
 
     @show_on_help.add_command('versions')
-    def semantic_version_2_only_core(self, filename: str) -> semver.VersionInfo:
+    def semantic_version_2_only_core(self, filename: str) -> Version:
         """
         A function that can be used within ::get_latest_version_in_folder
 
@@ -145,10 +145,10 @@ class SessionScript(abc.ABC):
         if m is None:
             raise PMakeupException(f"Cannot find the regex {regex} within file \"{b}\"!")
         logging.debug(f"yes: \"{m.group(0)}\"")
-        return semver.VersionInfo.parse(m.group(0))
+        return Version(m.group(0))
 
     @show_on_help.add_command('versions')
-    def quasi_semantic_version_2_only_core(self, filename: str) -> semver.VersionInfo:
+    def quasi_semantic_version_2_only_core(self, filename: str) -> Version:
         """
         A function that can be used within ::get_latest_version_in_folder.
         It accepts values like "1.0.0", but also "1.0" and "1"
@@ -166,10 +166,10 @@ class SessionScript(abc.ABC):
             result += ".0"
         if len(result.split(".")) == 1:
             result += ".0.0"
-        return semver.VersionInfo.parse(result)
+        return Version(result)
 
     @show_on_help.add_command('versions')
-    def get_latest_version_in_folder(self, folder: path = None, should_consider: Callable[[path], bool] = None, version_fetcher: Callable[[str], semver.VersionInfo] = None) -> Tuple[semver.VersionInfo, List[path]]:
+    def get_latest_version_in_folder(self, folder: path = None, should_consider: Callable[[path], bool] = None, version_fetcher: Callable[[str], Version] = None) -> Tuple[Version, List[path]]:
         """
         Scan the subfiles and subfolder of a given directory. We assume each file or folder has a version withint it.
         Then fetches the latest version.
@@ -609,8 +609,8 @@ class SessionScript(abc.ABC):
 
         :param lowerbound: the minimum version this script is compliant with
         """
-        system_version = semver.VersionInfo.parse(version.VERSION)
-        script_version = semver.VersionInfo.parse(lowerbound)
+        system_version = Version(version.VERSION)
+        script_version = Version(lowerbound)
         self._log_command(f"Checking if script minimum pmakeup version {script_version} >= {system_version}")
         if script_version > system_version:
             raise PMakeupException(f"The script requires at least version {script_version} to be installed. Current version is {system_version}")
@@ -1657,7 +1657,7 @@ class SessionScript(abc.ABC):
         'spring' will be replaced with 'springaa'
 
         It may not work, so you can use the following syntax to achieve the same:
-        replace_regex_in_file(file_path, '(?P<word>\w+)', r'\g<word>aa')
+        replace_regex_in_file(file_path, '(?P<word>\\w+)', r'\\g<word>aa')
         'spring' will be replaced with 'springaa'
 
 
@@ -2104,7 +2104,7 @@ class SessionScript(abc.ABC):
                 subfolder_id = subfolder[len(prefix):]
                 try:
                     if folder_format == "semver2":
-                        folders[semver.VersionInfo.parse(subfolder_id)] = subfolder
+                        folders[Version(subfolder_id)] = subfolder
                     elif folder_format == "number":
                         folders[int(subfolder_id)] = subfolder
                     else:
