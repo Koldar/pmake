@@ -676,7 +676,7 @@ class MyTestCase(unittest.TestCase):
             model = PMakeupModel()
             model.input_string = """
                         echo(read_registry_local_machine_value(
-                            key=r"SOFTWARE\Microsoft\Clipboard",
+                            key=r"SOFTWARE\\Microsoft\\Clipboard",
                             item="IsClipboardSignalProducingFeatureAvailable"
                         ))
                     """
@@ -687,7 +687,7 @@ class MyTestCase(unittest.TestCase):
             model = PMakeupModel()
             model.input_string = """
                         echo(len(list(get_registry_local_machine_values(
-                            key=r"SOFTWARE\Microsoft\Clipboard",
+                            key=r"SOFTWARE\\Microsoft\\Clipboard",
                         ))))
                     """
             self.assertStdoutEquals("2", lambda: model.manage_pmakefile())
@@ -697,11 +697,11 @@ class MyTestCase(unittest.TestCase):
             model = PMakeupModel()
             model.input_string = """
                         echo(has_registry_local_machine_value(
-                            key=r"SOFTWARE\Microsoft\Clipboard",
+                            key=r"SOFTWARE\\Microsoft\\Clipboard",
                             item="IsClipboardSignalProducingFeatureAvailable"
                         ))
                         echo(has_registry_local_machine_value(
-                            key=r"SOFTWARE\Microsoft\Clipboard",
+                            key=r"SOFTWARE\\Microsoft\\Clipboard",
                             item="ujhsdfgfjkdhfgkldfhgkdfhgkdfgh"
                         ))
                     """
@@ -712,7 +712,7 @@ class MyTestCase(unittest.TestCase):
             model = PMakeupModel()
             model.input_string = """
                 echo(has_registry_local_machine_value(
-                    key=r"SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\IEXPLORE.EXE",
+                    key=r"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\App Paths\\IEXPLORE.EXE",
                     item=""
                 ))
             """
@@ -732,6 +732,21 @@ class MyTestCase(unittest.TestCase):
             echo(is_git_repo_clean())
         """
         self.assertStdoutEquals("True", lambda: model.manage_pmakefile())
+
+    def test_git_log(self):
+        expected = """hash=e2dd71820a12d6a708a0b732379bc53b027c21d1, author=Massimo Bono, mail=massimobono1@gmail.com, date=2021-02-24 14:28:33+01:00, title=work started on git log, description=start on developing the test
+now it is a good time to write a description
+
+ok?
+ * hash=3fb9879058bf8e93340d5f47e5d6693a3cf5fc08, author=Massimo Bono, mail=massimobono1@gmail.com, date=2021-02-24 14:05:39+01:00, title=git repo clean, description= * hash=318fe18ee70dfa90af2ba35d06a0bc319b02301b, author=Massimo Bono, mail=massimobono1@gmail.com, date=2021-02-24 13:52:30+01:00, title=test, description="""
+
+        model = PMakeupModel()
+        model.input_string = """
+            log = list(git_log(cwd(), "e2dd71820a12d6a708a0b732379bc53b027c21d1~~~", "e2dd71820a12d6a708a0b732379bc53b027c21d1"))
+            echo(len(log))
+            echo(' * '.join(map(str, log)))
+        """
+        self.assertStdoutEquals(f"3\n{expected}", lambda: model.manage_pmakefile())
 
 
 if __name__ == '__main__':

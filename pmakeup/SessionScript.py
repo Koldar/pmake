@@ -1,4 +1,5 @@
 import abc
+import json
 import logging
 import os
 import re
@@ -6,9 +7,12 @@ import shutil
 import stat
 import sys
 import tempfile
+import textwrap
+from datetime import datetime
 from zipfile import PyZipFile, ZipFile
 
 import colorama
+import yaml
 
 import urllib.request
 from typing import List, Union, Iterable, Tuple, Any, Callable, Dict, Optional, AnyStr
@@ -25,6 +29,7 @@ from pmakeup.WindowsOSSystem import WindowsOSSystem
 from pmakeup.commons_types import path
 from pmakeup.exceptions.PMakeupException import AssertionPMakeupException, PMakeupException, InvalidScenarioPMakeupException
 from pmakeup import show_on_help
+from pmakeup.git.CommitEntry import CommitEntry
 
 
 class SessionScript(abc.ABC):
@@ -903,9 +908,8 @@ class SessionScript(abc.ABC):
         )
         return stdout.strip()
 
-
     @show_on_help.add_command('git')
-    def git_log(self, cwd: path, start_commit: str, end_commit: str) -> Iterable[Tuple[str, str, str]]:
+    def git_log(self, cwd: path, start_commit: str, end_commit: str) -> Iterable[CommitEntry]:
         """
         generate the log entry
 
@@ -913,15 +917,68 @@ class SessionScript(abc.ABC):
         :param start_commit: initial commit to filter the log. Either a commit hash, HEAD pattern or a tag name.
         :param start_commit: end commit to filter the log. Either a commit hash, HEAD pattern or a tag name.
         """
+
+        # use %% to print % in the command line
+        syntax = """newcommit%%ncommit:%%H%%nsubject:%%s%%nauthorname:%%aN%%nauthormail:%%aE%%nauthordate:%%aI%%nbody:%%b%%nendcommit"""
+
         exit_code, stdout, stderr = self.execute_return_stdout(
-            commands=[["git", "log", "--pretty=fuller", f"{start_commit}..{end_commit}" ]],
+            commands=[["git", "log", "--date=iso", f"""--pretty=format:{syntax}""", f"{start_commit}..{end_commit}"]],
             cwd=cwd,
+            check_exit_code=True
         )
-
-        for
-
-        return stdout.strip()
-
+        for line in map(lambda x: x.strip(), stdout.splitlines()):
+            if line == "newcommit":
+                commit_hash: str = ""
+                subject: str = ""
+                body: str = ""
+                author_name: str = ""
+                author_mail: str = ""
+                author_date: datetime = datetime.utcnow()
+                body_started: bool = False
+                continue
+            if line == "endcommit":
+                yield CommitEntry(
+                    hash=commit_hash,
+                    author=author_name,
+                    author_email=author_mail,
+                    author_date=author_date,
+                    commit_date=author_date,
+                    title=subject,
+                    description=body
+                )
+                continue
+            m = re.match(r"^commit:(?P<hash>.+)$", line)
+            if m is not None:
+                commit_hash = m.group("hash")
+            else:
+                m = re.match(r"^subject:(?P<subject>.+)$", line)
+                if m is not None:
+                    subject = m.group("subject")
+                else:
+                    m = re.match(r"^authorname:(?P<authorname>.+)$", line)
+                    if m is not None:
+                        author_name = m.group("authorname")
+                    else:
+                        m = re.match(r"^authormail:(?P<authormail>.+)$", line)
+                        if m is not None:
+                            author_mail = m.group("authormail")
+                        else:
+                            m = re.match(r"^authordate:(?P<authordate>.+)$", line)
+                            if m is not None:
+                                author_date = datetime.fromisoformat(m.group("authordate"))
+                            else:
+                                m = re.match(r"^body:(?P<body>.*)$", line)
+                                if m is not None:
+                                    body = m.group("body")
+                                    body_started = True
+                                else:
+                                    if body_started:
+                                        # it is still part of the body
+                                        body = body + "\n" + line
+                                    elif line.strip() == "":
+                                        continue
+                                    else:
+                                        raise ValueError(f"Cannot detect where this line belongs to! Line is \"{line}\"")
 
     @show_on_help.add_command('git')
     def git_commit(self, message: str, cwd: path):
@@ -1768,11 +1825,11 @@ class SessionScript(abc.ABC):
 
         If you want to use named capturing group, you can do so! For instance,
 
-        replace_regex_in_file(file_path, '(?P<word>\w+)', '(?P=word)aa')
+        replace_regex_in_file(file_path, '(?P<word>\\w+)', '(?P=word)aa')
         'spring' will be replaced with 'springaa'
 
         It may not work, so you can use the following syntax to achieve the same:
-        replace_regex_in_file(file_path, '(?P<word>\w+)', r'\g<word>aa')
+        replace_regex_in_file(file_path, '(?P<word>\\w+)', r'\\g<word>aa')
         'spring' will be replaced with 'springaa'
 
 
