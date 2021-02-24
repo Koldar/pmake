@@ -727,6 +727,13 @@ class MyTestCase(unittest.TestCase):
             self.assertStdoutEquals(os.path.join("C:\\", "Program Files", "Internet Explorer", "iexplore.exe"), lambda: model.manage_pmakefile())
 
 
+    def test_is_git_repo_clean(self):
+        model = PMakeupModel()
+        model.input_string = """
+                        echo(is_git_repo_clean())
+                    """
+        self.assertStdoutEquals("True", lambda: model.manage_pmakefile())
+
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
     unittest.main()
