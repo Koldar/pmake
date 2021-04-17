@@ -5,14 +5,16 @@ import re
 import networkx as nx
 import textwrap
 import traceback
-from typing import Any, Dict, Optional, List
+from typing import Any, Dict, Optional, List, Iterable, Union
 
 import colorama
 
+from pmakeup.PMakeupRegistry import PMakeupRegistry
+from pmakeup.plugins.AbstractPmakeupPlugin import AbstractPmakeupPlugin
 from pmakeup.IPMakeupCache import IPMakeupCache
-from pmakeup.JsonPMakeupCache import JsonPMakeupCache
+from pmakeup.cache.JsonPMakeupCache import JsonPMakeupCache
 from pmakeup.TargetDescriptor import TargetDescriptor
-from pmakeup.SessionScript import SessionScript
+from pmakeup.SessionScript import SessionScript, AbstractSessionScript
 from pmakeup.commons_types import path
 from pmakeup.constants import STANDARD_MODULES, STANDARD_VARIABLES
 from pmakeup.LinuxSessionScript import LinuxSessionScript
@@ -98,64 +100,199 @@ class PMakeupModel(abc.ABC):
         If an error occurs, we must know where the error is. Hence this variable is pretty useful to detect that.
         This list acts as a stack
         """
-        self._eval_globals: Optional[Dict[str, Any]] = None
+        self._eval_globals: PMakeupRegistry = PMakeupRegistry()
 
-        self.session_script: "SessionScript" = None
-        if os.name == "nt":
-            self.session_script: "SessionScript" = WindowsSessionScript(self)
-        elif os.name == "posix":
-            self.session_script: "SessionScript" = LinuxSessionScript(self)
+        # initialize the container that holds all the functions that can be used inside pmakeup
+        self._plugin_graph: nx.DiGraph = nx.DiGraph(name="Plugin graph")
+
+        self._setup_plugin_graph()
+
+    def is_plugin_registered(self, plugin: Union[str, "AbstractPmakeupPlugin"]) -> bool:
+        """
+        At least one plugin instance has been initialized in the plugin graph
+
+        :param plugin: plugin to check (or plugin name)
+        :return: true if the plugin is already been registered in the model, false otheriwse
+        """
+        if isinstance(plugin, str):
+            plugin = plugin
+        elif isinstance(plugin, AbstractPmakeupPlugin):
+            plugin = plugin.get_plugin_name()
         else:
-            self.session_script: "SessionScript" = SessionScript(self)
+            raise TypeError(f"is_plugin_registered: only str or object is allowed")
 
-    def _get_eval_global(self) -> Dict[str, Any]:
-        result = dict()
-        for k in dir(self.session_script):
-            if k.startswith("_"):
-                continue
-            if k in result:
-                raise KeyError(f"duplicate key \"{k}\". It is already mapped to the value {result[k]}")
-            logging.debug(f"Adding variable {k}")
-            result[k] = getattr(self.session_script, k)
+        return plugin in set(map(lambda n: n.get_plugin_name(), self._plugin_graph.nodes))
 
+    def _ensure_plugin_is_registered(self, plugin: Union[str, "AbstractPmakeupPlugin"]):
+        """
+        Ensure that at least one plugin instance has been initialized in the plugin graph
+
+        :param plugin: plugin to check (or plugin name)
+        :raises ValueError: if the plugin is not registered at all
+        """
+        if not self.is_plugin_registered(plugin):
+            raise ValueError(f"Plugin \"{plugin}\" not registered at all!")
+
+    def _ensure_plugin_is_not_registered(self, plugin: Union[str, "AbstractPmakeupPlugin"]):
+        """
+        Ensure that no plugin instance has been initialized in the plugin graph
+
+        :param plugin: plugin to check (or plugin name)
+        :raises ValueError: if the plugin is registered
+        """
+        if self.is_plugin_registered(plugin):
+            raise ValueError(f"Plugin \"{plugin}\" has already been registered!")
+
+    def get_plugin_by_name(self, name: str) -> "AbstractPmakeupPlugin":
+        """
+        Fetch a plugin with the given type
+
+        :param plugin. type of the plugin to look for
+        :return: an instance of the given plugin
+        """
+
+        for aplugin in self._plugin_graph.nodes:
+            if aplugin.get_plugin_name() == name:
+                return aplugin
+        else:
+            raise ValueError(f"Cannot find a plugin named \"{name}\"")
+
+    def get_plugins(self) -> Iterable[AbstractPmakeupPlugin]:
+        """
+        get all the registered plugin up to this point
+        """
+        return list(self._plugin_graph.nodes)
+
+    def _add_plugin(self, plugin: "AbstractPmakeupPlugin", ignore_if_already_registered: bool) -> bool:
+        """
+        Add a new instance of a plugin in the plugin dependency graph
+
+        :param plugin: plugin to add
+        :param ignore_if_already_registered: if true, we will not generate an exception if the plugin was already registered
+        :return: true if the plugin was registered
+        """
+        if ignore_if_already_registered:
+            if not self.is_plugin_registered(plugin):
+                self._plugin_graph.add_node(plugin)
+                return True
+            return False
+        else:
+            self._ensure_plugin_is_not_registered(plugin)
+            self._plugin_graph.add_node(plugin)
+            return True
+
+    def _has_edge_with_label(self, source: AbstractPmakeupPlugin, sink: AbstractSessionScript, label: str) -> bool:
+        """
+        Check if the plugin graph cojntains an edge from "source" to "sink" labelled as "label"
+
+        :param source: the source plugin instance
+        :param sink: the sink plugin instance
+        :param label: label to check
+        """
+        return self._plugin_graph.edges[source, sink]['weight'] == label
+
+    def _add_setup_dependency(self, plugin: AbstractPmakeupPlugin, depends_on: AbstractPmakeupPlugin):
+        if not self.is_plugin_registered(depends_on):
+            # the plugin we depend upon is not registered at all. We need to register it
+            raise ValueError(f"Cannot find a dependency of the plugin {plugin}: plugin {depends_on} not found. Can you install it and add it to require_pmakeup_plugins please?")
+        if self._plugin_graph.has_edge(plugin, depends_on, "setup"):
+            raise ValueError(f"plugins {plugin} -> {depends_on} already has a dependency")
+        self._plugin_graph.add_edge(plugin, depends_on, "setup")
+        # now check for cycles (there cannot be cycles in the graph)
+        if not nx.algorithms.is_directed_acyclic_graph(self._plugin_graph):
+            raise ValueError(f"Cycle depetected within plugin dependencies!")
+
+    def register_plugins(self, *plugin: Union[str]):
+        updated = False
+        for p in plugin:
+            updated = updated or self._add_plugin(p, ignore_if_already_registered=True)
+        if updated:
+            self._setup_plugin_graph_and_update_eval_globals()
+
+    def _setup_plugin_graph_and_update_eval_globals(self):
+        """
+        Populate the plugin graph manager
+
+        """
+
+        self._add_plugin(SessionScript(self), ignore_if_already_registered=True)
+
+        if os.name == "nt":
+            self._add_plugin(WindowsSessionScript(self), ignore_if_already_registered=True)
+        elif os.name == "posix":
+            self._add_plugin(LinuxSessionScript(self), ignore_if_already_registered=True)
+        else:
+            raise ValueError(f"Cannot identify current operating system! os.name = {os.name}")
+
+        # add setup dependencies
+        for plugin in self._plugin_graph.nodes:
+            if not plugin.is_setupped:
+                for plugin_dependency in plugin._get_dependencies():
+                    logging.debug(f"Add dependency between {plugin} -> {plugin_dependency}...")
+                    self._add_setup_dependency(plugin, plugin_dependency)
+
+        # ok, now setup the graph
+        for plugin in nx.algorithms.dfs_preorder_nodes(self._plugin_graph):
+            logging.debug(f"Setupping pligun {plugin}...")
+            if not plugin.is_setupped:
+                plugin.setup_plugin()
+            plugin._is_setupped = True
+
+        logging.info(f"All plugins have been successfully setupped!")
+
+        self._update_eval_global()
+
+    def _update_eval_global(self):
+        """
+        Collect all the functions that are readibly usable from pmakefile scripts
+        """
+
+        # dump all the functions inside the global_eval. Don't set global_eval by itself,
+        # since it may be used by a runnign execute statement
+
+        for plugin in self.get_plugins():
+            # register the plugin in the eval: in this way the user can call a specific plugin function
+            # if she really wants to
+            if plugin.get_plugin_name() not in self._eval_globals:
+                self._eval_globals[plugin.get_plugin_name()] = plugin
+            # register all the plugin functions in eval
+            for name, function in plugin.get_plugin_functions():
+                if name not in self._eval_globals:
+                    self._eval_globals[name] = function
+
+        # Standard modules
         for k, v in STANDARD_MODULES:
-            if k in result:
-                raise KeyError(f"duplicate key \"{k}\". It is already mapped to the value {result[k]}")
-            logging.debug(f"Adding standard variable {k}")
-            result[k] = v
+            if k not in self._eval_globals:
+                logging.debug(f"Adding standard variable {k}")
+                self._eval_globals[k] = v
+
+        # Standard variables
         for name, value, description in STANDARD_VARIABLES:
-            if name in result:
-                raise KeyError(f"duplicate key \"{name}\". It is already mapped to the value {result[name]}")
-            result[name] = value
+            if name not in self._eval_globals:
+                self._eval_globals[name] = value
 
-        # SPECIAL VARIABLES
-
-        if "variables" in result:
-            raise KeyError(f"duplicate key \"variables\". It is already mapped to the value {result['variables']}")
+        # user specific variables
+        if "variables" in self._eval_globals:
+            raise KeyError(f"duplicate key \"variables\". It is already mapped to the value {global_eval['variables']}")
         logging.debug(f"Adding standard variable 'variable'")
         attr_dict = {}
         for k, v in self.variable.items():
             attr_dict[k] = self.variable[k]
         self.variable = attr_dict
-        result["variables"] = AttrDict(attr_dict)
+        self._eval_globals.variables = AttrDict(attr_dict)
         logging.info(f"VARIABLES PASSED FROM CLI")
         for i, (k, v) in enumerate(self.variable.items()):
             logging.info(f' {i}. {k} = {v}')
 
-        if "model" in result:
-            raise KeyError(f"duplicate key \"model\". It is already mapped to the value {result['model']}")
+        if "model" in global_eval:
+            raise KeyError(f"duplicate key \"model\". It is already mapped to the value {global_eval['model']}")
         logging.debug(f"Adding standard variable 'model'")
-        result["model"] = self
+        global_eval["model"] = self
 
-        if "commands" in result:
-            raise KeyError(f"duplicate key \"commands\". It is already mapped to the value {result['commands']}")
-        logging.debug(f"Adding standard variable 'commands'")
-        result["commands"] = self.session_script
-
-        if "requested_target_names" in result:
-            raise KeyError(f"duplicate key \"requested_target_names\". It is already mapped to the value {result['targets']}")
+        if "requested_target_names" in global_eval:
+            raise KeyError(f"duplicate key \"requested_target_names\". It is already mapped to the value {global_eval['targets']}")
         logging.debug(f"Adding standard variable 'requested_target_names'")
-        result["requested_target_names"] = self.requested_target_names
+        global_eval["requested_target_names"] = self.requested_target_names
 
         if "interesting_paths" in result:
             raise KeyError(f"duplicate key \"interesting_paths\". It is already mapped to the value {result['interesting_paths']}")
@@ -180,7 +317,7 @@ class PMakeupModel(abc.ABC):
         for i, t in enumerate(self.requested_target_names):
             logging.info(f" - {i+1}. {t}")
 
-        return result
+        return global_eval
 
     def manage_pmakefile(self):
         """
@@ -198,7 +335,9 @@ class PMakeupModel(abc.ABC):
 
     def execute(self):
         """
-        Read the content of the PMakefile and executes it
+        Read the Pmakefile instructions from a configured option.
+        For example, if "input_string" is set, invoke from it.
+        If "input_file" is set, invoke from it
         :return:
         """
 
@@ -237,10 +376,11 @@ class PMakeupModel(abc.ABC):
             string = textwrap.dedent(string)
             logging.debug("input string:")
             logging.debug(string)
-            if self._eval_globals is None:
-                self._eval_globals = self._get_eval_global()
+            self._update_eval_global()
             if self.pmake_cache is None:
+                # set tjhe pmakeup cache
                 self.pmake_cache = JsonPMakeupCache("pmakeup-cache.json")
+            # now execute the string
             exec(
                 string,
                 self._eval_globals,

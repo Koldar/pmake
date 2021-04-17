@@ -692,6 +692,18 @@ class MyTestCase(unittest.TestCase):
                     """
             self.assertStdoutEquals("2", lambda: model.manage_pmakefile())
 
+    def test_set_registry_keys(self):
+        if os.name == 'nt':
+            model = PMakeupModel()
+            model.input_string = """
+                        echo(set_registry_in_current_user_as_int(
+                            key_relative_to_root=r"SOFTWARE\\Microsoft\\Clipboard",
+                            key="hello",
+                            value=3
+                        ))
+                    """
+            self.assertStdoutEquals("True", lambda: model.manage_pmakefile())
+
     def test_has_registry_value(self):
         if os.name == 'nt':
             model = PMakeupModel()

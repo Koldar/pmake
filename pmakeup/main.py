@@ -6,9 +6,9 @@ import sys
 import textwrap
 from typing import Tuple, Iterable, Any, Dict
 
-from pmakeup import version, show_on_help
+from pmakeup import version
+from pmakeup.decorators import show_on_help
 from pmakeup.PMakeupModel import PMakeupModel
-from pmakeup.SessionScript import SessionScript
 from pmakeup.constants import STANDARD_MODULES, STANDARD_VARIABLES
 from pmakeup.exceptions.PMakeupException import AssertionPMakeupException, InvalidScenarioPMakeupException, PMakeupException
 
@@ -166,33 +166,62 @@ def parse_options(args):
     return options
 
 
+def configure_logging(options) -> str:
+    log_level = options.log_level
+    logging.basicConfig(
+        level=log_level,
+        datefmt="%Y-%m-%dT%H:%M:%S",
+        format='%(asctime)s %(funcName)20s@%(lineno)4d[%(levelname)8s] - %(message)s',
+    )
+    return log_level
+
+
+def initialize_model(options) -> "PMakeupModel":
+    model = PMakeupModel()
+    model.input_file = os.path.abspath(options.input_file)
+    model.input_encoding = options.input_encoding
+    model.log_level = options.log_level
+    model.input_string = options.input_string
+    model.variable = {x[0]: x[1] for x in options.variable}
+    model.requested_target_names = options.targets
+    model.should_show_target_help = options.info
+
+    return model
+
+
+def handle_version_flag(options):
+    """
+    if version is set, show the version and stop
+    """
+    if options.version:
+        print(version.VERSION)
+        sys.exit(0)
+
+
+global PMAKEUP_MODEL
+"""
+The model used by the running pmakeup program. Accessible anywhere
+"""
+
+
 def main(args=None):
     try:
+        # parse options
         if args is None:
             args = sys.argv[1:]
         options = parse_options(args)
+        handle_version_flag(options)
 
-        if options.version:
-            print(version.VERSION)
-            sys.exit(0)
-
-        log_level = options.log_level
-        logging.basicConfig(
-            level=log_level,
-            datefmt="%Y-%m-%dT%H:%M:%S",
-            format='%(asctime)s %(funcName)20s@%(lineno)4d[%(levelname)8s] - %(message)s',
-        )
+        # configure logging
+        log_level = configure_logging(options)
         logging.debug(f"Logging set to {log_level} (DEBUG={logging.DEBUG}, INFO={logging.INFO}, WARNING={logging.WARN}, ERROR={logging.ERROR}, CRITICAL={logging.CRITICAL})")
 
-        model = PMakeupModel()
-        model.input_file = os.path.abspath(options.input_file)
-        model.input_encoding = options.input_encoding
-        model.log_level = options.log_level
-        model.input_string = options.input_string
-        model.variable = {x[0]: x[1] for x in options.variable}
-        model.requested_target_names = options.targets
-        model.should_show_target_help = options.info
-        model.manage_pmakefile()
+        # initialize pmakeup model
+        global PMAKEUP_MODEL
+        PMAKEUP_MODEL = initialize_model(options)
+
+        # invoke pmakeup model
+        PMAKEUP_MODEL.manage_pmakefile()
     except AssertionPMakeupException as e:
         sys.exit(1)
     except InvalidScenarioPMakeupException as e:

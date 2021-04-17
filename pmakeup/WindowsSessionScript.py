@@ -6,7 +6,7 @@ import os
 import winreg
 from typing import Any, Tuple, Iterable
 
-from pmakeup import show_on_help
+from pmakeup.decorators import show_on_help
 from pmakeup.SessionScript import SessionScript, path
 
 
@@ -22,6 +22,204 @@ class WindowsSessionScript(SessionScript):
         :param string: the string to echo'ed
         """
         self.echo(string)
+
+    @show_on_help.add_command('windows-registry')
+    def delete_registry(self, root: str, key_relative_to_root: str, key: str, architecture: int = None) -> bool:
+        """
+        Delete a key in the registry. Is not recursive
+
+        :param root: e.g., winreg.HKEY_CURRENT_USER
+        :param key_relative_to_root: you can use "SOFTWARE\\Microsoft\\Internet Explorer\\Main" to set it to internet explorer
+        :param key: key to generate within root + key_relative_to_root
+        :param architecture: architecture to user in the regedit
+        :return: true if the oepration suceeds, false otheriwse
+        """
+
+        key_name = f"{key_relative_to_root}\\{key}"
+        open_key = None
+
+        try:
+            try:
+                print(f"open_key = {key_name}")
+                open_key = winreg.OpenKey(root, key_name, 0, winreg.KEY_ALL_ACCESS)
+                try:
+                    sub_key = winreg.EnumKey(open_key, 0)
+                    print(f"subkey considered is {sub_key}")
+                    winreg.DeleteKeyEx(open_key, sub_key)
+                    return True
+                except OSError:
+                    pass
+            finally:
+                if open_key is not None:
+                    winreg.CloseKey(open_key)
+        except FileNotFoundError:
+            architecture = architecture or self.get_architecture()
+            if architecture == 32:
+                other_architecture = winreg.KEY_WOW64_64KEY
+            elif architecture == 64:
+                other_architecture = winreg.KEY_WOW64_32KEY
+            else:
+                raise ValueError(f"Invalid architecture {architecture}!")
+
+            try:
+                print(f"open_key = {key_name}")
+                open_key = winreg.OpenKey(root, key_name, 0, winreg.KEY_ALL_ACCESS)
+                try:
+                    sub_key = winreg.EnumKey(open_key, 0)
+                    print(f"subkey considered is {sub_key}")
+                    winreg.DeleteKeyEx(open_key, sub_key)
+                    return True
+                except OSError:
+                    pass
+            except FileNotFoundError as e:
+                raise FileNotFoundError(f"Cannot find the registry key {root}\\{key_relative_to_root}\\{key}")
+            finally:
+                if open_key is not None:
+                    winreg.CloseKey(open_key)
+
+    @show_on_help.add_command('windows-registry')
+    def delete_registry_from_current_user(self, key_relative_to_root: str, key: str, architecture: int = None) -> bool:
+        """
+        Delete a simple key-value pair in the registry. Is not recursive
+
+        :param key_relative_to_root: you can use "SOFTWARE\\Microsoft\\Internet Explorer\\Main" to set it to internet explorer
+        :param key: key to generate within root + key_relative_to_root
+        :param architecture: architecture to user in the regedit
+        """
+        return self.delete_registry(
+            root=winreg.HKEY_CURRENT_USER,
+            key_relative_to_root=key_relative_to_root,
+            key=key,
+            architecture=architecture
+        )
+
+    @show_on_help.add_command('windows-registry')
+    def delete_registry_from_hkey_local_machine(self, key_relative_to_root: str, key: str, architecture: int = None) -> bool:
+        """
+                Delete a simple key-value pair in the registry. Is not recursive
+
+                :param key_relative_to_root: you can use "SOFTWARE\\Microsoft\\Internet Explorer\\Main" to set it to internet explorer
+                :param key: key to generate within root + key_relative_to_root
+                :param architecture: architecture to user in the regedit
+                """
+        return self.delete_registry(
+            root=winreg.HKEY_LOCAL_MACHINE,
+            key_relative_to_root=key_relative_to_root,
+            key=key,
+            architecture=architecture
+        )
+
+    @show_on_help.add_command('windows-registry')
+    def set_registry(self, root: str, key_relative_to_root: str, key: str, value_type, value: Any, architecture: int = None) -> bool:
+        """
+        Set a key in the registry
+        :param root: e.g., winreg.HKEY_CURRENT_USER
+        :param key_relative_to_root: you can use "SOFTWARE\\Microsoft\\Internet Explorer\\Main" to set it to internet explorer
+        :param key: key to generate within root + key_relative_to_root
+        :param value_type: type of the vlaue to create
+        :param value: value to set
+        :param architecture: architecture to user in the regedit
+        :return: true if the oepration suceeds, false otheriwse
+        """
+
+
+        architecture = architecture or self.get_architecture()
+        if architecture == 32:
+            other_architecture = winreg.KEY_WOW64_64KEY
+        elif architecture == 64:
+            other_architecture = winreg.KEY_WOW64_32KEY
+        else:
+            raise ValueError(f"Invalid architecture {architecture}!")
+
+        try:
+            winreg.CreateKey(root, key_relative_to_root)
+            registry_key = None
+            try:
+                registry_key = winreg.OpenKey(root, key_relative_to_root, 0, winreg.KEY_WRITE | other_architecture)
+                winreg.SetValueEx(registry_key, key, 0, value_type, value)
+                return True
+            finally:
+                if registry_key is not None:
+                    winreg.CloseKey(registry_key)
+        except WindowsError:
+            return False
+
+    @show_on_help.add_command('windows-registry')
+    def set_registry_as_int(self, root: str, key_relative_to_root: str, key: str, value: int, architecture: int = None) -> bool:
+        """
+        Set a key which is an int.
+
+        :param root: e.g., winreg.HKEY_CURRENT_USER
+        :param key_relative_to_root: you can use "SOFTWARE\\Microsoft\\Internet Explorer\\Main" to set it to internet explorer
+        :param key: key to generate within root + key_relative_to_root
+        :param value: value to set
+        :param architecture: architecture to user in the regedit
+        """
+        return self.set_registry(
+            root=root,
+            key_relative_to_root=key_relative_to_root,
+            key=key,
+            value_type=winreg.REG_DWORD,
+            value=str(value),
+            architecture=architecture
+        )
+
+    @show_on_help.add_command('windows-registry')
+    def set_registry_in_current_user_as_int(self, key_relative_to_root: str, key: str, value: int, architecture: int = None) -> bool:
+        """
+        Set a key which is an int inside a current user
+
+        :param key_relative_to_root: you can use "SOFTWARE\\Microsoft\\Internet Explorer\\Main" to set it to internet explorer
+        :param key: key to generate within root + key_relative_to_root
+        :param value: value to set
+        :param architecture: architecture to user in the regedit
+        """
+        return self.set_registry_as_int(
+            root=winreg.HKEY_CURRENT_USER,
+            key_relative_to_root=key_relative_to_root,
+            key=key,
+            value=str(value),
+            architecture=architecture
+        )
+
+    @show_on_help.add_command('windows-registry')
+    def set_registry_as_string(self, root: str, key_relative_to_root: str, key: str, value: str, architecture: int = None) -> bool:
+        """
+        Set a key which is an int.
+
+        :param root: e.g., winreg.HKEY_CURRENT_USER
+        :param key_relative_to_root: you can use "SOFTWARE\\Microsoft\\Internet Explorer\\Main" to set it to internet explorer
+        :param key: key to generate within root + key_relative_to_root
+        :param value: value to set
+        :param architecture: architecture to user in the regedit
+        """
+        return self.set_registry(root, key_relative_to_root, key, winreg.REG_SZ, str(value), architecture)
+
+    @show_on_help.add_command('windows-registry')
+    def set_registry_in_current_user_as_string(self, key_relative_to_root: str, key: str, value: str, architecture: int = None) -> bool:
+        """
+        Set a key which is an int inside a current user
+
+        :param key_relative_to_root: you can use "SOFTWARE\\Microsoft\\Internet Explorer\\Main" to set it to internet explorer
+        :param key: key to generate within root + key_relative_to_root
+        :param value: value to set
+        :param architecture: architecture to user in the regedit
+        """
+        return self.set_registry_as_string(winreg.HKEY_CURRENT_USER, key_relative_to_root, key, str(value), architecture)
+
+    @show_on_help.add_command('windows-registry')
+    def set_registry_in_local_machine_as_string(self, key_relative_to_root: str, key: str, value: str,
+                                               architecture: int = None) -> bool:
+        """
+        Set a key which is an int inside a current user
+
+        :param key_relative_to_root: you can use "SOFTWARE\\Microsoft\\Internet Explorer\\Main" to set it to internet explorer
+        :param key: key to generate within root + key_relative_to_root
+        :param value: value to set
+        :param architecture: architecture to user in the regedit
+        """
+        return self.set_registry_as_string(winreg.HKEY_LOCAL_MACHINE, key_relative_to_root, key, str(value),
+                                           architecture)
 
     @show_on_help.add_command('windows-registry')
     def get_registry_local_machine_values(self, key: str, architecture: int = None) -> Iterable[Tuple[str, Any]]:

@@ -9,27 +9,12 @@ with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
 
-def get_data_files() -> List[Tuple[str, List[str]]]:
-    if os.name == "nt":
-        return [
-            # put exe into C:\Python38\Scripts
-            ("Scripts", [os.path.join("scripts", "pmakeup.exe")])
-        ]
-    elif os.name == "posix":
-        return [
-            # /usr/local/bin
-            ("bin", [os.path.join("scripts", "pmakeup")])
-        ]
-    else:
-        raise InvalidScenarioPMakeupException(f"invalid os name {os.name}")
-
-
 setuptools.setup(
     name="pmakeup",  # Replace with your own username
     version=version.VERSION,
     author="Massimo Bono",
     author_email="massimobono1@gmail.com",
-    description="Library for quickly develop makefile-like files, platform independent",
+    description="Library for quickly generate ER diagrams",
     long_description=long_description,
     long_description_content_type="text/markdown",
     # license=license_value,

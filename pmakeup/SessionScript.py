@@ -1,5 +1,3 @@
-import abc
-import json
 import logging
 import os
 import re
@@ -7,15 +5,12 @@ import shutil
 import stat
 import sys
 import tempfile
-import textwrap
 from datetime import datetime
-from zipfile import PyZipFile, ZipFile
 
 import colorama
-import yaml
 
 import urllib.request
-from typing import List, Union, Iterable, Tuple, Any, Callable, Dict, Optional, AnyStr
+from typing import List, Union, Iterable, Tuple, Any, Callable, Optional
 
 from semantic_version import Version
 
@@ -23,23 +18,28 @@ import configparser
 
 from pmakeup import version
 from pmakeup import PMakeupModel
-from pmakeup.LinuxOSSystem import LinuxOSSystem
+from pmakeup.plugins.AbstractPmakeupPlugin import AbstractPmakeupPlugin
 from pmakeup.TargetDescriptor import TargetDescriptor
-from pmakeup.WindowsOSSystem import WindowsOSSystem
 from pmakeup.commons_types import path
 from pmakeup.exceptions.PMakeupException import AssertionPMakeupException, PMakeupException, InvalidScenarioPMakeupException
-from pmakeup import show_on_help
-from pmakeup.git.CommitEntry import CommitEntry
+from pmakeup.decorators import show_on_help
+from pmakeup.plugins.git.CommitEntry import CommitEntry
 
 
-class SessionScript(abc.ABC):
+class SessionScript(AbstractPmakeupPlugin):
     """
     Contains all the commands available for the user in a PMakeupfile.py file
     """
 
     def __init__(self, model: "PMakeupModel.PMakeupModel"):
-        self._model = model
+        super().__init__(model)
+        """
+        Model referencing this object
+        """
         self._cwd = os.path.abspath(os.curdir)
+        """
+        CWD right now
+        """
         self._locals = {}
         self._foreground_mapping = {
             "RED": colorama.Fore.RED,
@@ -50,6 +50,9 @@ class SessionScript(abc.ABC):
             "CYAN": colorama.Fore.CYAN,
             "WHITE": colorama.Fore.WHITE,
         }
+        """
+        If you need to color stdout, the foreground mapping
+        """
         self._background_mapping = {
             "RED": colorama.Back.RED,
             "GREEN": colorama.Back.GREEN,
@@ -59,17 +62,40 @@ class SessionScript(abc.ABC):
             "CYAN": colorama.Back.CYAN,
             "WHITE": colorama.Back.WHITE,
         }
+        """
+        If you need to color stdout, the background mapping
+        """
         self._disable_log_command: bool = False
-        if self.on_windows():
-            self._platform = WindowsOSSystem()
-        elif self.on_linux():
-            self._platform = LinuxOSSystem(model)
-        else:
-            raise PMakeupException(f"Cannot identify platform!")
+        """
+        If true, we will not display output
+        """
 
         # fetches the interesting paths
         self._interesting_paths = self._platform._fetch_interesting_paths(self)
         self._latest_interesting_path = self._platform._fetch_latest_paths(self, self._interesting_paths)
+
+    def require_pmakeup_plugins(self, *pmakeup_plugin_names: str):
+        """
+        Tells pmakeup that, in order to run the script, you required a sequence of pmakeup plugins correctly installed (the version does not matter)
+
+        Pmakeup will then arrange itself in installing dependencies and the correct order of the plugins
+        """
+        # TODO implement
+        raise NotImplementedError()
+
+    @show_on_help.add_command('core')
+    def get_all_registered_plugins(self) -> Iterable[str]:
+        """
+        get all the registered pmakeup plugins at this moment
+        """
+        return map(lambda p: p.get_plugin_name(), self.get_plugins())
+
+    @show_on_help.add_command('core')
+    def get_all_available_command_names(self) -> Iterable[str]:
+        """
+        Get all the commands you can execute right now
+        """
+        yield from self._model._eval_globals
 
     @show_on_help.add_command('core')
     def get_latest_path_with_architecture(self, current_path: str, architecture: int) -> path:
@@ -362,29 +388,6 @@ class SessionScript(abc.ABC):
         self._log_command(f"Setting {name}={new_value} in cache")
         self._model.pmake_cache.set_variable_in_cache(name, new_value)
 
-    @show_on_help.add_command('core')
-    def get_variable_or(self, name: str, otherwise: Any) -> Any:
-        """
-        Ensure the user has passed a variable.
-        If not,  the default variable is stored in the variable sety
-
-        :param name: the variable name to check
-        :param otherwise: the value the varible with name will have if the such a variable is not present
-
-        """
-        if name not in self._model.variable:
-            self._model.variable[name] = otherwise
-        return self._model.variable[name]
-
-    def set_variable(self, name: str, value: Any) -> None:
-        """
-        Set the variable in the current model. If the variable did not exist, we create one one.
-        Otheriwse, the value is overridden
-
-        :param name: name of the variable to programmatically set
-        :param value: value to set
-        """
-        self._model.variable[name] = value
 
     @show_on_help.add_command('paths')
     def get_starting_cwd(self) -> path:
@@ -756,14 +759,7 @@ class SessionScript(abc.ABC):
 
         return result
 
-    def _log_command(self, message: str):
-        """
-        reserved. Useful to log the action performed by the user
 
-        :param message: message to log
-        """
-        if not self._disable_log_command:
-            logging.info(message)
 
     @show_on_help.add_command('logging')
     def info(self, message: str):
@@ -1771,131 +1767,7 @@ class SessionScript(abc.ABC):
         )
         return content
 
-    @show_on_help.add_command('files')
-    def find_regex_match_in_file(self, pattern: str, *p: path, encoding: str = "utf8", flags: Union[int, re.RegexFlag] = 0) -> Optional[re.Match]:
-        """
-        FInd the first regex pattern in the file
 
-        If you used named capturing in the pattern, you can gain access via result.group("name")
-
-        :param pattern: regex pattern to consider
-        :param p: file to consider
-        :param encoding: encoding of the file to search. Defaults to utf8
-        :param flags: flags of the regex to build. Passed as-is
-        :return a regex match representing the first occurence. If None we could not find anything
-        """
-
-        fn = self.abs_wrt_cwd(*p)
-        self._log_command(f"""Looking for pattern {pattern} in file {fn}.""")
-        with open(fn, mode="r", encoding=encoding) as f:
-            content = f.read()
-
-        return re.search(pattern, content, flags=flags)
-
-    @show_on_help.add_command('files')
-    def replace_string_in_file(self, name: path, substring: str, replacement: str, count: int = -1,
-                               encoding: str = "utf-8"):
-        """
-        Replace some (or all) the occurences of a given substring in a file
-
-        :param name: path of the file to handle
-        :param substring: substring to replace
-        :param replacement: string that will replace *substring*
-        :param count: the number of occurences to replace. -1 if you want to replace all occurences
-        :param encoding: encoding used for reading the file
-        """
-        p = self.abs_path(name)
-        self._log_command(f"Replace substring \"{substring}\" in \"{replacement}\" in file {p} (up to {count} occurences)")
-        with open(p, mode="r", encoding=encoding) as f:
-            content = f.read()
-
-        with open(p, mode="w", encoding=encoding) as f:
-            try:
-                # the sub operation may throw exception. In this case the file is reset. This is obviously very wrong,
-                # hence we added the try except in order to at least leave the file instact
-                content = content.replace(substring, replacement, count)
-            finally:
-                f.write(content)
-
-    @show_on_help.add_command('files')
-    def replace_regex_in_file(self, name: path, regex: str, replacement: str, count: int = -1,
-                               encoding: str = "utf-8"):
-        """
-        Replace some (or all) the occurences of a given regex in a file.
-
-        If you want to use named capturing group, you can do so! For instance,
-
-        replace_regex_in_file(file_path, '(?P<word>\\w+)', '(?P=word)aa')
-        'spring' will be replaced with 'springaa'
-
-        It may not work, so you can use the following syntax to achieve the same:
-        replace_regex_in_file(file_path, '(?P<word>\\w+)', r'\\g<word>aa')
-        'spring' will be replaced with 'springaa'
-
-
-        :param name: path of the file to handle
-        :param regex: regex to replace
-        :param replacement: string that will replace *substring*
-        :param count: the number of occurences to replace. -1 if you want to replace all occurences
-        :param encoding: encoding used for reading the file
-        :see: https://docs.python.org/3/howto/regex.html
-        """
-        pattern = re.compile(regex)
-        if count < 0:
-            count = 0
-
-        p = self.abs_path(name)
-        with open(p, mode="r", encoding=encoding) as f:
-            content = f.read()
-
-        with open(p, mode="w", encoding=encoding) as f:
-            try:
-                # the sub operation may throw exception. In this case the file is reset. This is obviously very wrong,
-                # hence we added the try except in order to at least leave the file instact
-                self._log_command(f"Replace pattern \"{pattern}\" into \"{replacement}\" in file {p} (up to {count} occurences)")
-                content = re.sub(
-                    pattern=pattern,
-                    repl=replacement,
-                    string=content,
-                    count=count,
-                )
-            finally:
-                f.write(content)
-
-    @show_on_help.add_command('paths')
-    def cwd(self) -> path:
-        """
-
-        :return: the CWD the commands operates in
-        """
-        return os.path.abspath(self._cwd)
-
-    @show_on_help.add_command('paths')
-    def path(self, *p: str) -> path:
-        """
-        Generate a path compliant wit the underlying operating system path scheme.
-
-        If the path is relative, we will **not** join it with cwd
-
-        :param p: the path to build
-        """
-
-        return os.path.join(*p)
-
-    @show_on_help.add_command('paths')
-    def abs_path(self, *p: path) -> path:
-        """
-        Generate a path compliant with the underlying operating system path scheme.
-
-        If the path is relative, it is relative to the cwd
-
-        :param p: the path to build
-        """
-        actual_path = os.path.join(*p)
-        if os.path.isabs(actual_path):
-            return os.path.abspath(actual_path)
-        else:
-            return os.path.abspath(os.path.join(self._cwd, actual_path))
 
     @show_on_help.add_command('files')
     def ls(self, folder: path = None, generate_absolute_path: bool = False) -> Iterable[path]:
@@ -2137,15 +2009,7 @@ class SessionScript(abc.ABC):
         s = self.abs_wrt_cwd(*p)
         return self.abs_wrt_cwd(os.path.splitext(s)[0] + "." + new_extension)
 
-    @show_on_help.add_command('paths')
-    def abs_wrt_cwd(self, *paths) -> path:
-        """
-        generate a path relative to cwd and generate the absolute path of it
 
-        :param paths: the single elements of a path to join and whose absolute path we need to compute
-        :return: absolute path, relative to the current working directory
-        """
-        return os.path.abspath(os.path.join(self._cwd, *paths))
 
     @show_on_help.add_command('files')
     def make_directories(self, *folder: path) -> None:
@@ -2358,344 +2222,7 @@ class SessionScript(abc.ABC):
 
             return result
 
-    @show_on_help.add_command('operating system')
-    def execute_and_forget(self, commands: Union[str, List[Union[str, List[str]]]], cwd: path = None, env: Dict[str, str] = None, check_exit_code: bool = True, timeout: int = None) -> int:
-        """
-        Execute a command but ensure that no stdout will be printed on the console
 
-        :param commands: the command to execute. They will be exeucte in the same context
-        :param cwd: current working directory where the command is executed
-        :param env: a dictionary representing the key-values of the environment variables
-        :param check_exit_code: if true, we will generate an exception if the exit code is different than 0
-        :param timeout: if positive, we will give up waiting for the command after the amount of seconds
-        :return: triple. The first element is the error code, the second is the stdout (if captured), the third is stderr
-        """
-        if cwd is None:
-            cwd = self._cwd
-        else:
-            cwd = self.abs_path(cwd)
-
-        if isinstance(commands, str):
-            commands = [commands]
-
-        result, _, _ = self._platform.execute_command(
-            commands=commands,
-            show_output_on_screen=False,
-            capture_stdout=False,
-            cwd=cwd,
-            env=env,
-            check_exit_code=check_exit_code,
-            timeout=timeout,
-            execute_as_admin=False,
-            admin_password=None,
-            log_entry=True,
-        )
-        return result
-
-    @show_on_help.add_command('operating system')
-    def execute_stdout_on_screen(self, commands: Union[str, List[Union[str, List[str]]]], cwd: path = None,
-                                 env: Dict[str, Any] = None, check_exit_code: bool = True, timeout: int = None) -> int:
-        """
-        Execute a command. We won't capture the stdout but we will show it on pmakeup console
-
-        :param commands: the command to execute. They will be exeucte in the same context
-        :param cwd: current working directory where the command is executed
-        :param env: a dictionary representing the key-values of the environment variables
-        :param check_exit_code: if true, we will generate an exception if the exit code is different than 0
-        :param timeout: if positive, we will give up waiting for the command after the amount of seconds
-        :return: triple. The first element is the error code, the second is the stdout (if captured), the third is stderr
-        """
-        if cwd is None:
-            cwd = self._cwd
-        else:
-            cwd = self.abs_path(cwd)
-
-        if isinstance(commands, str):
-            commands = [commands]
-
-        result, _, _ = self._platform.execute_command(
-            commands=commands,
-            show_output_on_screen=True,
-            capture_stdout=False,
-            cwd=cwd,
-            env=env,
-            check_exit_code=check_exit_code,
-            timeout=timeout,
-            execute_as_admin=False,
-            admin_password=None,
-            log_entry=True,
-        )
-        return result
-
-    @show_on_help.add_command('operating system')
-    def execute_return_stdout(self, commands: Union[str, List[Union[str, List[str]]]], cwd: path = None,
-                              env: Dict[str, Any] = None,
-                              check_exit_code: bool = True, timeout: int = None) -> Tuple[int, str, str]:
-        """
-        Execute a command. We won't show the stdout on pmakeup console but we will capture it and returned it
-
-        :param commands: the command to execute. They will be exeucte in the same context
-        :param cwd: current working directory where the command is executed
-        :param env: a dictionary representing the key-values of the environment variables
-        :param check_exit_code: if true, we will generate an exception if the exit code is different than 0
-        :param timeout: if positive, we will give up waiting for the command after the amount of seconds
-        :return: triple. The first element is the error code, the second is the stdout (if captured), the third is stderr
-        """
-        if cwd is None:
-            cwd = self._cwd
-        else:
-            cwd = self.abs_path(cwd)
-
-        if isinstance(commands, str):
-            commands = [commands]
-
-        exit_code, stdout, stderr = self._platform.execute_command(
-            commands=commands,
-            show_output_on_screen=False,
-            capture_stdout=True,
-            cwd=cwd,
-            env=env,
-            check_exit_code=check_exit_code,
-            timeout=timeout,
-            execute_as_admin=False,
-            admin_password=None,
-            log_entry=True
-        )
-        return exit_code, stdout, stderr
-
-    @show_on_help.add_command('operating system')
-    def execute_admin_and_forget(self, commands: Union[str, List[Union[str, List[str]]]], cwd: path = None,
-                                 env: Dict[str, Any] = None,
-                                 check_exit_code: bool = True, timeout: int = None) -> int:
-        """
-        Execute a command as admin but ensure that no stdout will be printed on the console
-
-        :param commands: the command to execute. They will be exeucte in the same context
-        :param cwd: current working directory where the command is executed
-        :param env: a dictionary representing the key-values of the environment variables
-        :param check_exit_code: if true, we will generate an exception if the exit code is different than 0
-        :param timeout: if positive, we will give up waiting for the command after the amount of seconds
-        :return: triple. The first element is the error code, the second is the stdout (if captured), the third is stderr
-        """
-        if cwd is None:
-            cwd = self._cwd
-        else:
-            cwd = self.abs_path(cwd)
-
-        if isinstance(commands, str):
-            commands = [commands]
-
-        result, _, _ = self._platform.execute_command(
-            commands=commands,
-            show_output_on_screen=False,
-            capture_stdout=False,
-            cwd=cwd,
-            env=env,
-            check_exit_code=check_exit_code,
-            timeout=timeout,
-            execute_as_admin=True,
-            admin_password=None,
-            log_entry=True,
-        )
-        return result
-
-    @show_on_help.add_command('operating system')
-    def execute_admin_stdout_on_screen(self, commands: Union[str, List[Union[str, List[str]]]], cwd: path = None,
-                                       env: Dict[str, Any] = None,
-                                       check_exit_code: bool = True, timeout: int = None) -> int:
-        """
-        Execute a command as an admin. We won't capture the stdout but we will show it on pmakeup console
-
-        :param commands: the command to execute. They will be execute in the same context
-        :param cwd: current working directory where the command is executed
-        :param env: a dictionary representing the key-values of the environment variables
-        :param check_exit_code: if true, we will generate an exception if the exit code is different than 0
-        :param timeout: if positive, we will give up waiting for the command after the amount of seconds
-        :return: triple. The first element is the error code, the second is the stdout (if captured),
-            the third is stderr
-        """
-        if cwd is None:
-            cwd = self._cwd
-        else:
-            cwd = self.abs_path(cwd)
-
-        if isinstance(commands, str):
-            commands = [commands]
-
-        result, _, _ = self._platform.execute_command(
-            commands=commands,
-            show_output_on_screen=True,
-            capture_stdout=False,
-            cwd=cwd,
-            env=env,
-            check_exit_code=check_exit_code,
-            timeout=timeout,
-            execute_as_admin=True,
-            admin_password=None,
-            log_entry=True,
-        )
-        return result
-
-    @show_on_help.add_command('operating system')
-    def execute_admin_return_stdout(self, commands: Union[str, List[Union[str, List[str]]]], cwd: path = None,
-                                    env: Dict[str, Any] = None,
-                                    check_exit_code: bool = True, timeout: int = None) -> Tuple[int, str, str]:
-        """
-        Execute a command as an admin. We won't show the stdout on pmakeup console but we will capture it and returned it
-
-        :param commands: the command to execute. They will be execute in the same context
-        :param cwd: current working directory where the command is executed
-        :param env: a dictionary representing the key-values of the environment variables
-        :param check_exit_code: if true, we will generate an exception if the exit code is different than 0
-        :param timeout: if positive, we will give up waiting for the command after the amount of seconds
-        :return: triple. The first element is the error code, the second is the stdout (if captured),
-            the third is stderr
-        """
-        if cwd is None:
-            cwd = self._cwd
-        else:
-            cwd = self.abs_path(cwd)
-
-        if isinstance(commands, str):
-            commands = [commands]
-
-        exit_code, stdout, stderr = self._platform.execute_command(
-            commands=commands,
-            show_output_on_screen=False,
-            capture_stdout=True,
-            cwd=cwd,
-            env=env,
-            check_exit_code=check_exit_code,
-            timeout=timeout,
-            execute_as_admin=True,
-            admin_password=None,
-            log_entry=True
-        )
-        return exit_code, stdout, stderr
-
-    @show_on_help.add_command('operating system')
-    def execute_admin_with_password_fire_and_forget(self, commands: Union[str, List[Union[str, List[str]]]],
-                                                    password: str,
-                                                    cwd: str = None, env: Dict[str, Any] = None,
-                                                    check_exit_code: bool = True, timeout: int = None) -> int:
-        """
-        Execute a command as admin by providing the admin password. **THIS IS INCREDIBLE UNSAFE!!!!!!!!!!!!**.
-        Please, I beg you, do **NOT** use this if you need any level of security!!!!! This will make the password visible
-        on top, on the history, everywhere on your system. Please use it only if you need to execute a command on your
-        local machine.
-
-        :param commands: the command to execute. They will be executed in the same context
-        :param cwd: current working directory where the command is executed
-        :param env: a dictionary representing the key-values of the environment variables
-        :param check_exit_code: if true, we will generate an exception if the exit code is different than 0
-        :param timeout: if positive, we will give up waiting for the command after the amount of seconds
-        :param password: **[UNSAFE!!!!]** If you **really** need, you might want to run a command as an admin
-            only on your laptop, and you want a really quick and dirty way to execute it, like as in the shell.
-            Do **not** use this in production code, since the password will be 'printed in clear basically everywhere!
-            (e.g., history, system monitor, probably in a file as well)
-        """
-        if cwd is None:
-            cwd = self.cwd()
-        else:
-            cwd = self.abs_path(cwd)
-
-        if isinstance(commands, str):
-            commands = [commands]
-
-        result, _, _ = self._platform.execute_command(
-            commands=commands,
-            show_output_on_screen=False,
-            capture_stdout=False,
-            cwd=cwd,
-            env=env,
-            check_exit_code=check_exit_code,
-            timeout=timeout,
-            execute_as_admin=True,
-            admin_password=password,
-            log_entry=True,
-        )
-        return result
-
-    @show_on_help.add_command('operating system')
-    def execute_admin_with_password_stdout_on_screen(self, commands: Union[str, List[Union[str, List[str]]]], password: str, cwd: path = None, env: Dict[str, Any] = None, check_exit_code: bool = True, timeout: int = None) -> int:
-        """
-        Execute a command as an admin. We won't capture the stdout but we will show it on pmakeup console
-
-        :param commands: the command to execute. They will be execute in the same context
-        :param password: **[UNSAFE!!!!]** If you **really** need, you might want to run a command as an admin
-            only on your laptop, and you want a really quick and dirty way to execute it, like as in the shell.
-            Do **not** use this in production code, since the password will be 'printed in clear basically everywhere!
-            (e.g., history, system monitor, probably in a file as well)
-        :param cwd: current working directory where the command is executed
-        :param env: a dictionary representing the key-values of the environment variables
-        :param check_exit_code: if true, we will generate an exception if the exit code is different than 0
-        :param timeout: if positive, we will give up waiting for the command after the amount of seconds
-        :return: triple. The first element is the error code, the second is the stdout (if captured),
-            the third is stderr
-        """
-        if cwd is None:
-            cwd = self._cwd
-        else:
-            cwd = self.abs_path(cwd)
-
-        if isinstance(commands, str):
-            commands = [commands]
-
-        result, _, _ = self._platform.execute_command(
-            commands=commands,
-            show_output_on_screen=True,
-            capture_stdout=False,
-            cwd=cwd,
-            env=env,
-            check_exit_code=check_exit_code,
-            timeout=timeout,
-            execute_as_admin=True,
-            admin_password=password,
-            log_entry=True,
-        )
-        return result
-
-    @show_on_help.add_command('operating system')
-    def execute_admin_with_password_return_stdout(self, commands: Union[str, List[Union[str, List[str]]]],
-                                                  password: str, cwd: path = None, env: Dict[str, Any] = None,
-                                                  check_exit_code: bool = True,
-                                                  timeout: int = None) -> Tuple[int, str, str]:
-        """
-        Execute a command as an admin. We won't show the stdout on pmakeup console but we will capture it and returned it
-
-        :param commands: the command to execute. They will be execute in the same context
-        :param password: **[UNSAFE!!!!]** If you **really** need, you might want to run a command as an admin
-            only on your laptop, and you want a really quick and dirty way to execute it, like as in the shell.
-            Do **not** use this in production code, since the password will be 'printed in clear basically everywhere!
-            (e.g., history, system monitor, probably in a file as well)
-        :param cwd: current working directory where the command is executed
-        :param env: a dictionary representing the key-values of the environment variables
-        :param check_exit_code: if true, we will generate an exception if the exit code is different than 0
-        :param timeout: if positive, we will give up waiting for the command after the amount of seconds
-        :return: triple. The first element is the error code, the second is the stdout (if captured),
-            the third is stderr
-        """
-        if cwd is None:
-            cwd = self._cwd
-        else:
-            cwd = self.abs_path(cwd)
-
-        if isinstance(commands, str):
-            commands = [commands]
-
-        exit_code, stdout, stderr = self._platform.execute_command(
-            commands=commands,
-            show_output_on_screen=False,
-            capture_stdout=True,
-            cwd=cwd,
-            env=env,
-            check_exit_code=check_exit_code,
-            timeout=timeout,
-            execute_as_admin=True,
-            admin_password=password,
-            log_entry=True
-        )
-        return exit_code, stdout, stderr
 
     @show_on_help.add_command('core')
     def include_string(self, string: str) -> None:
@@ -2719,30 +2246,4 @@ class SessionScript(abc.ABC):
         self._log_command(f"include file content \"{p}\"")
         self._model.execute_file(p)
 
-    @show_on_help.add_command('utils')
-    def as_bool(self, v: Any) -> bool:
-        """
-        Convert a value into a boolean
 
-        :param v: value to convert as a boolean
-        :return: true of false
-        """
-        if isinstance(v, bool):
-            return v
-        elif isinstance(v, str):
-            v = v.lower()
-            d = {
-                "true": True,
-                "false": False,
-                "ok": True,
-                "ko": False,
-                "yes": True,
-                "no": False,
-                "1": True,
-                "0": False
-            }
-            return d[v]
-        elif isinstance(v, int):
-            return v != 0
-        else:
-            raise TypeError(f"Cannot convert {v} (type {type(v)}) into a bool")
