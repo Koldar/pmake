@@ -8,7 +8,7 @@ from typing import Tuple, Iterable, Any, Dict
 
 from pmakeup import version
 from pmakeup.decorators import show_on_help
-from pmakeup.PMakeupModel import PMakeupModel
+from pmakeup.models.PMakeupModel import PMakeupModel
 from pmakeup.constants import STANDARD_MODULES, STANDARD_VARIABLES
 from pmakeup.exceptions.PMakeupException import AssertionPMakeupException, InvalidScenarioPMakeupException, PMakeupException
 
@@ -182,7 +182,7 @@ def initialize_model(options) -> "PMakeupModel":
     model.input_encoding = options.input_encoding
     model.log_level = options.log_level
     model.input_string = options.input_string
-    model.variable = {x[0]: x[1] for x in options.variable}
+    model.cli_variables = {x[0]: x[1] for x in options.variable}
     model.requested_target_names = options.targets
     model.should_show_target_help = options.info
 
@@ -196,12 +196,6 @@ def handle_version_flag(options):
     if options.version:
         print(version.VERSION)
         sys.exit(0)
-
-
-global PMAKEUP_MODEL
-"""
-The model used by the running pmakeup program. Accessible anywhere
-"""
 
 
 def main(args=None):

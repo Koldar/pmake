@@ -4,6 +4,10 @@ from semantic_version import Version
 
 
 class InterestingPath(abc.ABC):
+    """
+    a path which which is important to you in some way.
+    For example, in linux it may be the installation path of a library
+    """
 
     def __init__(self, architecture: int, path: str, version: Version):
         self.architecture: int = architecture

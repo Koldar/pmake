@@ -3,27 +3,24 @@ import os
 import subprocess
 from typing import Union, List, Tuple, Dict, Any, Optional, Iterable
 
-from pmakeup.IOSSystem import IOSSystem
-from pmakeup.InterestingPath import InterestingPath
-from pmakeup.commons_types import path
-from pmakeup.exceptions.PMakeupException import PMakeupException
+import pmakeup as pm
 
 
-class LinuxOSSystem(IOSSystem):
+class LinuxOSSystem(pm.IOSSystem):
 
-    def __init__(self, model: "PMakeupModel.PMakeupMode"):
-        super().__init__(model)
+    def __init__(self, model: "pm.PMakeupModel"):
+        self._model = model
 
-    def get_git_commit(self, p: path) -> str:
-        result, stdout, stderr = self.execute_command(
-            commands=[["git", "rev-parse", "HEAD"]],
-            show_output_on_screen=False,
-            capture_stdout=True,
-            cwd=p,
-        )
-        return stdout
+    # def get_git_commit(self, p: pm.path) -> str:
+    #     result, stdout, stderr = self.execute_command(
+    #         commands=[["git", "rev-parse", "HEAD"]],
+    #         show_output_on_screen=False,
+    #         capture_stdout=True,
+    #         cwd=p,
+    #     )
+    #     return stdout
 
-    def get_git_branch(self, p: path) -> str:
+    def get_git_branch(self, p: pm.path) -> str:
         result, stdout, stderr = self.execute_command(
             commands=[["git", "branch", "--show-current"]],
             show_output_on_screen=False,
@@ -32,7 +29,7 @@ class LinuxOSSystem(IOSSystem):
         )
         return stdout
 
-    def is_repo_clean(self, p: path) -> bool:
+    def is_repo_clean(self, p: pm.path) -> bool:
         result, stdout, stderr = self.execute_command(
             commands=[["git", "status"]],
             show_output_on_screen=False,
@@ -41,12 +38,12 @@ class LinuxOSSystem(IOSSystem):
         )
         return "nothing to commit, working tree clean" in stdout
 
-    def get_program_path(self) -> Iterable[path]:
+    def get_program_path(self) -> Iterable[pm.path]:
         return os.environ["PATH"].split(os.pathsep)
 
-    def find_executable_in_program_directories(self, program_name: str, script: "SessionScript.SessionScript") -> Optional[path]:
+    def find_executable_in_program_directories(self, program_name: str) -> Optional[pm.path]:
         for root in list(self.get_program_path()) + [r"/opt"]:
-            for f in script.find_file(root_folder=root, filename=program_name):
+            for f in self._model.get_plugin_by_name("FilesPMakeupPlugin").find_file(root_folder=root, filename=program_name):
                 return f
         else:
             return None
@@ -168,7 +165,7 @@ class LinuxOSSystem(IOSSystem):
             )
 
             if check_exit_code and result.returncode != 0:
-                raise PMakeupException(f"cwd=\"{cwd}\" command=\"{actual_command}\" exit=\"{result.returncode}\"")
+                raise pm.PMakeupException(f"cwd=\"{cwd}\" command=\"{actual_command}\" exit=\"{result.returncode}\"")
 
             if actual_capture_output:
                 stdout = self._convert_stdout(result.stdout)
@@ -192,14 +189,14 @@ class LinuxOSSystem(IOSSystem):
             check_exit_code=False,
         )
         if exit_code != 0:
-            raise PMakeupException(f"Cannot find the environment variable \"{name}\" for user \"{self.get_current_username()}\"")
+            raise pm.PMakeupException(f"Cannot find the environment variable \"{name}\" for user \"{self.get_current_username()}\"")
 
         return stdout.strip()
 
-    def get_home_folder(self) -> path:
+    def get_home_folder(self) -> pm.path:
         return self.get_env_variable("HOME")
 
-    def _fetch_interesting_paths(self, script: "SessionScript") -> Dict[str, List[InterestingPath]]:
+    def fetch_interesting_paths(self, model: pm.PMakeupModel) -> Dict[str, List[pm.InterestingPath]]:
         return {}
 
     def set_global_environment_variable(self, group_name: str, name: str, value: Any):

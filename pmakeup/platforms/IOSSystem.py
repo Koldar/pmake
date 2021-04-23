@@ -3,57 +3,27 @@ import getpass
 import logging
 import os
 import stat
+import subprocess
 import tempfile
 from typing import Union, List, Tuple, Dict, Any, Iterable, Optional
 
 import psutil as psutil
-from semantic_version import Version
+import pmakeup as pm
 
-from pmakeup.InterestingPath import InterestingPath
-from pmakeup.commons_types import path
+from semantic_version import Version
 
 
 class IOSSystem(abc.ABC):
 
     @abc.abstractmethod
-    def get_program_path(self) -> Iterable[path]:
+    def get_program_path(self) -> Iterable[pm.path]:
         """
         Fetch the list of paths in the PATH environment variable
         """
         pass
 
     @abc.abstractmethod
-    def get_git_commit(self, p: path) -> str:
-        """
-        get the current git hash commit
-
-        :param p: path in a git repository
-        :return: git hash commit
-        """
-        pass
-
-    @abc.abstractmethod
-    def get_git_branch(self, p: path) -> str:
-        """
-        get the current git branch name
-
-        :param p: path in a git repository
-        :return: git branch name
-        """
-        pass
-
-    @abc.abstractmethod
-    def is_repo_clean(self, p: path) -> bool:
-        """
-        True if the git repo in the given path has no changes
-
-        :param p: path in a git repository
-        :return: True if there are no changes, False otherwise
-        """
-        pass
-
-    @abc.abstractmethod
-    def find_executable_in_program_directories(self, program_name: str, script: "SessionScript") -> Optional[path]:
+    def find_executable_in_program_directories(self, program_name: str) -> Optional[pm.path]:
         """
         Find an executable in the system. We will look only in the places where the operating system usually store the
         programs. For instance on windows we might look into "Program Files" while in linux we may look uinto "/opt or /usr/local/bin"
@@ -63,14 +33,20 @@ class IOSSystem(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def _fetch_interesting_paths(self, script: "SessionScript") -> Dict[str, List[InterestingPath]]:
+    def fetch_interesting_paths(self, model: "pm.PMakeupModel") -> Dict[str, List["pm.InterestingPath"]]:
         """
         Fetch all the interesting paths relative to a operating system.
         Highly dependent on the operating system. Each path has associated different actual paths, since a single
 
-        :param script: object used to interact with the system (if you need commands to fetch the paths)
-
+        :param model: model of the pmakeup
         :return:
+        """
+        pass
+
+    def fetch_latest_interesting_paths(self, interesting_paths: Dict[str, List["pm.InterestingPath"]], model: "pm.PMakeupModel") -> Dict[str, "pm.InterestingPath"]:
+        """
+        Fetch for every path only one path which is interesting in your case. For instance, there may be multiple
+        internet explorer executables, but you need to use only a specific one
         """
         pass
 
@@ -158,7 +134,7 @@ class IOSSystem(abc.ABC):
             delete=True
         )
 
-    def create_temp_file(self, directory: str, file_prefix: str = None, file_suffix: str = None, readable_for_all: bool = False, executable_for_owner: bool = False, executable_for_all: bool = False) -> path:
+    def create_temp_file(self, directory: str, file_prefix: str = None, file_suffix: str = None, readable_for_all: bool = False, executable_for_owner: bool = False, executable_for_all: bool = False) -> pm.path:
         """
         Creates the file
         Like ::create_temp_file_with, but the file needs to be manually removed
@@ -186,7 +162,7 @@ class IOSSystem(abc.ABC):
 
         return file_path
 
-    def mark_file_as_readable_by_user(self, file_path: path):
+    def mark_file_as_readable_by_user(self, file_path: pm.path):
         """
         Mark the file as readable by the owner
 
@@ -195,7 +171,7 @@ class IOSSystem(abc.ABC):
         st = os.stat(file_path)
         os.chmod(file_path, mode=st.st_mode | stat.S_IRUSR)
 
-    def mark_file_as_executable_by_owner(self, file_path: path):
+    def mark_file_as_executable_by_owner(self, file_path: pm.path):
         """
         Mark the filev as executable by the owner
 
@@ -204,7 +180,7 @@ class IOSSystem(abc.ABC):
         st = os.stat(file_path)
         os.chmod(file_path, mode=st.st_mode | stat.S_IXUSR)
 
-    def mark_file_as_readable_by_all(self, file_path: path):
+    def mark_file_as_readable_by_all(self, file_path: pm.path):
         """
         Mark the file as readable by all
 
@@ -213,7 +189,7 @@ class IOSSystem(abc.ABC):
         st = os.stat(file_path)
         os.chmod(file_path, mode=st.st_mode | stat.S_IROTH)
 
-    def mark_file_as_executable_by_all(self, file_path: path):
+    def mark_file_as_executable_by_all(self, file_path: pm.path):
         """
         Mark the filev as executable by all
 
@@ -238,26 +214,162 @@ class IOSSystem(abc.ABC):
         return getpass.getuser()
 
     @abc.abstractmethod
-    def execute_command(self, commands: List[Union[str, List[str]]], show_output_on_screen: bool, capture_stdout: bool, cwd: str = None, env: Dict[str, Any] = None, check_exit_code: bool = True, timeout: int = None, execute_as_admin: bool = False, admin_password: str = None, log_entry: bool = False) -> Tuple[int, str, str]:
+    def fire_command_and_wait(self, commands: List[Union[str, List[str]]], cwd: str = None, env: Dict[str, Any] = None, check_exit_code: bool = True, timeout: int = None, log_entry: bool = False) -> int:
         """
-        Execute an arbitrary command
+        Start a new process and wait for its completition. Do not show the stdout nor the stderr on screen
 
-        :param commands: the commands to execute. They need to be executed in the same environment. Can either be a list of strnigs or a string
-        :param show_output_on_screen: if True, we need to display in real time the stdout of the command on the stdout of pmake as well
-        :param capture_stdout: if True, we need to return the stdout of the command
-        :param cwd: directory where the command will be executed
-        :param env: a dictionary representing the key-values of the environment variables
-        :param check_exit_code: if true, we will generate an exception if the exit code is different than 0
-        :param timeout: if positive, we will give up waiting for the command after the amount of seconds
-        :param execute_as_admin: if True, we will elevate our current user to admin privileges. We assume this operation requires no input for the user.
-        :param admin_password: **[UNSAFE!!!!]** If you **really** need, you might want to run a command as an admin
-            only on your laptop, and you want a really quick and dirty way to execute it, like as in the shell.
-            Do **not** use this in production code, since the password will be 'printed in clear basically everywhere!
-            (e.g., history, system monitor, probabily in a file as well)
-        :param log_entry: if True, we will emit on the console what we are executing
-        :return: triple. The first element is the error code, the second is the stdout (if captured), the third is stderr
+        :param commands: command to execute
+        :param cwd: directory where this command will be executed
+        :param env: environment variables to set
+        :param check_exit_code: if true, we will raise an exception if the command fails
+        :param timeout: if after x milliseconds, the command is not yet completed
+        :param log_entry: if true, we will log the command execution
+        :returns: error code of the program
         """
         pass
+
+    @abc.abstractmethod
+    def fire_admin_command_and_wait(self, commands: List[Union[str, List[str]]], cwd: str = None, env: Dict[str, Any] = None, check_exit_code: bool = True, timeout: int = None, log_entry: bool = False, credential_type: str = None, credential: any = None) -> int:
+        """
+        Start a new process and wait for its completition. Do not show the stdout nor the stderr on screen
+
+        :param commands: command to execute
+        :param cwd: directory where this command will be executed
+        :param env: environment variables to set
+        :param check_exit_code: if true, we will raise an exception if the command fails
+        :param timeout: if after x milliseconds, the command is not yet completed
+        :param log_entry: if true, we will log the command execution
+        :param credential_type: type format of credentials
+        :param credential: object that allows you to execute the command as an admin
+        :returns: error code of the program
+        """
+        pass
+
+    @abc.abstractmethod
+    def fire_command_and_forget(self, commands: List[Union[str, List[str]]], cwd: str = None, env: Dict[str, Any] = None, log_entry: bool = False) -> int:
+        """
+        Start a new process; then do not wait for its ocmpletition. Do not show the stdout nor the stderr on screen
+
+        :param commands: command to execute
+        :param cwd: directory where this command will be executed
+        :param env: environment variables to set
+        :param check_exit_code: if true, we will raise an exception if the command fails
+        :param timeout: if after x milliseconds, the command is not yet completed
+        :param log_entry: if true, we will log the command execution
+        :return: pid of the running process
+        """
+        pass
+
+    @abc.abstractmethod
+    def fire_admin_command_and_forget(self, commands: List[Union[str, List[str]]], cwd: str = None, env: Dict[str, Any] = None, log_entry: bool = False, credential_type: str = None, credential: any = None) -> int:
+        """
+        Start a new process as an admin. Then do not wait for its completition. Do not show the stdout nor the stderr on screen
+
+        :param commands: command to execute
+        :param cwd: directory where this command will be executed
+        :param env: environment variables to set
+        :param check_exit_code: if true, we will raise an exception if the command fails
+        :param timeout: if after x milliseconds, the command is not yet completed
+        :param log_entry: if true, we will log the command execution
+        :param credential_type: type format of credentials
+        :param credential: object that allows you to execute the command as an admin
+        :return: pid of the running process
+        """
+        pass
+
+    @abc.abstractmethod
+    def fire_command_and_show_stdout(self, commands: List[Union[str, List[str]]], cwd: str = None, env: Dict[str, Any] = None,
+                              check_exit_code: bool = True, timeout: int = None, log_entry: bool = False) -> int:
+        """
+        Start a new process and wait for its completition. Stdout is put on the console
+
+        :param commands: command to execute
+        :param cwd: directory where this command will be executed
+        :param env: environment variables to set
+        :param check_exit_code: if true, we will raise an exception if the command fails
+        :param timeout: if after x milliseconds, the command is not yet completed
+        :param log_entry: if true, we will log the command execution
+        :returns: error code of the program
+        """
+        pass
+
+    @abc.abstractmethod
+    def fire_admin_command_and_show_stdout(self, commands: List[Union[str, List[str]]], cwd: str = None,
+                                    env: Dict[str, Any] = None, check_exit_code: bool = True, timeout: int = None,
+                                    log_entry: bool = False, credential_type: str = None, credential: any = None) -> int:
+        """
+        Start a new process as admin and wait for its completition. Stdout is put on the console
+
+        :param commands: command to execute
+        :param cwd: directory where this command will be executed
+        :param env: environment variables to set
+        :param check_exit_code: if true, we will raise an exception if the command fails
+        :param timeout: if after x milliseconds, the command is not yet completed
+        :param log_entry: if true, we will log the command execution
+        :param credential_type: type format of credentials
+        :param credential: object that allows you to execute the command as an admin
+        :returns: error code of the program
+        """
+        pass
+
+    @abc.abstractmethod
+    def fire_command_and_capture_stdout(self, commands: List[Union[str, List[str]]], cwd: str = None,
+                                     env: Dict[str, Any] = None,
+                                     check_exit_code: bool = True, timeout: int = None, log_entry: bool = False) -> Tuple[int, str, str]:
+        """
+        Start a new process and wait for its completition. Stdout is returned and not shown on the console
+
+        :param commands: command to execute
+        :param cwd: directory where this command will be executed
+        :param env: environment variables to set
+        :param check_exit_code: if true, we will raise an exception if the command fails
+        :param timeout: if after x milliseconds, the command is not yet completed
+        :param log_entry: if true, we will log the command execution
+        """
+        pass
+
+    @abc.abstractmethod
+    def fire_admin_command_and_capture_stdout(self, commands: List[Union[str, List[str]]], cwd: str = None,
+                                           env: Dict[str, Any] = None, check_exit_code: bool = True,
+                                           timeout: int = None,
+                                           log_entry: bool = False, credential_type: str = None,
+                                           credential: any = None) -> Tuple[int, str, str]:
+        """
+        Start a new process as admin and wait for its completition. Stdout is returned and not shown on the console
+
+        :param commands: command to execute
+        :param cwd: directory where this command will be executed
+        :param env: environment variables to set
+        :param check_exit_code: if true, we will raise an exception if the command fails
+        :param timeout: if after x milliseconds, the command is not yet completed
+        :param log_entry: if true, we will log the command execution
+        :param credential_type: type format of credentials
+        :param credential: object that allows you to execute the command as an admin
+        """
+        pass
+
+
+    # @abc.abstractmethod
+    # def execute_command(self, commands: List[Union[str, List[str]]], show_output_on_screen: bool, capture_stdout: bool, cwd: str = None, env: Dict[str, Any] = None, check_exit_code: bool = True, timeout: int = None, execute_as_admin: bool = False, admin_password: str = None, log_entry: bool = False) -> Tuple[int, str, str]:
+    #     """
+    #     Execute an arbitrary command
+    #
+    #     :param commands: the commands to execute. They need to be executed in the same environment. Can either be a list of strnigs or a string
+    #     :param show_output_on_screen: if True, we need to display in real time the stdout of the command on the stdout of pmake as well
+    #     :param capture_stdout: if True, we need to return the stdout of the command
+    #     :param cwd: directory where the command will be executed
+    #     :param env: a dictionary representing the key-values of the environment variables
+    #     :param check_exit_code: if true, we will generate an exception if the exit code is different than 0
+    #     :param timeout: if positive, we will give up waiting for the command after the amount of seconds
+    #     :param execute_as_admin: if True, we will elevate our current user to admin privileges. We assume this operation requires no input for the user.
+    #     :param admin_password: **[UNSAFE!!!!]** If you **really** need, you might want to run a command as an admin
+    #         only on your laptop, and you want a really quick and dirty way to execute it, like as in the shell.
+    #         Do **not** use this in production code, since the password will be 'printed in clear basically everywhere!
+    #         (e.g., history, system monitor, probabily in a file as well)
+    #     :param log_entry: if True, we will emit on the console what we are executing
+    #     :return: triple. The first element is the error code, the second is the stdout (if captured), the third is stderr
+    #     """
+    #     pass
 
     @abc.abstractmethod
     def is_program_installed(self, program_name: str) -> bool:
@@ -282,13 +394,13 @@ class IOSSystem(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def get_home_folder(self) -> path:
+    def get_home_folder(self) -> pm.path:
         """
         Get the absolute home folder of the current user
         """
         pass
 
-    def ls(self, folder: path, generate_absolute_path: bool = False) -> Iterable[path]:
+    def ls(self, folder: pm.path, generate_absolute_path: bool = False) -> Iterable[pm.path]:
         """
         Show the list of all the files in the given directory
 
@@ -303,7 +415,7 @@ class IOSSystem(abc.ABC):
             else:
                 yield x
 
-    def ls_only_files(self, folder: path, generate_absolute_path: bool = False) -> Iterable[path]:
+    def ls_only_files(self, folder: pm.path, generate_absolute_path: bool = False) -> Iterable[pm.path]:
         """
         Show the list of all the files (but not directories) in the given directory
 
@@ -318,7 +430,7 @@ class IOSSystem(abc.ABC):
                 else:
                     yield f
 
-    def ls_only_directories(self, folder: path, generate_absolute_path: bool = False) -> Iterable[path]:
+    def ls_only_directories(self, folder: pm.path, generate_absolute_path: bool = False) -> Iterable[pm.path]:
         """
         Show the list of all the directories in the given directory
 
@@ -342,7 +454,7 @@ class IOSSystem(abc.ABC):
         else:
             return Version(s)
 
-    def _fetch_latest_paths(self, script: "SessionScript", interesting_paths: Dict[str, List[InterestingPath]]) -> Dict[str, InterestingPath]:
+    def _fetch_latest_paths(self, script: "pm.CorePMakeupPlugin", interesting_paths: Dict[str, List["pm.InterestingPath"]]) -> Dict[str, "pm.InterestingPath"]:
         """
         geenrate the latest interesting paths
         :param script:

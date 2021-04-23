@@ -2,14 +2,13 @@ import json
 import os
 from typing import Any, Dict, Iterable
 
-from pmakeup.IPMakeupCache import IPMakeupCache
-from pmakeup.commons_types import path
+import pmakeup as pm
 
 
-class JsonPMakeupCache(IPMakeupCache):
+class JsonPMakeupCache(pm.IPMakeupCache):
 
-    def __init__(self, file_path: path):
-        self.file_path: path = file_path
+    def __init__(self, file_path: pm.path):
+        self.file_path: pm.path = file_path
         self.d: Dict[str, Any] = {}
         # load the cache (if present)
         if self.is_cache_present():

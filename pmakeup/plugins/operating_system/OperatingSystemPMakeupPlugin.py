@@ -1,11 +1,10 @@
+import os
 from typing import Union, List, Dict, Tuple, Any, Iterable
 
-from pmakeup.plugins.AbstractPmakeupPlugin import AbstractPmakeupPlugin
-from pmakeup.commons_types import path
-from pmakeup.decorators import show_on_help
+import pmakeup as pm
 
 
-class OpeatingSystemPmakeupPlugin(AbstractPmakeupPlugin):
+class OperatingSystemPMakeupPlugin(pm.AbstractPmakeupPlugin):
 
     def _setup_plugin(self):
         pass
@@ -14,10 +13,66 @@ class OpeatingSystemPmakeupPlugin(AbstractPmakeupPlugin):
         pass
 
     def _get_dependencies(self) -> Iterable[type]:
-        pass
+        return []
 
-    @show_on_help.add_command('operating system')
-    def execute_and_forget(self, commands: Union[str, List[Union[str, List[str]]]], cwd: path = None,
+    @pm.register_command.add("operating system")
+    def is_program_installed(self, program_name: str) -> bool:
+        """
+        Check if a program is reachable via commandline. We will look **only** in the PATH environment variable.
+        If you want to look in other parts as well, conside rusing
+
+        :param program_name: the name of the program (e.g., dot)
+        :return: true if there is a program accessible to the PATH with the given name, false otherwise
+        """
+        self._log_command(f"""Checking if the executable \"{program_name}\" is in PATH""")
+        return self.platform.is_program_installed(program_name)
+
+    @pm.register_command.add("operating system")
+    def get_program_path(self) -> Iterable[pm.path]:
+        """
+        List of paths in PATH environment variable
+
+        :return: collections of path
+        """
+        return self.platform.get_program_path()
+
+    @pm.register_command.add("operating system")
+    def current_user(self) -> str:
+        """
+        get the user currently logged
+
+        :return: the user currently logged
+        """
+        return self.platform.get_current_username()
+
+    @pm.register_command.add("operating system")
+    def execute_and_run_in_background(self, commands: Union[str, List[Union[str, List[str]]]], cwd: pm.path = None, env: Dict[str, str] = None) -> int:
+        """
+        Execute a command but ensure that no stdout will be printed on the console
+
+        :param commands: the command to execute. They will be exeucte in the same context
+        :param cwd: current working directory where the command is executed
+        :param env: a dictionary representing the key-values of the environment variables
+        :return: pid of running process
+        """
+        if cwd is None:
+            cwd = self.paths.cwd()
+        else:
+            cwd = self.paths.abs_path(cwd)
+
+        if isinstance(commands, str):
+            commands = [commands]
+
+        result = self.platform.fire_command_and_forget(
+            commands=commands,
+            cwd=cwd,
+            env=env,
+            log_entry=True,
+        )
+        return result
+
+    @pm.register_command.add("operating system")
+    def execute_and_forget(self, commands: Union[str, List[Union[str, List[str]]]], cwd: pm.path = None,
                            env: Dict[str, str] = None, check_exit_code: bool = True, timeout: int = None) -> int:
         """
         Execute a command but ensure that no stdout will be printed on the console
@@ -30,29 +85,25 @@ class OpeatingSystemPmakeupPlugin(AbstractPmakeupPlugin):
         :return: triple. The first element is the error code, the second is the stdout (if captured), the third is stderr
         """
         if cwd is None:
-            cwd = self._cwd
+            cwd = self.paths.cwd()
         else:
-            cwd = self.abs_path(cwd)
+            cwd = self.paths.abs_path(cwd)
 
         if isinstance(commands, str):
             commands = [commands]
 
-        result, _, _ = self.platform().execute_command(
+        result = self.platform.fire_command_and_wait(
             commands=commands,
-            show_output_on_screen=False,
-            capture_stdout=False,
             cwd=cwd,
             env=env,
             check_exit_code=check_exit_code,
             timeout=timeout,
-            execute_as_admin=False,
-            admin_password=None,
             log_entry=True,
         )
         return result
 
-    @show_on_help.add_command('operating system')
-    def execute_stdout_on_screen(self, commands: Union[str, List[Union[str, List[str]]]], cwd: path = None,
+    @pm.register_command.add("operating system")
+    def execute_stdout_on_screen(self, commands: Union[str, List[Union[str, List[str]]]], cwd: pm.path = None,
                                  env: Dict[str, Any] = None, check_exit_code: bool = True, timeout: int = None) -> int:
         """
         Execute a command. We won't capture the stdout but we will show it on pmakeup console
@@ -65,29 +116,25 @@ class OpeatingSystemPmakeupPlugin(AbstractPmakeupPlugin):
         :return: triple. The first element is the error code, the second is the stdout (if captured), the third is stderr
         """
         if cwd is None:
-            cwd = self._cwd
+            cwd = self.paths.cwd()
         else:
-            cwd = self.abs_path(cwd)
+            cwd = self.paths.abs_path(cwd)
 
         if isinstance(commands, str):
             commands = [commands]
 
-        result, _, _ = self.platform().execute_command(
+        result = self.platform.fire_command_and_show_stdout(
             commands=commands,
-            show_output_on_screen=True,
-            capture_stdout=False,
             cwd=cwd,
             env=env,
             check_exit_code=check_exit_code,
             timeout=timeout,
-            execute_as_admin=False,
-            admin_password=None,
             log_entry=True,
         )
         return result
 
-    @show_on_help.add_command('operating system')
-    def execute_return_stdout(self, commands: Union[str, List[Union[str, List[str]]]], cwd: path = None,
+    @pm.register_command.add("operating system")
+    def execute_return_stdout(self, commands: Union[str, List[Union[str, List[str]]]], cwd: pm.path = None,
                               env: Dict[str, Any] = None,
                               check_exit_code: bool = True, timeout: int = None) -> Tuple[int, str, str]:
         """
@@ -101,29 +148,53 @@ class OpeatingSystemPmakeupPlugin(AbstractPmakeupPlugin):
         :return: triple. The first element is the error code, the second is the stdout (if captured), the third is stderr
         """
         if cwd is None:
-            cwd = self._cwd
+            cwd = self.paths.cwd()
         else:
-            cwd = self.abs_path(cwd)
+            cwd = self.paths.abs_path(cwd)
 
         if isinstance(commands, str):
             commands = [commands]
 
-        exit_code, stdout, stderr = self.platform().execute_command(
+        exit_code, stdout, stderr = self.platform.fire_command_and_capture_stdout(
             commands=commands,
-            show_output_on_screen=False,
-            capture_stdout=True,
             cwd=cwd,
             env=env,
             check_exit_code=check_exit_code,
             timeout=timeout,
-            execute_as_admin=False,
-            admin_password=None,
             log_entry=True
         )
         return exit_code, stdout, stderr
 
-    @show_on_help.add_command('operating system')
-    def execute_admin_and_forget(self, commands: Union[str, List[Union[str, List[str]]]], cwd: path = None,
+    @pm.register_command.add("operating system")
+    def execute_admin_and_run_in_background(self, commands: Union[str, List[Union[str, List[str]]]], cwd: pm.path = None, env: Dict[str, Any] = None) -> int:
+        """
+        Execute a command as admin but ensure that no stdout will be printed on the console
+
+        :param commands: the command to execute. They will be exeucte in the same context
+        :param cwd: current working directory where the command is executed
+        :param env: a dictionary representing the key-values of the environment variables
+        :return: pid of running process
+        """
+        if cwd is None:
+            cwd = self.paths.cwd()
+        else:
+            cwd = self.paths.abs_path(cwd)
+
+        if isinstance(commands, str):
+            commands = [commands]
+
+        result = self.platform.fire_admin_command_and_forget(
+            commands=commands,
+            cwd=cwd,
+            env=env,
+            credential_type="password",
+            credential=None,
+            log_entry=True,
+        )
+        return result
+
+    @pm.register_command.add("operating system")
+    def execute_admin_and_forget(self, commands: Union[str, List[Union[str, List[str]]]], cwd: pm.path = None,
                                  env: Dict[str, Any] = None,
                                  check_exit_code: bool = True, timeout: int = None) -> int:
         """
@@ -137,29 +208,27 @@ class OpeatingSystemPmakeupPlugin(AbstractPmakeupPlugin):
         :return: triple. The first element is the error code, the second is the stdout (if captured), the third is stderr
         """
         if cwd is None:
-            cwd = self._cwd
+            cwd = self.paths.cwd()
         else:
-            cwd = self.abs_path(cwd)
+            cwd = self.paths.abs_path(cwd)
 
         if isinstance(commands, str):
             commands = [commands]
 
-        result, _, _ = self.platform().execute_command(
+        result = self.platform.fire_admin_command_and_wait(
             commands=commands,
-            show_output_on_screen=False,
-            capture_stdout=False,
             cwd=cwd,
             env=env,
             check_exit_code=check_exit_code,
             timeout=timeout,
-            execute_as_admin=True,
-            admin_password=None,
+            credential_type="password",
+            credential=None,
             log_entry=True,
         )
         return result
 
-    @show_on_help.add_command('operating system')
-    def execute_admin_stdout_on_screen(self, commands: Union[str, List[Union[str, List[str]]]], cwd: path = None,
+    @pm.register_command.add("operating system")
+    def execute_admin_stdout_on_screen(self, commands: Union[str, List[Union[str, List[str]]]], cwd: pm.path = None,
                                        env: Dict[str, Any] = None,
                                        check_exit_code: bool = True, timeout: int = None) -> int:
         """
@@ -174,29 +243,27 @@ class OpeatingSystemPmakeupPlugin(AbstractPmakeupPlugin):
             the third is stderr
         """
         if cwd is None:
-            cwd = self._cwd
+            cwd = self.paths.cwd()
         else:
-            cwd = self.abs_path(cwd)
+            cwd = self.paths.abs_path(cwd)
 
         if isinstance(commands, str):
             commands = [commands]
 
-        result, _, _ = self.platform().execute_command(
+        result = self.platform.fire_admin_command_and_show_stdout(
             commands=commands,
-            show_output_on_screen=True,
-            capture_stdout=False,
             cwd=cwd,
             env=env,
             check_exit_code=check_exit_code,
             timeout=timeout,
-            execute_as_admin=True,
-            admin_password=None,
+            credential_type="password",
+            credential=None,
             log_entry=True,
         )
         return result
 
-    @show_on_help.add_command('operating system')
-    def execute_admin_return_stdout(self, commands: Union[str, List[Union[str, List[str]]]], cwd: path = None,
+    @pm.register_command.add("operating system")
+    def execute_admin_return_stdout(self, commands: Union[str, List[Union[str, List[str]]]], cwd: pm.path = None,
                                     env: Dict[str, Any] = None,
                                     check_exit_code: bool = True, timeout: int = None) -> Tuple[int, str, str]:
         """
@@ -211,31 +278,59 @@ class OpeatingSystemPmakeupPlugin(AbstractPmakeupPlugin):
             the third is stderr
         """
         if cwd is None:
-            cwd = self._cwd
+            cwd = self.paths.cwd()
         else:
-            cwd = self.abs_path(cwd)
+            cwd = self.paths.abs_path(cwd)
 
         if isinstance(commands, str):
             commands = [commands]
 
-        exit_code, stdout, stderr = self.platform().execute_command(
+        exit_code, stdout, stderr = self.platform.fire_admin_command_and_capture_stdout(
             commands=commands,
-            show_output_on_screen=False,
-            capture_stdout=True,
             cwd=cwd,
             env=env,
             check_exit_code=check_exit_code,
             timeout=timeout,
-            execute_as_admin=True,
-            admin_password=None,
+            credential_type="password",
+            credential=None,
             log_entry=True
         )
         return exit_code, stdout, stderr
 
-    @show_on_help.add_command('operating system')
+    @pm.register_command.add("operating system")
+    def execute_admin_with_password_and_run_in_background(self, commands: Union[str, List[Union[str, List[str]]]], password: str, cwd: pm.path = None,
+                                            env: Dict[str, Any] = None) -> int:
+        """
+        Execute a command as admin but ensure that no stdout will be printed on the console
+
+        :param commands: the command to execute. They will be exeucte in the same context
+        :param password: password of the user to invoke the program as an admin
+        :param cwd: current working directory where the command is executed
+        :param env: a dictionary representing the key-values of the environment variables
+        :return: triple. The first element is the error code, the second is the stdout (if captured), the third is stderr
+        """
+        if cwd is None:
+            cwd = self.paths.cwd()
+        else:
+            cwd = self.paths.abs_path(cwd)
+
+        if isinstance(commands, str):
+            commands = [commands]
+
+        result, _, _ = self.platform.fire_admin_command_and_forget(
+            commands=commands,
+            cwd=cwd,
+            env=env,
+            credential_type="password",
+            credential=password,
+            log_entry=True,
+        )
+        return result
+
+    @pm.register_command.add("operating system")
     def execute_admin_with_password_fire_and_forget(self, commands: Union[str, List[Union[str, List[str]]]],
                                                     password: str,
-                                                    cwd: str = None, env: Dict[str, Any] = None,
+                                                    cwd: pm.path = None, env: Dict[str, Any] = None,
                                                     check_exit_code: bool = True, timeout: int = None) -> int:
         """
         Execute a command as admin by providing the admin password. **THIS IS INCREDIBLE UNSAFE!!!!!!!!!!!!**.
@@ -254,30 +349,28 @@ class OpeatingSystemPmakeupPlugin(AbstractPmakeupPlugin):
             (e.g., history, system monitor, probably in a file as well)
         """
         if cwd is None:
-            cwd = self.cwd()
+            cwd = self.paths.cwd()
         else:
-            cwd = self.abs_path(cwd)
+            cwd = self.paths.abs_path(cwd)
 
         if isinstance(commands, str):
             commands = [commands]
 
-        result, _, _ = self.platform().execute_command(
+        result, _, _ = self.platform.fire_admin_command_and_wait(
             commands=commands,
-            show_output_on_screen=False,
-            capture_stdout=False,
             cwd=cwd,
             env=env,
             check_exit_code=check_exit_code,
             timeout=timeout,
-            execute_as_admin=True,
-            admin_password=password,
+            credential_type="password",
+            credential=password,
             log_entry=True,
         )
         return result
 
-    @show_on_help.add_command('operating system')
+    @pm.register_command.add("operating system")
     def execute_admin_with_password_stdout_on_screen(self, commands: Union[str, List[Union[str, List[str]]]],
-                                                     password: str, cwd: path = None, env: Dict[str, Any] = None,
+                                                     password: str, cwd: pm.path = None, env: Dict[str, Any] = None,
                                                      check_exit_code: bool = True, timeout: int = None) -> int:
         """
         Execute a command as an admin. We won't capture the stdout but we will show it on pmakeup console
@@ -295,30 +388,28 @@ class OpeatingSystemPmakeupPlugin(AbstractPmakeupPlugin):
             the third is stderr
         """
         if cwd is None:
-            cwd = self._cwd
+            cwd = self.paths.cwd()
         else:
-            cwd = self.abs_path(cwd)
+            cwd = self.paths.abs_path(cwd)
 
         if isinstance(commands, str):
             commands = [commands]
 
-        result, _, _ = self.platform().execute_command(
+        result = self.platform.fire_admin_command_and_show_stdout(
             commands=commands,
-            show_output_on_screen=True,
-            capture_stdout=False,
             cwd=cwd,
             env=env,
             check_exit_code=check_exit_code,
             timeout=timeout,
-            execute_as_admin=True,
-            admin_password=password,
+            credential_type="password",
+            credential=password,
             log_entry=True,
         )
         return result
 
-    @show_on_help.add_command('operating system')
+    @pm.register_command.add("operating system")
     def execute_admin_with_password_return_stdout(self, commands: Union[str, List[Union[str, List[str]]]],
-                                                  password: str, cwd: path = None, env: Dict[str, Any] = None,
+                                                  password: str, cwd: pm.path = None, env: Dict[str, Any] = None,
                                                   check_exit_code: bool = True,
                                                   timeout: int = None) -> Tuple[int, str, str]:
         """
@@ -337,25 +428,24 @@ class OpeatingSystemPmakeupPlugin(AbstractPmakeupPlugin):
             the third is stderr
         """
         if cwd is None:
-            cwd = self._cwd
+            cwd = self.paths.cwd()
         else:
-            cwd = self.abs_path(cwd)
+            cwd = self.paths.abs_path(cwd)
 
         if isinstance(commands, str):
             commands = [commands]
 
-        exit_code, stdout, stderr = self.platform().execute_command(
+        exit_code, stdout, stderr = self.platform.fire_admin_command_and_capture_stdout(
             commands=commands,
-            show_output_on_screen=False,
-            capture_stdout=True,
             cwd=cwd,
             env=env,
             check_exit_code=check_exit_code,
             timeout=timeout,
-            execute_as_admin=True,
-            admin_password=password,
+            credential_type="password",
+            credential=password,
             log_entry=True
         )
         return exit_code, stdout, stderr
 
-OpeatingSystemPmakeupPlugin.autoregister()
+
+OperatingSystemPMakeupPlugin.autoregister()

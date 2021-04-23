@@ -1,5 +1,5 @@
 import os
-from typing import List, Tuple
+from typing import List, Tuple, Iterable
 
 import setuptools
 from pmakeup import version
@@ -7,6 +7,19 @@ from pmakeup.exceptions.PMakeupException import InvalidScenarioPMakeupException
 
 with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
+
+
+def get_dependencies() -> Iterable[str]:
+    with open("requirements.txt", "r", encoding="utf-8") as fh:
+        dep = fh.readline()
+        yield dep.split("==")[0]
+
+
+def get_test_dependencies() -> Iterable[str]:
+    with open("test_requirements.txt", "r", encoding="utf-8") as fh:
+        dep = fh.readline()
+        yield dep.split("==")[0]
+
 
 
 setuptools.setup(
@@ -26,13 +39,8 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     include_package_data=True,
-    install_requires=[
-        "colorama",
-        "decorator",
-        "semantic-version",
-        "networkx",
-        "psutil",
-    ],
+    install_requires=list(get_dependencies()),
+    tests_require=list(get_test_dependencies()),
     # data_files=get_data_files(),
     python_requires='>=3.6',
     # add for pyinstaller to work
