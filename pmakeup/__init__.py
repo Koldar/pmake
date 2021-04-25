@@ -58,8 +58,8 @@ from pmakeup.plugins.git.GitPMakeupPlugin import GitPMakeupPlugin
 import pmakeup.plugins.tempfiles.TempFilesPMakeupPlugin
 from pmakeup.plugins.tempfiles.TempFilesPMakeupPlugin import TempFilesPMakeupPlugin
 
-import pmakeup.plugins.utils.UtilsPmakeupPlugin
-from pmakeup.plugins.utils.UtilsPmakeupPlugin import UtilsPmakeupPlugin
+import pmakeup.plugins.utils.UtilsPMakeupPlugin
+from pmakeup.plugins.utils.UtilsPMakeupPlugin import UtilsPMakeupPlugin
 
 import pmakeup.plugins.windows.WindowsPMakeupPlugin
 from pmakeup.plugins.windows.WindowsPMakeupPlugin import WindowsPMakeupPlugin

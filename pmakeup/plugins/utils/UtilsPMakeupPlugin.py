@@ -4,7 +4,7 @@ from typing import Any, Iterable, Tuple, List
 import pmakeup as pm
 
 
-class UtilsPmakeupPlugin(pm.AbstractPmakeupPlugin):
+class UtilsPMakeupPlugin(pm.AbstractPmakeupPlugin):
 
     def _setup_plugin(self):
         pass
@@ -171,4 +171,4 @@ class UtilsPmakeupPlugin(pm.AbstractPmakeupPlugin):
             raise TypeError(f"Cannot convert {v} (type {type(v)}) into a bool")
 
 
-UtilsPmakeupPlugin.autoregister()
+UtilsPMakeupPlugin.autoregister()

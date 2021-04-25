@@ -13,7 +13,9 @@
 # see https://medium.com/@richdayandnight/a-simple-tutorial-on-how-to-document-your-python-project-using-sphinx-and-rinohtype-177c22a15b5b
 import os
 import sys
-sys.path.insert(0, os.path.abspath('../../pmakeup'))
+print(f"CWD is {os.path.abspath(os.curdir)}")
+# cwd is docs/source
+sys.path.insert(0, os.path.abspath('../..'))
 sys.setrecursionlimit(1500)
 
 
