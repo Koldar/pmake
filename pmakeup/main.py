@@ -6,66 +6,65 @@ import sys
 import textwrap
 from typing import Tuple, Iterable, Any, Dict
 
-from pmakeup import version
-from pmakeup.decorators import show_on_help
-from pmakeup.models.PMakeupModel import PMakeupModel
-from pmakeup.constants import STANDARD_MODULES, STANDARD_VARIABLES
-from pmakeup.exceptions.PMakeupException import AssertionPMakeupException, InvalidScenarioPMakeupException, PMakeupException
+import pmakeup as pm
 
 
-def list_commands() -> Iterable[Tuple[str, str, str]]:
-    def get_str(t: Any) -> str:
-        if hasattr(t, "__name__"):
-            return t.__name__
-        else:
-            return str(t)
+# todo remove
+# def list_commands() -> Iterable[Tuple[str, str, str]]:
+#     def get_str(t: Any) -> str:
+#         if hasattr(t, "__name__"):
+#             return t.__name__
+#         else:
+#             return str(t)
+#
+#     for command_group, command_list in show_on_help.add_command.call_dictionary.items():
+#         for command in command_list:
+#             # method = getattr(SessionScript, command_name)
+#             method = command
+#             fullargspec = inspect.getfullargspec(method)
+#             arg_tmp = []
+#             if 'return' in fullargspec.annotations:
+#                 result_type = get_str(fullargspec.annotations["return"])
+#             else:
+#                 result_type = "None"
+#             for x in fullargspec.args[1:]:
+#                 if x in fullargspec.annotations:
+#                     param_type = get_str(fullargspec.annotations[x])
+#                 else:
+#                     param_type = "Any"
+#                 arg_tmp.append(f"{x}: {param_type}")
+#             method_signature = f"{command.__name__} ({', '.join(arg_tmp)}) -> {result_type}"
+#
+#             yield command_group, method_signature, method.__doc__
 
-    for command_group, command_list in show_on_help.add_command.call_dictionary.items():
-        for command in command_list:
-            # method = getattr(SessionScript, command_name)
-            method = command
-            fullargspec = inspect.getfullargspec(method)
-            arg_tmp = []
-            if 'return' in fullargspec.annotations:
-                result_type = get_str(fullargspec.annotations["return"])
-            else:
-                result_type = "None"
-            for x in fullargspec.args[1:]:
-                if x in fullargspec.annotations:
-                    param_type = get_str(fullargspec.annotations[x])
-                else:
-                    param_type = "Any"
-                arg_tmp.append(f"{x}: {param_type}")
-            method_signature = f"{command.__name__} ({', '.join(arg_tmp)}) -> {result_type}"
-
-            yield command_group, method_signature, method.__doc__
-
-
-def build_dict_of_commands() -> Dict[str, Iterable[Tuple[str, str]]]:
-    result = {}
-    for group, signature, doc in list_commands():
-        if group not in result:
-            result[group] = []
-        result[group].append((signature, doc))
-    return result
+# todo remove
+# def build_dict_of_commands() -> Dict[str, Iterable[Tuple[str, str]]]:
+#     result = {}
+#     for group, signature, doc in list_commands():
+#         if group not in result:
+#             result[group] = []
+#         result[group].append((signature, doc))
+#     return result
 
 
 def parse_options(args):
-    core_functions = f'\n'.join(map(lambda x: f' {x[0] + 1}. {x[1][1].__name__};', enumerate(STANDARD_MODULES)))
-    core_functions = textwrap.dedent(core_functions)
-    core_constants = f'\n'.join(map(lambda x: f' {x[0] + 1}. {x[1][0]}: {x[1][2]};', enumerate(STANDARD_VARIABLES)))
-    core_constants = textwrap.dedent(core_constants)
+    # todo remove
+    # core_functions = f'\n'.join(map(lambda x: f' {x[0] + 1}. {x[1][1].__name__};', enumerate(STANDARD_MODULES)))
+    # core_functions = textwrap.dedent(core_functions)
+    # core_constants = f'\n'.join(map(lambda x: f' {x[0] + 1}. {x[1][0]}: {x[1][2]};', enumerate(STANDARD_VARIABLES)))
+    # core_constants = textwrap.dedent(core_constants)
 
-    convenience_commands = []
-    for group_name, group_commands in build_dict_of_commands().items():
-        convenience_commands.append('#' * 50)
-        convenience_commands.append(f"{'#'*20} {group_name.upper()} {'#'*20}")
-        convenience_commands.append('#' * 50)
-        convenience_commands.append('')
-        for command_signature, command_doc in group_commands:
-            convenience_commands.append(f" * {command_signature}\n{textwrap.dedent(str(command_doc))}")
-
-    convenience_commands = '\n'.join(convenience_commands)
+    # todo remove
+    # convenience_commands = []
+    # for group_name, group_commands in build_dict_of_commands().items():
+    #     convenience_commands.append('#' * 50)
+    #     convenience_commands.append(f"{'#'*20} {group_name.upper()} {'#'*20}")
+    #     convenience_commands.append('#' * 50)
+    #     convenience_commands.append('')
+    #     for command_signature, command_doc in group_commands:
+    #         convenience_commands.append(f" * {command_signature}\n{textwrap.dedent(str(command_doc))}")
+    #
+    # convenience_commands = '\n'.join(convenience_commands)
 
     parser = argparse.ArgumentParser(
         prog="pmakeup",
@@ -85,19 +84,8 @@ def parse_options(args):
         The above command implicitly uses the file "PMakeupfile.py", but if you inject another file we will read information
         from that file. The above command works only if the PMakefile uses targets. If it does not use it, this mechanism
         will not work.
-        
-        Aside from the core functions, you can access these modules:
-        
-        {core_functions}
 
         You can add more modules using --python_module argument.
-        In order to facilitate writing scripts, you can use the additional convenience functions:
-
-        {convenience_commands}
-
-        Alongside such functions, there are some important readonly variables always available:
-
-        {core_constants}
 
         You can access the variables passed to "--variable" by calling their name. For instance if you have 
         
@@ -121,7 +109,7 @@ def parse_options(args):
          - 255: a serious error while executing pmakeup.
         
         """,
-        epilog=f"Massimo Bono 2020, Version {version.VERSION}",
+        epilog=f"Massimo Bono 2020, Version {pm.version.VERSION}",
         formatter_class=argparse.RawTextHelpFormatter,
     )
     parser.add_argument("-f", "--input_file", type=str, required=False, default="PMakeupfile.py", help="""
@@ -176,8 +164,8 @@ def configure_logging(options) -> str:
     return log_level
 
 
-def initialize_model(options) -> "PMakeupModel":
-    model = PMakeupModel()
+def initialize_model(options) -> "pm.PMakeupModel":
+    model = pm.PMakeupModel()
     model.input_file = os.path.abspath(options.input_file)
     model.input_encoding = options.input_encoding
     model.log_level = options.log_level
@@ -194,7 +182,7 @@ def handle_version_flag(options):
     if version is set, show the version and stop
     """
     if options.version:
-        print(version.VERSION)
+        print(pm.version.VERSION)
         sys.exit(0)
 
 
@@ -216,11 +204,11 @@ def main(args=None):
 
         # invoke pmakeup model
         PMAKEUP_MODEL.manage_pmakefile()
-    except AssertionPMakeupException as e:
+    except pm.AssertionPMakeupException as e:
         sys.exit(1)
-    except InvalidScenarioPMakeupException as e:
+    except pm.InvalidScenarioPMakeupException as e:
         sys.exit(2)
-    except PMakeupException as e:
+    except pm.PMakeupException as e:
         sys.exit(254)
     except Exception as e:
         raise e

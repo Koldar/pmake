@@ -52,9 +52,6 @@ from pmakeup.plugins.targets.TargetsPMakeupPlugin import TargetsPMakeupPlugin
 import pmakeup.plugins.strings.StringsPMakeupPlugin
 from pmakeup.plugins.strings.StringsPMakeupPlugin import StringsPMakeupPlugin
 
-import pmakeup.plugins.archive.ArchivePMakeupPlugin
-from pmakeup.plugins.archive.ArchivePMakeupPlugin import ArchivePMakeupPlugin
-
 import pmakeup.plugins.git.GitPMakeupPlugin
 from pmakeup.plugins.git.GitPMakeupPlugin import GitPMakeupPlugin
 
@@ -63,6 +60,13 @@ from pmakeup.plugins.tempfiles.TempFilesPMakeupPlugin import TempFilesPMakeupPlu
 
 import pmakeup.plugins.utils.UtilsPmakeupPlugin
 from pmakeup.plugins.utils.UtilsPmakeupPlugin import UtilsPmakeupPlugin
+
+import pmakeup.plugins.windows.WindowsPMakeupPlugin
+from pmakeup.plugins.windows.WindowsPMakeupPlugin import WindowsPMakeupPlugin
+
+import pmakeup.plugins.linux.LinuxPMakeupPlugin
+from pmakeup.plugins.linux.LinuxPMakeupPlugin import LinuxPMakeupPlugin
+
 
 from pmakeup.platforms.IOSSystem import IOSSystem
 
@@ -123,7 +127,6 @@ from pmakeup.cache.JsonPMakeupCache import JsonPMakeupCache
 # from pmakeup.TargetDescriptor import TargetDescriptor
 # from pmakeup.exceptions.PMakeupException import PMakeupException
 # from pmakeup.exceptions.AssertionPMakeupException import AssertionPMakeupException
-# from pmakeup.exceptions.InvalidScenarioPMakeupException import InvalidScenarioPMakeupException
 # from pmakeup.plugins.git.CommitEntry import CommitEntry
 # from pmakeup.cache.IPMakeupCache import IPMakeupCache
 # from pmakeup.cache.JsonPMakeupCache import JsonPMakeupCache

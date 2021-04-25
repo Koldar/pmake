@@ -2,8 +2,7 @@ import os
 from typing import List, Tuple, Iterable
 
 import setuptools
-from pmakeup import version
-from pmakeup.exceptions.PMakeupException import InvalidScenarioPMakeupException
+import pmakeup as pm
 
 with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
@@ -24,7 +23,7 @@ def get_test_dependencies() -> Iterable[str]:
 
 setuptools.setup(
     name="pmakeup",  # Replace with your own username
-    version=version.VERSION,
+    version=pm.version.VERSION,
     author="Massimo Bono",
     author_email="massimobono1@gmail.com",
     description="Library for quickly generate ER diagrams",

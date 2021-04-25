@@ -88,7 +88,7 @@ class CorePMakeupPlugin(pm.AbstractPmakeupPlugin):
         :return: the first path compliant with this path name
         """
         max_x = None
-        for x in filter(lambda x: x.architecture == architecture, self._interesting_paths[current_path]):
+        for x in filter(lambda x: x.architecture == architecture, self._model._eval_globals.pmakeup_interesting_paths[current_path]):
             if max_x is None:
                 max_x = x
             elif x.version > max_x.version:

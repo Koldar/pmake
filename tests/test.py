@@ -685,20 +685,27 @@ class MyTestCase(unittest.TestCase):
                     """
             self.assertStdoutEquals("True", lambda: model.manage_pmakefile())
 
-    def test_has_registry_value(self):
+    def test_has_registry_value_present(self):
         if os.name == 'nt':
             model = pm.PMakeupModel()
             model.input_string = """
                         echo(has_registry_local_machine_value(
-                            key=r"Console",
-                            item="ColorTable00"
-                        ))
-                        echo(has_registry_local_machine_value(
-                            key=r"Console",
-                            item="ColorTable00edhwdghjrtfkh"
+                            key=r"SOFTWARE\\Microsoft\\FilePicker",
+                            item="UseMinPickerControllerUI"
                         ))
                     """
-            self.assertStdoutEquals("True\nFalse", lambda: model.manage_pmakefile())
+            self.assertStdoutEquals("True", lambda: model.manage_pmakefile())
+
+    def test_has_registry_value_absent(self):
+        if os.name == 'nt':
+            model = pm.PMakeupModel()
+            model.input_string = """
+                        echo(has_registry_local_machine_value(
+                            key=r"SOFTWARE\\Microsoft\\FilePicker",
+                            item="Seedsdjkf"
+                        ))
+                    """
+            self.assertStdoutEquals("False", lambda: model.manage_pmakefile())
 
     def test_default_has_registry_local_machine_value(self):
         if os.name == 'nt':

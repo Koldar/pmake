@@ -5,6 +5,7 @@ import itertools
 import logging
 import math
 import os
+import platform
 import re
 import networkx as nx
 import textwrap
@@ -237,9 +238,16 @@ class PMakeupModel(abc.ABC):
             pm.PathsPMakeupPlugin,
             pm.FilesPMakeupPlugin,
             pm.LoggingPMakeupPlugin,
-            pm.WebPMakeupPlugin,
             pm.OperatingSystemPMakeupPlugin
         ]
+
+        # specific operating system
+        if platform.system() == "Windows":
+            plugin_class_to_instantiates.append(pm.WindowsPMakeupPlugin)
+        elif platform.system() == "Linux":
+            plugin_class_to_instantiates.append(pm.LinuxPMakeupPlugin)
+        else:
+            raise ValueError(f"Invlaid platform {platform.system()}")
 
         # we need to scan all the install packages, fetch hte one insteresting for pmakeup. Then we need to create a plugin per class
         for plugin_class_to_instantiate in self.__fetch_pmakeup_plugins_installed():
@@ -428,6 +436,15 @@ class PMakeupModel(abc.ABC):
             colorama.deinit()
             if self.pmake_cache is not None:
                 self.pmake_cache.update_cache()
+
+    def get_core_plugin(self) -> "pm.CorePMakeupPlugin":
+        return self.get_plugin_by_name("CorePMakeupPlugin")
+
+    def get_files_plugin(self) -> "pm.FilesPMakeupPlugin":
+        return self.get_plugin_by_name("FilesPMakeupPlugin")
+
+    def get_paths_plugin(self) -> "pm.PathsPMakeupPlugin":
+        return self.get_plugin_by_name("PathsPMakeupPlugin")
 
     def execute(self):
         """

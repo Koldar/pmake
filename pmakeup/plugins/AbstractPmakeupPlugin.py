@@ -182,7 +182,7 @@ class AbstractPmakeupPlugin(abc.ABC):
             return string
 
     # ###################################################
-    # Access to core plugin, since it is always imported
+    # Access to popular plugins, since it is always imported
     # ###################################################
 
     @property
@@ -212,6 +212,13 @@ class AbstractPmakeupPlugin(abc.ABC):
         Gain access to the core plugin, which is well populated
         """
         return self.get_plugin("LoggingPMakeupPlugin")
+
+    @property
+    def operating_system(self) -> "pm.OperatingSystemPMakeupPlugin":
+        """
+        Gain access to the operating system plugin, which is well populated
+        """
+        return self.get_plugin("OperatingSystemPMakeupPlugin")
 
     # ###################################################
     # Logging

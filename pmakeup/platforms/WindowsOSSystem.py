@@ -431,7 +431,7 @@ class WindowsOSSystem(pm.IOSSystem):
     def find_executable_in_program_directories(self, program_name: str) -> Optional[pm.path]:
         # we first search in program files and only then fallbacks to path.
         for root in [r"C:\Program Files", r"C:\Program Files (x86)"] + list(self.get_program_path()):
-            for f in self._model.get_plugin_by_name("FilesPMakeupPlugin").find_file(root_folder=root, filename=program_name):
+            for f in self._model.get_files_plugin().find_file(root_folder=root, filename=program_name):
                 return f
         else:
             return None
@@ -461,11 +461,9 @@ class WindowsOSSystem(pm.IOSSystem):
         # <Regasm32>C:\Windows\Microsoft.NET\Framework\v4.0.30319\RegAsm.exe</Regasm32>
         # <Regasm64>C:\Windows\Microsoft.NET\Framework64\v4.0.30319\RegAsm.exe</Regasm64>
         # fetch regasm
-        core_plugin: "pm.CorePMakeupPlugin" = model.get_plugin_by_name("CorePMakeupPlugin")
-        files_plugin: "pm.FilesPMakeupPlugin" = model.get_plugin_by_name("FilesPMakeupPlugin")
 
         interesting_paths = {}
-        architecture = core_plugin.get_architecture()
+        architecture = self._model.get_core_plugin().get_architecture()
 
         # REGASM
         folder32 = os.path.join(r"C:\\", "Windows", "Microsoft.NET", "Framework")
@@ -476,19 +474,19 @@ class WindowsOSSystem(pm.IOSSystem):
 
         if os.path.isdir(folder32):
             # subfolder ris something like v1.2.3
-            for subfolder in files_plugin.ls_only_directories(folder32):
+            for subfolder in self._model.get_files_plugin().ls_only_directories(folder32):
                 interesting_paths["regasm"].append(pm.InterestingPath(
                     architecture=32,
-                    path=core_plugin._abs_wrt_cwd(folder32, subfolder, "RegAsm.exe"),
+                    path=self._model.get_core_plugin()._abs_wrt_cwd(folder32, subfolder, "RegAsm.exe"),
                     version=self._get_semantic_version(subfolder[1:])
                 ))
 
         if os.path.isdir(folder64):
             # subfolder ris something like v1.2.3
-            for subfolder in files_plugin.ls_only_directories(folder64):
+            for subfolder in self._model.get_files_plugin().ls_only_directories(folder64):
                 interesting_paths["regasm"].append(pm.InterestingPath(
                     architecture=64,
-                    path=core_plugin._abs_wrt_cwd(folder64, subfolder, "RegAsm.exe"),
+                    path=self._model.get_core_plugin()._abs_wrt_cwd(folder64, subfolder, "RegAsm.exe"),
                     version=self._get_semantic_version(subfolder[1:])
                 ))
 
@@ -499,7 +497,7 @@ class WindowsOSSystem(pm.IOSSystem):
         iexplorer_path = os.path.abspath(os.path.join("C:\\", "Program Files", "Internet Explorer", "iexplore.exe"))
         interesting_paths["internet-explorer"] = []
         interesting_paths["internet-explorer"].append(pm.InterestingPath(
-            architecture=core_plugin.get_architecture(),
+            architecture=self._model.get_core_plugin().get_architecture(),
             path=iexplorer_path,
             version=Version("1.0.0")
         ))
