@@ -25,9 +25,6 @@ The following are the importan commands that you can immediately use within pmak
 .. automodule:: pmakeup
    :members:
 
-.. autoclass:: commands.SessionScript
-   :members:
-
 PMakeup cache
 ======================
 
@@ -37,33 +34,5 @@ PMakeup cache
 .. autoclass:: JsonPMakeupCache.JsonPMakeupCache
    :members:
 
-Platform interface
-==================
 
-.. autoclass:: IOSSystem.IOSSystem
-   :members:
-
-.. autoclass:: LinuxOSSystem.LinuxOSSystem
-   :members:
-
-.. autoclass:: WindowsOSSystem.WindowsOSSystem
-   :members:
-
-Additional commands platform dependent
-======================================
-
-.. autoclass:: linux_commands.LinuxSessionScript
-   :members:
-
-.. autoclass:: windows_commands.WindowsSessionScript
-   :members:
-
-Other classes
-=============
-
-.. autoclass:: InterestingPath.InterestingPath
-   :members:
-
-.. autoclass:: PMakeupModel.PMakeupModel
-   :members:
 

@@ -130,6 +130,8 @@ You will need to create `TWINE_PYPI_PASSWORD` containig your twine password to u
 
 # Documentation
 
+To see the online documentation, please see [here](https://pmakeup.readthedocs.io/en/latest/)
+
 I have installed `miktex` as latex
 
 ```
