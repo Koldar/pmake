@@ -52,7 +52,7 @@ class FilesPMakeupPlugin(pm.AbstractPmakeupPlugin):
             pass
 
     @pm.register_command.add("files")
-    def allow_file_to_be_executed_by_anyone(self, file: pm.path) -> None:
+    def allow_file_to_be_executed_by_anyone(self, file: pm.path):
         """
         Allow the file to be executed by anyone. On a linux system it should be equal to "chmod o+x"
 
@@ -106,7 +106,7 @@ class FilesPMakeupPlugin(pm.AbstractPmakeupPlugin):
         Get the filesize of a given file. If the file is a directory, return the cumulative size of all the files in it
 
         :param f: the path of the file to consider
-        :return number of bytes
+        :return: number of bytes
         """
 
         to_check = self._abs_wrt_cwd(*f)
@@ -431,7 +431,7 @@ class FilesPMakeupPlugin(pm.AbstractPmakeupPlugin):
         :param p: file to consider
         :param encoding: encoding of the file to search. Defaults to utf8
         :param flags: flags of the regex to build. Passed as-is
-        :return a regex match representing the first occurence. If None we could not find anything
+        :return: a regex match representing the first occurence. If None we could not find anything
         """
 
         fn = self._abs_wrt_cwd(*p)

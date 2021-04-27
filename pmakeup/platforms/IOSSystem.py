@@ -108,7 +108,7 @@ class IOSSystem(abc.ABC):
 
         :param directory_prefix: a prefix to be put before the temporary folder
         :return: a value which can be the input of a "with" statement. The folder will be automatically removed at the
-        end of the with. The value returned is actually the absolute path of the temp directory
+            end of the with. The value returned is actually the absolute path of the temp directory
         """
         return tempfile.TemporaryDirectory(prefix=directory_prefix)
 

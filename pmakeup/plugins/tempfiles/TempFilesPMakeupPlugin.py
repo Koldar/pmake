@@ -36,8 +36,8 @@ class TempFilesPMakeupPlugin(pm.AbstractPmakeupPlugin):
         Create a temporary directory on the file system where to put temporary files
 
         :param directory_prefix: a prefix to be put before the temporary folder
-        :return: the absolute path of the temporary folder created. The function can be used an input of a "with" statement.
-        The folder will be automatically removed at the end of the with.
+        :return: the absolute path of the temporary folder created. The function can be used an input of a "with"
+            statement. The folder will be automatically removed at the end of the with.
         """
         return self.platform.create_temp_directory_with(directory_prefix)
 

@@ -1,8 +1,10 @@
 import logging
+from functools import wraps
 
 
 def add(group: str = "generic"):
     def decorator(func):
+        @wraps(func)
         def decorator_wrapper(*args, **kwargs):
             return func(*args, **kwargs)
 
@@ -11,6 +13,8 @@ def add(group: str = "generic"):
         if function_name not in add.plugins["call_dictionary"]:
             add.plugins["call_dictionary"][function_name] = {}
         add.plugins["call_dictionary"][function_name] = (group, func)
+
+        decorator.__doc__ = func.__doc__
 
         return decorator_wrapper
 

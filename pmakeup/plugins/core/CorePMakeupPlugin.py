@@ -34,10 +34,13 @@ class CorePMakeupPlugin(pm.AbstractPmakeupPlugin):
 
     @pm.register_command.add("core")
     def require_pmakeup_plugins(self, *pmakeup_plugin_names: str):
-        """
-        Tells pmakeup that, in order to run the script, you required a sequence of pmakeup plugins correctly installed (the version does not matter)
+        """Tells pmakeup that, in order to run the script, you required a sequence of pmakeup plugins correctly
+        installed (the version does not matter)
 
         Pmakeup will then arrange itself in installing dependencies and the correct order of the plugins
+
+        :param pmakeup_plugin_names: the plugins that are requierd to be present in order for the script to work.
+            Dependencies are automatically added
         """
         # TODO implement
         raise NotImplementedError()
@@ -346,6 +349,18 @@ class CorePMakeupPlugin(pm.AbstractPmakeupPlugin):
         self._log_command(f"Setting {name}={new_value} in cache")
         self._model.pmake_cache.set_variable_in_cache(name, new_value)
 
+    @pm.register_command.add("core")
+    def load_cache(self):
+        """
+        Load all the variables present in cache into the available variables
+        """
+
+        self._log_command(f"Loading variables in cache...")
+        i = 0
+        for key in self._model.pmake_cache.variable_names():
+            self.set_variable(key, self._model.pmake_cache.get_variable_in_cache(key))
+            i += 1
+        self._log_command(f"Loaded {i} variables")
 
     @pm.register_command.add("core")
     def get_starting_cwd(self) -> pm.path:
