@@ -243,19 +243,25 @@ class PMakeupModel(abc.ABC):
 
         # specific operating system
         if platform.system() == "Windows":
+            logging.info(f"Registering operating system plugin {pm.WindowsPMakeupPlugin}")
             plugin_class_to_instantiates.append(pm.WindowsPMakeupPlugin)
         elif platform.system() == "Linux":
+            logging.info(f"Registering operating system plugin {pm.LinuxPMakeupPlugin}")
             plugin_class_to_instantiates.append(pm.LinuxPMakeupPlugin)
         else:
             raise ValueError(f"Invlaid platform {platform.system()}")
 
         # we need to scan all the install packages, fetch hte one insteresting for pmakeup. Then we need to create a plugin per class
         for plugin_class_to_instantiate in self.__fetch_pmakeup_plugins_installed():
+            logging.info(f"Registering pip installed plugin {plugin_class_to_instantiate}")
             plugin_class_to_instantiates.append(plugin_class_to_instantiate)
+
+
 
         # at the init, PMAKEUP_PLUGINS_TO_REGISTER contains all plugins to setup
 
         for plugin_class_to_instantiate in pm.global_variables.PMAKEUP_PLUGINS_TO_REGISTER:
+            logging.info(f"Registering PMAKEUP_PLUGINS_TO_REGISTER plugin {plugin_class_to_instantiate}")
             plugin_class_to_instantiates.append(plugin_class_to_instantiate)
 
         for plugin_class in plugin_class_to_instantiates:
@@ -349,7 +355,9 @@ class PMakeupModel(abc.ABC):
         for plugin in self.get_plugins():
             # register the plugin in the eval: in this way the user can call a specific plugin function
             # if she really wants to
-            if plugin.get_plugin_name() not in self._eval_globals:
+            logging.debug(f"trying to register {plugin.get_plugin_name()}....")
+            if plugin.p() not in self._eval_globals:
+                logging.debug(f"registering {plugin.get_plugin_name()}....")
                 self._eval_globals.pmakeup_plugins[plugin.get_plugin_name()] = plugin
             # register all the plugin functions in eval
             for name, function in plugin.get_plugin_functions():
