@@ -14,10 +14,11 @@ Welcome to pmakeup's documentation!
    :caption: Contents:
 
    getting-started
+   create-pmakeup-scripts
    plugins
    cache
-   code-documentation
    create-plugin
+   code-documentation
 
 
 Indices and tables
