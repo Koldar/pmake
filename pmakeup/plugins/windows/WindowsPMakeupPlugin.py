@@ -3,7 +3,12 @@ Special commands related to windows
 """
 
 import os
-import winreg
+
+try:
+    import winreg
+finally:
+    # ignore winreg. Occurs when we load the application on linux (e.g., when bulding on readthedocs)
+    pass
 from typing import Any, Tuple, Iterable
 
 import pmakeup as pm
