@@ -17,6 +17,7 @@ Welcome to pmakeup's documentation!
    plugins
    cache
    code-documentation
+   create-plugin
 
 
 Indices and tables

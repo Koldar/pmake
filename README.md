@@ -123,7 +123,7 @@ to show a comprehensive help, with all the commands available to you.
 Assuming you have a version of pmakeup installed on your system, you can use `pmakeup` to build `pmakeup`.
 
 ```
-pmakeup update-version-minor build install upload-to-pypi
+pmakeup update-version-minor build upload-to-pypi
 ```
 
 You will need to create `TWINE_PYPI_PASSWORD` containig your twine password to upload 
@@ -156,4 +156,10 @@ translator, uniquecounter, upquote, url, wrapfig, xfor, xkeyval,
 zapfding, zref
 ```
 
+# Repo structure
+
+- plugins: contains a set of folder where pmakeup plugins I have made are placed
+- pmakeup: main source pmakeup code repository 
+- tests: tests for pmakeup project
+- docs: documentation of pmakeup
  

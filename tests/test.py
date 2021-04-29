@@ -459,6 +459,45 @@ class MyTestCase(unittest.TestCase):
 
         os.unlink("pmakeup-cache.json")
 
+    def test_get_absolute_file_till_root_01(self):
+        model = pm.PMakeupModel()
+        model.input_string = """
+                    make_directories("temp1/temp2/temp3/temp4")
+                    create_empty_file("temp1/awesome")
+                    result = get_absolute_file_till_root("awesome", "temp1/temp2/temp3/temp4") 
+                    echo("awesome" in result)
+                    remove_tree("temp1")
+                """
+        self.assertStdoutEquals("True", lambda: model.manage_pmakefile())
+
+    def test_get_absolute_file_till_root_02(self):
+        model = pm.PMakeupModel()
+        model.input_string = """
+                    make_directories("temp1/temp2/temp3/temp4")
+                    try: 
+                        result = get_absolute_file_till_root("awesome", "temp1/temp2/temp3/temp4")
+                        echo("awesome" in result)
+                    except ValueError:
+                        pass
+                    finally:
+                        remove_tree("temp1")
+                """
+        self.assertStdoutEquals("", lambda: model.manage_pmakefile())
+
+    def test_get_absolute_file_till_root_03(self):
+        model = pm.PMakeupModel()
+        model.input_string = """
+                    make_directories("temp1/temp2/awesome/temp4") 
+                    try: 
+                        result = get_absolute_file_till_root("awesome", "temp1/temp2/temp3/temp4")
+                        echo("awesome" in result)
+                    except ValueError:
+                        pass
+                    finally:
+                        remove_tree("temp1")
+                """
+        self.assertStdoutEquals("", lambda: model.manage_pmakefile())
+
     def test_get_latest_version_in_folder_01(self):
         model = pm.PMakeupModel()
         model.input_string = """

@@ -12,7 +12,7 @@ operating_system: pm.OperatingSystemPMakeupPlugin = pmakeup_info.pmakeup_plugins
 paths: pm.PathsPMakeupPlugin = pmakeup_info.pmakeup_plugins["PathsPMakeupPlugin"]
 targets: pm.TargetsPMakeupPlugin = pmakeup_info.pmakeup_plugins["TargetsPMakeupPlugin"]
 
-core.require_pmakeup_version("2.3.4")
+core.require_pmakeup_version("2.5.0")
 
 global TWINE_TEST_PYPI_USER
 global TWINE_TEST_PYPI_PASSWORD
@@ -20,10 +20,10 @@ global ADMIN_PASSWORD
 
 TWINE_TEST_PYPI_USER = "Koldar"
 TWINE_PYPI_USER = "Koldar"
-ADMIN_PASSWORD = files.read_file_content("PASSWORD")
 
-
-core.set_variable("version_file", paths.abs_path(list(files.find_file("pmakeup", "version.py"))[0]))
+admin_file = paths.get_absolute_file_till_root("PASSWORD")
+ADMIN_PASSWORD = files.read_file_content(admin_file)
+core.set_variable("version_file", paths.abs_path(list(files.find_file("archive_pmakeup_plugin", "version.py"))[0]))
 
 
 def clean():
@@ -111,7 +111,6 @@ def generate_documentation():
 
 def install():
     log.echo("Installing...", foreground="blue")
-    ADMIN_PASSWORD = files.read_file_content("PASSWORD")
     latest_version, file_list = get_latest_version_in_folder("dist", version_fetcher=semantic_version_2_only_core)
     log.echo(f"file list = {' '.join(file_list)}")
     wheel_file = list(filter(lambda x: '.whl' in x, file_list))[0]
@@ -128,7 +127,8 @@ def install():
 
 
 def upload_to_test_pypi():
-    TWINE_TEST_PYPI_PASSWORD = files.read_file_content("TWINE_TEST_PYPI_PASSWORD")
+    testpypi = paths.get_absolute_file_till_root("TWINE_TEST_PYPI_PASSWORD")
+    TWINE_TEST_PYPI_PASSWORD = files.read_file_content(testpypi)
     log.echo("Uploading to test pypi...", foreground="blue")
     latest_version, file_list = get_latest_version_in_folder("dist", version_fetcher=semantic_version_2_only_core)
     upload_files = ' '.join(map(lambda x: f"\"{x}\"", file_list))
@@ -152,7 +152,8 @@ def upload_to_test_pypi():
 
 
 def upload_to_pypi():
-    TWINE_PYPI_PASSWORD = files.read_file_content("TWINE_PYPI_PASSWORD")
+    pypi = paths.get_absolute_file_till_root("TWINE_PYPI_PASSWORD")
+    TWINE_PYPI_PASSWORD = files.read_file_content(pypi)
     log.echo("Uploading to pypi ...", foreground="blue")
     latest_version, file_list = get_latest_version_in_folder("dist", version_fetcher=semantic_version_2_only_core)
     upload_files = ' '.join(map(lambda x: f"\"{x}\"", file_list))

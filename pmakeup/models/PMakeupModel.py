@@ -1,6 +1,7 @@
 import abc
 import datetime
 import importlib
+import inspect
 import itertools
 import logging
 import math
@@ -15,6 +16,9 @@ from typing import Any, Dict, Optional, List, Iterable, Union
 import colorama
 import typing
 import importlib.util
+
+import pkg_resources
+from pkg_resources import EggInfoDistribution
 
 import pmakeup as pm
 
@@ -206,26 +210,39 @@ class PMakeupModel(abc.ABC):
             self._update_eval_global()
 
     def __fetch_pmakeup_plugins_installed(self) -> Iterable[type]:
-        from pip._internal.utils.misc import get_installed_distributions
-        from pip._vendor.pkg_resources import Distribution
 
-        for package in get_installed_distributions():
+        for apackage in map(lambda p: p, pkg_resources.working_set):
+            package: "EggInfoDistribution" = apackage
 
-            if re.search(r"^pmakeup-plugin(s)?-.+", package.key) is None:
+            if re.search(r"^pmakeup-plugin(s)?-.+", package.project_name) is None and re.search(
+                    r".+-pmakeup-plugin(s)?$", package.key) is None:
                 continue
-            if re.search(r".+-pmakeup-plugin(s)?$", package.key) is None:
-                continue
-            logging.info(f"Detected installed package {package.key} which should contains pmakeup plugins. Importing it")
+            logging.info(
+                f"Detected installed package {package.project_name} which should contains pmakeup plugins. Importing it")
 
-            module_name = package.key
-            module_path = os.path.join(package.location, module_name, "__init__.py")
-            spec = importlib.util.spec_from_file_location(module_name, module_path)
+            # get top level file
+            top_level_file = os.path.join(package.egg_info, "top_level.txt")
+            with open(top_level_file, encoding="utf8", mode="r") as f:
+                main_package = f.read().strip()
+
+            # get module init
+            module_path = os.path.join(package.location, main_package, "__init__.py")
+            logging.info(f"Main package = {main_package} Module path = {module_path}")
+            spec = importlib.util.spec_from_file_location(main_package, module_path)
+
+            # import
             module_instance = importlib.util.module_from_spec(spec)
+            logging.info(f"Module {package.project_name} has been correctly imported")
             spec.loader.exec_module(module_instance)
 
-            for package_type in dir(module_instance):
-                if issubclass(package_type, pm.AbstractPmakeupPlugin):
-                    yield package_type
+            # fetch plugins
+            for candidate_classname in dir(module_instance):
+                candidate_class = getattr(module_instance, candidate_classname)
+                if not inspect.isclass(candidate_class):
+                    # consider only classes
+                    continue
+                if issubclass(candidate_class, pm.AbstractPmakeupPlugin):
+                    yield candidate_class
 
     def _setup_plugin_graph(self):
         """
@@ -287,7 +304,12 @@ class PMakeupModel(abc.ABC):
 
         logging.info(f"All plugins have been successfully setupped!")
 
-    def _get_platform(self):
+    def _get_platform(self) -> pm.IOSSystem:
+        """
+        get the current operating system type
+
+        :return: structure providing you specific operating system methods
+        """
         if os.name == "nt":
             return pm.WindowsOSSystem(self)
         elif os.name == "posix":
@@ -356,7 +378,7 @@ class PMakeupModel(abc.ABC):
             # register the plugin in the eval: in this way the user can call a specific plugin function
             # if she really wants to
             logging.debug(f"trying to register {plugin.get_plugin_name()}....")
-            if plugin.p() not in self._eval_globals:
+            if plugin.get_plugin_name() not in self._eval_globals:
                 logging.debug(f"registering {plugin.get_plugin_name()}....")
                 self._eval_globals.pmakeup_plugins[plugin.get_plugin_name()] = plugin
             # register all the plugin functions in eval

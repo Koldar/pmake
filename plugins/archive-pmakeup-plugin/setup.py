@@ -3,14 +3,13 @@ from typing import Iterable
 
 import setuptools
 import pmakeup as pm
+from archive_pmakeup_plugin import version
 
-PACKAGE_NAME = "pmakeup"
-PACKAGE_VERSION = pm.version.VERSION
-PACKAGE_DESCRIPTION = "CLI utility for performing task Makefile-like"
+PACKAGE_NAME = "archive-pmakeup-plugin"
+PACKAGE_VERSION = version.VERSION
+PACKAGE_DESCRIPTION = "A Pmakeup plugin for handling zip and unzip operations"
 PACKAGE_URL = "https://github.com/Koldar/pmakeup.git"
 PACKAGE_PYTHON_COMPLIANCE = ">=3.6"
-PACKAGE_EXE = "pmakeup"
-PACKAGE_MAIN_MODULE = "pmakeup.main"
 PACKAGE_CLASSIFIERS = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
@@ -51,10 +50,6 @@ setuptools.setup(
     url=PACKAGE_URL,
     packages=setuptools.find_packages(),
     classifiers=PACKAGE_CLASSIFIERS,
-    requires=[
-        "setuptools",
-        "wheel"
-    ],
     install_requires=list(get_dependencies()),
     extras_require={
         "test": list(get_dependencies("test")),
@@ -65,5 +60,4 @@ setuptools.setup(
         "": ["package_data/*.*"],
     },
     python_requires=PACKAGE_PYTHON_COMPLIANCE,
-    entry_points={"console_scripts": [f"{PACKAGE_EXE}={PACKAGE_MAIN_MODULE}:main"]},
 )

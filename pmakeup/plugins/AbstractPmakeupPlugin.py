@@ -152,14 +152,14 @@ class AbstractPmakeupPlugin(abc.ABC):
     def get_cwd(self) -> pm.path:
         """
 
-        :return: the CWD the current commands operates in
+        :return: the CWD the current commands operates in, as absolute payj
         """
         return os.path.abspath(self.get_shared_variables()["cwd"])
 
     def set_cwd(self, value):
         """
-
-        :return: the CWD the current commands operates in
+        set the CWD the current commands operates in
+        :param value: new value of the CWD
         """
         self._model._eval_globals.cwd = value
 

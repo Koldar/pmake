@@ -29,6 +29,35 @@ class PathsPMakeupPlugin(pm.AbstractPmakeupPlugin):
         return os.path.relpath(path=p, start=reference)
 
     @pm.register_command.add("paths")
+    def get_absolute_file_till_root(self, filename: str, base: pm.path = None) -> pm.path:
+        """
+        Starting from the directory base, check if a fiel called "filename" is present. If nt, recursively chekc the parent directory
+        Raise an exception if the file is not found whern considering the root
+
+        :param filename: the name of the file (extension included) we need to look for
+        :param base: directory where we start looking. If left missing, we consider the CWD
+        :return: absolute path of the file found
+        """
+
+        def recurse(afilename: str, abase: pm.path) -> pm.path:
+            file_wrt_base = os.path.abspath(os.path.join(abase, afilename))
+            if os.path.exists(file_wrt_base) and os.path.isfile(file_wrt_base):
+                return os.path.normpath(file_wrt_base)
+            else:
+                aparent = os.path.normpath(os.path.join(abase, os.pardir))
+                if aparent is None or aparent == os.path.normpath(abase):
+                    # occurs when we arrived at the root
+                    raise ValueError(f"Could not find filename {afilename}!")
+                else:
+                    return recurse(afilename, aparent)
+
+        if base is None:
+            base = self.get_cwd()
+        base = self.abs_path(base)
+
+        return recurse(filename, base)
+
+    @pm.register_command.add("paths")
     def get_file_without_extension(self, *p: pm.path) -> pm.path:
         """
         Compute the filename without its last extension

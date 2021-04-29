@@ -1,0 +1,1 @@
+from archive_pmakeup_plugin.ArchivePMakeupPlugin import ArchivePMakeupPlugin

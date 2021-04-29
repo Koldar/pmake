@@ -154,8 +154,7 @@ def parse_options(args):
     return options
 
 
-def configure_logging(options) -> str:
-    log_level = options.log_level
+def configure_logging(log_level) -> str:
     logging.basicConfig(
         level=log_level,
         datefmt="%Y-%m-%dT%H:%M:%S",
@@ -195,7 +194,7 @@ def main(args=None):
         handle_version_flag(options)
 
         # configure logging
-        log_level = configure_logging(options)
+        log_level = configure_logging(options.log_level)
         logging.debug(f"Logging set to {log_level} (DEBUG={logging.DEBUG}, INFO={logging.INFO}, WARNING={logging.WARN}, ERROR={logging.ERROR}, CRITICAL={logging.CRITICAL})")
 
         # initialize pmakeup model
