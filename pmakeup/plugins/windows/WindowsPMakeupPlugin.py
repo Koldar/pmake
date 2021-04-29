@@ -6,9 +6,10 @@ import os
 
 try:
     import winreg
-finally:
+except ModuleNotFoundError:
     # ignore winreg. Occurs when we load the application on linux (e.g., when bulding on readthedocs)
     pass
+
 from typing import Any, Tuple, Iterable
 
 import pmakeup as pm
