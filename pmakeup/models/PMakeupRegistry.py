@@ -134,6 +134,7 @@ class PMakeupRegistry(dict):
         """
         Gain access to the variables
         """
+        print(f"pmakeup_cli_variables is {self.pmakeup_info['pmakeup_cli_variables']}")
         return self.pmakeup_info["pmakeup_cli_variables"]
 
     @pmakeup_cli_variables.setter

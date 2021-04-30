@@ -193,13 +193,16 @@ class PMakeupModel(abc.ABC):
     def _add_setup_dependency(self, plugin: "pm.AbstractPmakeupPlugin", depends_on: "pm.AbstractPmakeupPlugin"):
         if not self.is_plugin_registered(depends_on):
             # the plugin we depend upon is not registered at all. We need to register it
-            raise ValueError(f"Cannot find a dependency of the plugin {plugin}: plugin {depends_on} not found. Can you install it and add it to require_pmakeup_plugins please?")
+            raise ValueError(f"""
+                Cannot find a dependency of the plugin {plugin}: plugin {depends_on} not found. 
+                Can you install it and add it to require_pmakeup_plugins please?"""
+            )
         if self._plugin_graph.has_edge(plugin, depends_on, "setup"):
             raise ValueError(f"plugins {plugin} -> {depends_on} already has a dependency")
         self._plugin_graph.add_edge(plugin, depends_on, "setup")
         # now check for cycles (there cannot be cycles in the graph)
         if not nx.algorithms.is_directed_acyclic_graph(self._plugin_graph):
-            raise ValueError(f"Cycle depetected within plugin dependencies!")
+            raise ValueError(f"Cycle detected within plugin dependencies!")
 
     def register_plugins(self, *plugin: Union[str]):
         updated = False
@@ -268,12 +271,11 @@ class PMakeupModel(abc.ABC):
         else:
             raise ValueError(f"Invlaid platform {platform.system()}")
 
-        # we need to scan all the install packages, fetch hte one insteresting for pmakeup. Then we need to create a plugin per class
+        # we need to scan all the install packages, fetch hte one insteresting for pmakeup.
+        # Then we need to create a plugin per class
         for plugin_class_to_instantiate in self.__fetch_pmakeup_plugins_installed():
             logging.info(f"Registering pip installed plugin {plugin_class_to_instantiate}")
             plugin_class_to_instantiates.append(plugin_class_to_instantiate)
-
-
 
         # at the init, PMAKEUP_PLUGINS_TO_REGISTER contains all plugins to setup
 
@@ -351,7 +353,7 @@ class PMakeupModel(abc.ABC):
         # ########################### CONSTANTS ##############################################
         # ####################################################################################
 
-        # Standard constatns
+        # Standard constants
         logging.debug(f"Adding standard constants in the pmakeup registry...")
         for variable_name, value, description in self._get_constants_to_add_in_registry():
             if not self._eval_globals.can_a_function_have_a_name(variable_name):
@@ -409,17 +411,15 @@ class PMakeupModel(abc.ABC):
         # ####################################################################################
 
         # copy the variable dict inside the registry and put it in the pmakeup_original_variables
+        logging.debug(f"CLI variables are {self.cli_variables}")
         for variable_name, variable_value in self.cli_variables.items():
+            logging.debug(f"Trying to add variable {variable_name} in the registry...")
             if not self._eval_globals.can_a_function_have_a_name(variable_name):
                 raise ValueError(f"User injected variable cannot have the name {variable_name}!")
             self._eval_globals.pmakeup_original_variables[variable_name] = self.cli_variables[variable_name]
-
-        # copy the variables from the CLI and put in in the root of the registry
-        for variable_name, variable_value in self.cli_variables.items():
-            if not self._eval_globals.can_a_function_have_a_name(variable_name):
-                raise ValueError(f"User injected variable cannot have the name {variable_name}!")
-            logging.debug(f"Adding variable {variable_name} in the registry under \"vars\"")
+            self._eval_globals.pmakeup_cli_variables[variable_name] = self.cli_variables[variable_name]
             self._eval_globals.variables[variable_name] = self.cli_variables[variable_name]
+            logging.debug(f"Added variable {variable_name} in the registry!")
 
         # logging.info(f"VARIABLES PASSED FROM CLI")
         # for i, (k, v) in enumerate(self.variable.items()):

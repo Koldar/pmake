@@ -1,8 +1,12 @@
+import os
 import re
+import shutil
 from datetime import datetime
 from typing import Iterable, Any
 
 import pmakeup as pm
+
+from git_package_plugin.CommitEntry import CommitEntry
 
 
 class GitPMakeupPlugin(pm.AbstractPmakeupPlugin):
@@ -16,7 +20,26 @@ class GitPMakeupPlugin(pm.AbstractPmakeupPlugin):
     def _get_dependencies(self) -> Iterable[type]:
         return []
 
+    @pm.register_command.add("git")
+    def has_git_config(self, name: str, *folder) -> bool:
+        """
+        Check if the local repository has a git configuration set.
+        Very useful to check if the git repo has user.name or user.email is set
 
+        :param name: name fo the configuration to check
+        :param folder: path of the git repo. cwd if missing
+        :return: true if the configuration has been set, false otherwise
+        """
+        p = self._abs_wrt_cwd(*folder)
+        exit_code, stdout, stderr = self.operating_system.execute_return_stdout(
+            [["git", "config", "--list"]],
+            cwd=p
+        )
+
+        for line in stdout.splitlines(keepends=False):
+            if line.split("=")[0] == name:
+                return True
+        return False
 
     @pm.register_command.add("git")
     def get_git_commit(self, *folder) -> str:
@@ -28,7 +51,7 @@ class GitPMakeupPlugin(pm.AbstractPmakeupPlugin):
         :return: the commit hash
         """
         p = self._abs_wrt_cwd(*folder)
-        result, stdout, stderr = self.platform.execute_return_stdout(
+        result, stdout, stderr = self.operating_system.execute_return_stdout(
             commands=[["git", "rev-parse", "HEAD"]],
             cwd=p,
         )
@@ -44,7 +67,7 @@ class GitPMakeupPlugin(pm.AbstractPmakeupPlugin):
         :return: the current branch name
         """
         p = self._abs_wrt_cwd(*folder)
-        result, stdout, stderr = self.platform.fire_command_and_capture_stdout(
+        result, stdout, stderr = self.operating_system.execute_return_stdout(
             commands=[["git", "branch", "--show-current"]],
             cwd=p,
         )
@@ -60,7 +83,7 @@ class GitPMakeupPlugin(pm.AbstractPmakeupPlugin):
         :return: True if the repo has no changes to be made, false otherwise
         """
         p = self._abs_wrt_cwd(*folder)
-        result, stdout, stderr = self.platform.fire_command_and_capture_stdout(
+        result, stdout, stderr = self.operating_system.execute_return_stdout(
             commands=[["git", "status"]],
             cwd=p,
         )
@@ -75,7 +98,7 @@ class GitPMakeupPlugin(pm.AbstractPmakeupPlugin):
         :param value: value of the property to set
         :param cwd: directory where to execute the commit (needs to be a git repository)
         """
-        self.execute_return_stdout(
+        self.operating_system.execute_and_forget(
             commands=[["git", "config", name, f"\"{value}\""]],
             cwd=cwd,
         )
@@ -88,14 +111,14 @@ class GitPMakeupPlugin(pm.AbstractPmakeupPlugin):
         :param cwd: path inside a git repository
         :return: latest tag name
         """
-        exit_code, stdout, stderr = self.execute_return_stdout(
+        exit_code, stdout, stderr = self.operating_system.execute_return_stdout(
             commands=[["git", "describe"]],
             cwd=cwd,
         )
         return stdout.strip()
 
     @pm.register_command.add("git")
-    def git_log(self, cwd: pm.path, start_commit: str, end_commit: str) -> Iterable[pm.CommitEntry]:
+    def git_log(self, cwd: pm.path, start_commit: str, end_commit: str) -> Iterable[CommitEntry]:
         """
         generate the log entry
 
@@ -107,7 +130,7 @@ class GitPMakeupPlugin(pm.AbstractPmakeupPlugin):
         # use %% to print % in the command line
         syntax = """newcommit%%ncommit:%%H%%nsubject:%%s%%nauthorname:%%aN%%nauthormail:%%aE%%nauthordate:%%aI%%nbody:%%b%%nendcommit"""
 
-        exit_code, stdout, stderr = self.execute_return_stdout(
+        exit_code, stdout, stderr = self.operating_system.execute_return_stdout(
             commands=[["git", "log", "--date=iso", f"""--pretty=format:{syntax}""", f"{start_commit}..{end_commit}"]],
             cwd=cwd,
             check_exit_code=True
@@ -130,7 +153,7 @@ class GitPMakeupPlugin(pm.AbstractPmakeupPlugin):
                 body_started = False
                 continue
             if line == "endcommit":
-                yield pm.CommitEntry(
+                yield CommitEntry(
                     hash=commit_hash,
                     author=author_name,
                     author_email=author_mail,
@@ -213,7 +236,7 @@ class GitPMakeupPlugin(pm.AbstractPmakeupPlugin):
         :param cwd: directory where to execute the commit (needs to be a git repository)
         """
 
-        self.platform.fire_command_and_wait(
+        self.operating_system.execute_and_forget(
             commands=[["git", "remote", "add", remote_name, f"\"{remote_url}\""]],
             cwd=cwd,
         )
@@ -228,9 +251,7 @@ class GitPMakeupPlugin(pm.AbstractPmakeupPlugin):
         :param cwd: directory where to execute the commit (needs to be a git repository)
         """
 
-        self.platform.fire_command_and_wait(
+        self.operating_system.execute_and_forget(
             commands=[["git", "tag", "-a", f"\"{tag_name}\"", "-m", f"\"{description}\""]],
             cwd=cwd
         )
-
-GitPMakeupPlugin.autoregister()

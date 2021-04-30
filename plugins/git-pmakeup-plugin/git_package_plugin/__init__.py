@@ -1,0 +1,1 @@
+from git_package_plugin.GitPMakeupPlugin import GitPMakeupPlugin

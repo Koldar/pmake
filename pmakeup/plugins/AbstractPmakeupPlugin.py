@@ -116,12 +116,18 @@ class AbstractPmakeupPlugin(abc.ABC):
         :param otherwise: the value the varible with name will have if the such a variable is not present
 
         """
-        if name not in self._model._eval_globals.variables:
-            self._model._eval_globals.variables[name] = otherwise
-        return self._model._eval_globals.variables[name]
+        if name not in self.get_registry().variables:
+            self.get_registry().variables[name] = otherwise
+        return self.get_registry().variables[name]
 
     def get_shared_variables(self) -> "pm.AttrDict":
-        return self._model._eval_globals.variables
+        return self.get_registry().variables
+
+    def get_registry(self) -> "pm.PMakeupRegistry":
+        """
+        get the pmakeup registry, where all shared entities available for plugins are located
+        """
+        return self._model._eval_globals
 
     def get_variable(self, name: str) -> Any:
         """

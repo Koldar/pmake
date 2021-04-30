@@ -20,7 +20,6 @@ from pmakeup import version
 
 # utils (low priority)
 from pmakeup.models.AttrDict import AttrDict
-from pmakeup.plugins.git.CommitEntry import CommitEntry
 from pmakeup.TargetDescriptor import TargetDescriptor
 from pmakeup.platforms.InterestingPath import InterestingPath
 
@@ -51,9 +50,6 @@ from pmakeup.plugins.targets.TargetsPMakeupPlugin import TargetsPMakeupPlugin
 
 import pmakeup.plugins.strings.StringsPMakeupPlugin
 from pmakeup.plugins.strings.StringsPMakeupPlugin import StringsPMakeupPlugin
-
-import pmakeup.plugins.git.GitPMakeupPlugin
-from pmakeup.plugins.git.GitPMakeupPlugin import GitPMakeupPlugin
 
 import pmakeup.plugins.tempfiles.TempFilesPMakeupPlugin
 from pmakeup.plugins.tempfiles.TempFilesPMakeupPlugin import TempFilesPMakeupPlugin
@@ -88,12 +84,6 @@ from pmakeup.models.PMakeupRegistry import PMakeupRegistry
 from pmakeup.platforms.WindowsOSSystem import WindowsOSSystem
 from pmakeup.platforms.LinuxOSSystem import LinuxOSSystem
 
-# from pmakeup.plugins.windows import WindowsPMakeupPlugin
-# from pmakeup.plugins.windows.WindowsPMakeupPlugin import WindowsPMakeupPlugin
-#
-# from pmakeup.plugins.linux import LinuxPMakeupPlugin
-# from pmakeup.plugins.linux.LinuxPMakeupPlugin import LinuxPMakeupPlugin
-
 # cache
 import pmakeup.cache.IPMakeupCache
 from pmakeup.cache.IPMakeupCache import IPMakeupCache
@@ -101,37 +91,9 @@ from pmakeup.cache.IPMakeupCache import IPMakeupCache
 import pmakeup.cache.JsonPMakeupCache
 from pmakeup.cache.JsonPMakeupCache import JsonPMakeupCache
 
-#
-# # standard plugins
-# import pmakeup.StandardPMakeupPlugin
-# import pmakeup.LinuxSessionScript
-# import pmakeup.WindowsSessionScript
-#
-#
-#
-#
-# # ######################################################
-# # now import classes (order here is irrelevant)
-# # ######################################################
-#
-#from pmakeup.models.AttrDict import AttrDict
+# ######################################################
+# now import classes (order here is irrelevant)
+# ######################################################
 
-# from pmakeup.platforms.InterestingPath import InterestingPath
-
-#from pmakeup.plugins import AbstractPmakeupPlugin
-#from pmakeup.models.PMakeupModel import PMakeupModel
-
-
-# from pmakeup.platforms.InterestingPath import InterestingPath
-# from pmakeup.models.PMakeupModel import PMakeupModel
-# from pmakeup.TargetDescriptor import TargetDescriptor
-# from pmakeup.exceptions.PMakeupException import PMakeupException
-# from pmakeup.exceptions.AssertionPMakeupException import AssertionPMakeupException
-# from pmakeup.plugins.git.CommitEntry import CommitEntry
-# from pmakeup.cache.IPMakeupCache import IPMakeupCache
-# from pmakeup.cache.JsonPMakeupCache import JsonPMakeupCache
-# from pmakeup.StandardPMakeupPlugin import StandardPMakeupPlugin
-# from pmakeup.LinuxSessionScript import LinuxSessionScript
-# from pmakeup.WindowsSessionScript import WindowsSessionScript
 from pmakeup.models.PMakeupRegistry import PMakeupRegistry
 

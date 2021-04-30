@@ -64,7 +64,7 @@ class CorePMakeupPlugin(pm.AbstractPmakeupPlugin):
         :param message: message to log
         """
 
-        if not self.get_variable("disable_log_command"):
+        if not self.get_variable_or_set_it("disable_log_command", False):
             logging.info(message)
 
     @pm.register_command.add("core")
@@ -114,13 +114,31 @@ class CorePMakeupPlugin(pm.AbstractPmakeupPlugin):
     @pm.register_command.add("core")
     def ensure_has_variable(self, name: str) -> None:
         """
+        Ensure the user has passed a variable in the registry.
+        If not, an exception is generated
+
+        :param name: the variable name to check
+
+        """
+        return self.ensure_condition(
+            lambda: name in self.get_shared_variables(),
+            message=f"""No variable in registry named "{name}"."""
+        )
+
+    @pm.register_command.add("core")
+    def ensure_has_cli_variable(self, name: str) -> None:
+        """
         Ensure the user has passed a variable via "--variable" CLI utils.
         If not, an exception is generated
 
         :param name: the variable name to check
 
         """
-        return self.ensure_condition(lambda: name in self.get_shared_variables(), message=f"""No variable passed with "--variable" named "{name}".""")
+        self.log_command(f"Checking if the user has passed the variable from CLI \"{name}\"...")
+        return self.ensure_condition(
+            lambda: name in self.get_registry().pmakeup_cli_variables,
+            message=f"""No variable passed with "--variable" named "{name}"."""
+        )
 
     @pm.register_command.add("core")
     def semantic_version_2_only_core(self, filename: str) -> Version:
