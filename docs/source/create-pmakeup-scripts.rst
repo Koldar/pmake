@@ -9,6 +9,8 @@ If you need a function that is not available in the ``pmakeup`` project, you can
 If another developer has written a ``pmakeup`` plugin, you can just use the plugin by simply installing the package in
 your ``pip`` environment (``venv`` are supported as well).
 
+You can find some example of usage of ``pmakeup`` plugin in the ``example/`` folder  (see `here https://github.com/Koldar/pmakeup/tree/main/examples>`)
+
 Integrate pycharm in PMakeupfile
 --------------------------------
 
