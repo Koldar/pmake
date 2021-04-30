@@ -84,6 +84,20 @@ pmakeup build
 
 The application will first invoke `clean` and then `build` functions.
 
+# Documentation
+
+To see the online documentation, please see [here](https://pmakeup.readthedocs.io/en/latest/)
+
+# Repo structure
+
+- plugins: contains a set of folder where pmakeup plugins I have made are placed
+- pmakeup: main source pmakeup code repository 
+- tests: tests for pmakeup project
+- docs: source code of the documentation of pmakeup
+- images: some images in pmakeup
+- examples: contains some examples to let you start in writing pmakeup scripts
+- `PMakeupfile.py` script allowing you to build and upload to pypi pmakeup code
+
 # For the developer
 
 This section is useful for the contributors.
@@ -127,39 +141,4 @@ pmakeup update-version-minor build upload-to-pypi
 ```
 
 You will need to create `TWINE_PYPI_PASSWORD` containig your twine password to upload 
-
-# Documentation
-
-To see the online documentation, please see [here](https://pmakeup.readthedocs.io/en/latest/)
-
-I have installed `miktex` as latex
-
-```
-pip install sphinx
-cd docs/
-sphinx-quickstart
-make html latexpdf
-```
-
-For latex, the packages needs to be installed (may be superset):
-
-```
-anyfontsize, auxhook, beamer, bigintcalc, bitset, capt-of, changepage, 
-cmap, courier, datatool, dvips, etexcmds, fancyhdr, fancyvrb, fncychap, 
-fontawesome, fontspec, fp, framed, geometry, gettitlestring, glossaries, 
-hycolor, hyperref, intcalc, jknappen, koma-script, kvoptions, 
-latexmk, letltxmacro, listings, lm, luatex85, mdframed, mfirstuc, 
-miktex-lualatex, moresize, needspace, oberdiek, parskip, pdfescape, 
-psnfss, refcount, rerunfilecheck, rsfs, sansmathaccent, substr, 
-supetabular, tabulary, tex-ini-files, textcase, titlesec, tocbibind, 
-translator, uniquecounter, upquote, url, wrapfig, xfor, xkeyval, 
-zapfding, zref
-```
-
-# Repo structure
-
-- plugins: contains a set of folder where pmakeup plugins I have made are placed
-- pmakeup: main source pmakeup code repository 
-- tests: tests for pmakeup project
-- docs: documentation of pmakeup
  
