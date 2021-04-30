@@ -82,7 +82,7 @@ class FilesPMakeupPlugin(pm.AbstractPmakeupPlugin):
         Check if the given path represents a file or a directory
 
         :param p: paths to check
-        return: true if the concatenated version of p is a file. False otherwise
+        :return: true if the concatenated version of p is a file. False otherwise
         """
 
         to_check = self._abs_wrt_cwd(*p)
@@ -94,7 +94,7 @@ class FilesPMakeupPlugin(pm.AbstractPmakeupPlugin):
         Check if the given path is a directory
 
         :param p: paths to check
-        return: true if the concatenated version of p is a directory. False otherwise
+        :return: true if the concatenated version of p is a directory. False otherwise
         """
 
         to_check = self._abs_wrt_cwd(*p)
@@ -893,10 +893,10 @@ class FilesPMakeupPlugin(pm.AbstractPmakeupPlugin):
         """
         Show the list of all the directories in the given directory
 
-        :param folder: folder to scan. default to CWD
-        :param generate_absolute_path: if true, we will generate in the outptu the absolute path of the subfolders. Otherwise we will return only the
-        names
-        :return:
+        :param folder: folder to scan. If missing, default to CWD
+        :param generate_absolute_path: if true, we will generate in the outptu the absolute path of the subfolders.
+            Otherwise we will return only the names.
+        :return: a list of absolute paths representing the subdirectories inside ``folder``
         """
         if folder is None:
             folder = self.get_cwd()

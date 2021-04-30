@@ -32,6 +32,22 @@ class MyTestCase(unittest.TestCase):
             do()
             self.assertEqual(fake_err.getvalue().strip(), expected)
 
+    def test_has_git_config_ok(self):
+
+        model = pm.PMakeupModel()
+        model.input_string = """
+            echo(has_git_config("user.name"))
+        """
+        self.assertStdoutEquals(f"True", lambda: model.manage_pmakefile())
+
+    def test_has_git_config_ko(self):
+
+        model = pm.PMakeupModel()
+        model.input_string = """
+            echo(has_git_config("user.edghdname"))
+        """
+        self.assertStdoutEquals(f"False", lambda: model.manage_pmakefile())
+
     def test_is_git_repo_clean(self):
         from git import Repo
 

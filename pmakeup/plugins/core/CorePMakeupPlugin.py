@@ -141,6 +141,27 @@ class CorePMakeupPlugin(pm.AbstractPmakeupPlugin):
         )
 
     @pm.register_command.add("core")
+    def ensure_has_cli_variable_is_one_of(self, name: str, *allowed_values) -> None:
+        """
+        Ensure that a variable has been passed from the command line and has a value among the one passed
+
+        :param name: variable name
+        :param allowed_values: set of values we check against the variable calue
+        """
+        self.log_command(f"Checking if the variable passed by the user from CLI \"{name}\" has one of the values {', '.join(map(str, allowed_values))}...")
+        self.ensure_condition(
+            lambda: name in self.get_registry().pmakeup_cli_variables,
+            message=f"""No variable passed with "--variable" named "{name}"."""
+        )
+        val = self.get_registry().pmakeup_cli_variables[name]
+        self.ensure_condition(
+            lambda: val in allowed_values,
+            message=f"""variable {name} (with value {val}) passed with "--variable" has not a value among {', '.join(map(str, allowed_values))}."""
+        )
+
+
+
+    @pm.register_command.add("core")
     def semantic_version_2_only_core(self, filename: str) -> Version:
         """
         A function that can be used within ::get_latest_version_in_folder

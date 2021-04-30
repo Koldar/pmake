@@ -254,9 +254,10 @@ class WindowsPMakeupPlugin(pm.AbstractPmakeupPlugin):
         :param hkey: registry root
         :param key: key to open
         :param architecture: architecture of the registry
-        :return: iterable of key-value pairs. The first element is the name of the keyvale, the second is the value
-        associated. The third is the type of the value. see https://docs.python.org/3.9/library/winreg.html?highlight=winreg#value-types
-
+        :return: iterable of key-value pairs. The first element is the name of the keyvale,
+            the second is the value associated.
+            The third is the type of the value.
+        :see https://docs.python.org/3.9/library/winreg.html?highlight=winreg#value-types:
         """
 
         architecture = architecture or self.core.get_architecture()
@@ -336,7 +337,7 @@ class WindowsPMakeupPlugin(pm.AbstractPmakeupPlugin):
         :param key: key involved
         :param item: key-vaue pair that may or may not exists
         :param architecture: architecture to use to gain access to the registry. If left missing, we will use the
-        archietcture fo the OS of the current machine
+            architecture fo the OS of the current machine
         :return: true if the key-value does not exists in the given `key`
         """
         return self.has_registry_value(winreg.HKEY_LOCAL_MACHINE, key, item, architecture=architecture)
@@ -350,7 +351,7 @@ class WindowsPMakeupPlugin(pm.AbstractPmakeupPlugin):
         :param key: key involved
         :param item: key-vaue pair that may or may not exists
         :param architecture: architecture to use to gain access to the registry. If left missing, we will use the
-        archietcture fo the OS of the current machine
+            architecture fo the OS of the current machine
         :return: true if the key-value does not exists in the given `key`
         """
         return self.has_registry_value(winreg.HKEY_CURRENT_USER, key, item, architecture=architecture)

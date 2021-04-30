@@ -87,7 +87,7 @@ class PathsPMakeupPlugin(pm.AbstractPmakeupPlugin):
         Compute the extension of a file
 
         :param p: the file to consider
-        :return the fiel extension
+        :return: the file extension
         """
         f = self._abs_wrt_cwd(*p)
         return os.path.splitext(f)[1].lstrip('.')
